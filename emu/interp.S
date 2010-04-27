@@ -1,0 +1,2 @@
+.section .interp
+.asciz "./temu"
