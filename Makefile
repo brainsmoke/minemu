@@ -4,7 +4,7 @@ EMU_LINK=ld
 
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
-CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -g
+CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -g -DHASH_IJMP=1
 #CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -Os
 STRIP=strip --strip-all
 
@@ -50,6 +50,7 @@ TARGETS=$(TEST_TARGETS)\
 	test/emu/mprotect\
 	test/emu/stack\
 	test/emu/compat\
+	test/emu/write_vdso\
 	test/emu/offset_mem\
 	test/emu/taint_test\
 	record\

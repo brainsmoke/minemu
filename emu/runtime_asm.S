@@ -24,7 +24,11 @@ xor %ebp, %ebp
 push $0
 popf
 pop %esp
-jmp jump_back_to_jit_code
+jmp *jit_eip
+
+#
+# OLD VERSION
+#
 
 #
 # runtime_ijmp() is called from the jit code and has hackish calling
@@ -43,10 +47,54 @@ jmp jump_back_to_jit_code
 #
 # outcome of this routine is a resored state and a jump to the
 # right jit code.
+
+#ifdef HASH_IJMP
 .global runtime_ijmp
 .type runtime_ijmp, @function
 runtime_ijmp:
+# look up the jump address in the jmp_list
+cld
+push %edi
+push %ecx
+movzx %ax, %ecx
+mov $jmp_list, %edi
+lookup_loop:
+cmpl %eax, (%edi, %ecx, 4)
+je,pt found
+testl $0x0, (%edi, %ecx, 4)
+jz,pn cache_miss
+inc %cx
+cmp %ax, %cx
+jz,pn cache_miss
+jmp lookup_loop
 
+found:
+# address found in jmp_list,
+# look up the mapping in the corresponding
+# jit_address list
+movl (JMP_LIST_SIZE*4)(%edi, %ecx, 4), %eax
+
+# - save jit_address in cache
+# - restore register state
+# - jump to jit_address
+jit_return:
+mov 8(%esp), %edi
+pop %ecx
+mov %eax, (%edi)
+pop %edi
+addl $4, %esp
+mov %eax, jit_eip
+popf
+pop %eax
+pop %esp
+jmp *jit_eip
+
+
+
+#else
+.global runtime_ijmp
+.type runtime_ijmp, @function
+runtime_ijmp:
 # look up the jump address in the jmp_list
 cld
 push %edi
@@ -75,16 +123,13 @@ mov %eax, jit_eip
 popf
 pop %eax
 pop %esp
-
+jmp *jit_eip
+#endif
 
 #
 # this symbol is used by the signal interceptor to set a breakpoint
 # all runtime code must jump back to jit code using this instuction
 #
-.global jump_back_to_jit_code
-jump_back_to_jit_code:
-
-jmp *jit_eip
 
 # address not found in jmp_list
 cache_miss:
@@ -163,7 +208,7 @@ jz int80_address_lost
 popf
 pop %eax
 pop %esp
-jmp jump_back_to_jit_code
+jmp *jit_eip
 int80_address_lost:
 movl user_eip, %eax
 push $jit_eip
@@ -172,23 +217,21 @@ jmp runtime_ijmp
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
-movl (%esp), %ebp
+pop %ebp
+lea  8(%esp), %esp
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
-addl $12, (%esp)                     # user stack: %ebp  %edx  %ecx  <ret_addr>
 pushf
 call runtime_syscall
 popf
 push %eax
 pushf
-movl  8(%esp), %eax                 # user stack pointer
+push $jit_eip
+movl 12(%esp), %eax                 # user stack pointer
 
-movl -12(%eax), %ebp
 movl  -8(%eax), %edx
 movl  -4(%eax), %ecx
 movl    (%eax), %eax                 # return address
-
-push $jit_eip
 jmp runtime_ijmp
 
 runtime_jit:

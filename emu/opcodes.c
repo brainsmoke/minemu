@@ -6,6 +6,7 @@
 #include "scratch.h"
 #include "runtime.h"
 #include "error.h"
+#include "taint.h"
 
 /* optable */
 
@@ -141,7 +142,7 @@ static const unsigned char g3A_optable[] =
 
 #define U  (1)
 
-#define CONTROL      (0x10)
+#define CONTROL      (0x20)
 #define CONTROL_MASK (~(CONTROL-1))
 
 #define JR (CONTROL|0)
@@ -163,35 +164,88 @@ static const unsigned char g3A_optable[] =
 
 #define JOIN (CONTROL|12)
 
-#define INT (0x20)
-#define SE  (0x21)
+#define INT (0x40)
+#define SE  (0x41)
 
-#define TAINT (0x30)
-#define TRM   (TAINT|1) /* propagate taint: reg -> mem */
-#define TMR   (TAINT|2) /*                  mem -> reg */
-#define TCR   (TAINT|3) /* clear taint:     mem        */
-#define TCM   (TAINT|4) /*                  reg        */
-#define TAM   (TAINT|5) /* add taint        reg -> mem */
-#define TAR   (TAINT|6) /* add taint        reg -> mem */
-#define TPU   (TAINT|7) /* propagate taint for push    */
-#define TPC   (TAINT|9) /* clear taint for push        */
-#define TPO   (TAINT|8) /* propagate taint for pop     */
+#define XXX (C) /* todo */
+#define IGN (C) /* todo */
+
+#define TAINT (0x80)
+#define TAINT_MASK (~(TAINT-1))
+#define TCM   (TAINT|0) /* copy taint:   reg -> mem */
+#define TCR   (TAINT|1) /*               mem -> reg */
+#define TEM   (TAINT|2) /* erase taint:  mem        */
+#define TER   (TAINT|3) /*               reg        */
+#define TOM   (TAINT|4) /* or taint:     reg -> mem */
+#define TOR   (TAINT|5) /* or taint:     mem -> reg */
+//#define TCA   (C)
+//#define TEA   (C)
+//#define TOA   (C)
+#define BCA   (C)
+//#define BEA   (C)
+//#define BOA   (C)
+
+#define TCO   (C)
+#define TCO   (C)
+//#define TEO   (C)
+//#define TOO   (C)
+#define BCO   (C)
+//#define BEO   (C)
+//#define BOO   (C)
+
+#define BCM   (TAINT|6)  /* copy taint:   reg -> mem */
+#define BCR   (TAINT|7)  /*               mem -> reg */
+#define BEM   (TAINT|8)  /* erase taint:  mem        */
+#define BER   (TAINT|9)  /*               reg        */
+#define BOM   (TAINT|10) /* or taint:     reg -> mem */
+#define BOR   (TAINT|11) /* or taint:     mem -> reg */
+
+#define TXM   (TAINT|12) /* or taint:     reg -> mem / clear if src==dest */
+#define TXR   (TAINT|13) /* or taint:     mem -> reg / clear if src==dest */
+#define BXM   (TAINT|12) /* or taint:     reg -> mem / clear if src==dest */
+#define BXR   (TAINT|13) /* or taint:     mem -> reg / clear if src==dest */
+
+#define TPR   (TAINT|14) /* copy taint  for push     */
+#define TPE   (TAINT|15) /* clear taint for push     */
+#define TPM   (TAINT|16) /* clear taint for push     */
+#define TQR   (TAINT|17) /* propagate taint for pop  */
+#define TQE   (TAINT|18) /* propagate taint for pop  */
+#define TQM   (TAINT|19) /* propagate taint for pop  */
+
+#define BMI   (TAINT|20) /* taint multiply with immediate */
+#define TMI   (TAINT|21) /* taint multiply with immediate */
+#define BMM   (TAINT|22) /* taint multiply */
+#define TMM   (TAINT|23) /* taint multiply */
+#define BMR   (TAINT|24) /* taint multiply */
+#define TMR   (TAINT|25) /* taint multiply */
+
+#define BSW   (TAINT|26)
+#define TSW   (TAINT|27)
+
+#define BSA   (TAINT|28)
+#define TSA   (TAINT|29)
+
+#define TCH   (TAINT|30)
+#define TCD   (TAINT|31)
+
+#define CMR   (TAINT|32)
+#define CMM   (TAINT|33)
 
 static const unsigned char main_action[] =
 
 {
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
-/* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 3? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 0? */ BOM,TOM,BOR,TOR, C , C , C , C ,BOM,TOM,BOR,TOR, C , C , C , C ,
+/* 1? */ BOM,TOM,BOR,TOR, C , C , C , C ,BXM,TXM,BXR,TXR, C , C , C , C ,
+/* 2? */ BOM,TOM,BOR,TOR, C , C , C , C ,BXM,TXM,BXR,TXR, C , C , C , C ,
+/* 3? */ BXM,TXM,BXR,TXR, C , C , C , C , C , C , C , C , C , C , C , C ,
 /* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 5? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 6? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 5? */ TPR,TPR,TPR,TPR,TPR,TPR,TPR,TPR,TQR,TQR,TQR,TQR,TQR,TQR,TQR,TQR,
+/* 6? */ IGN,IGN, C , C , C , C , C , C ,TPE,IGN,TPE,IGN,IGN,IGN,IGN,IGN,
 /* 7? */  JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC,
-/* 8? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 9? */  C , C , C , C , C , C , C , C , C , C , CF, C , C , C , C , C ,
-/* A? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 8? */  C , C , C , C , C , C ,BSW,TSW,BCM,TCM,BCR,TCR,IGN,IGN,IGN,IGN,
+/* 9? */  C ,TSA,TSA,TSA,TSA,TSA,TSA,TSA,TCH,TCD, CF, C ,TPE, C , C ,BCA,
+/* A? */ BCO,TCO, C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* C? */  C , C , RC, R , C , C , C , C , C , C , RF, RF, C ,INT, C , C ,
 /* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
@@ -740,6 +794,12 @@ static int copy_instr(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
+static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len = 0;
+	return len+copy_instr(&dest[len], instr, trans);
+}
+
 static void translate_control(char *dest, instr_t *instr, trans_t *trans,
                               char *map, unsigned long map_len)
 {
@@ -812,6 +872,8 @@ void translate_op(char *dest, instr_t *instr, trans_t *trans,
 {
 	if ( (instr->action & CONTROL_MASK) == CONTROL )
 		translate_control(dest, instr, trans, map, map_len);
+	else if ( (instr->action & TAINT_MASK) == TAINT )
+		taint_instr(dest, instr, trans);
 	else if (instr->action == C)
 		copy_instr(dest, instr, trans);
 	else if ( (instr->action == U) || (instr->action == JOIN) )
