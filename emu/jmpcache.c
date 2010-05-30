@@ -14,7 +14,7 @@ void print_jmp_list(void)
 {
 	int i;
 	debug("jmp_list:");
-#ifdef HASH_IJMP
+#ifndef LIST_IJMP
 	for (i=0; i<JMP_LIST_SIZE; i++) if (jmp_list.addr[i])
 #else
 	for (i=0; i<jmp_list_size; i++)
@@ -23,7 +23,7 @@ void print_jmp_list(void)
 	debug("");
 }
 
-#ifdef HASH_IJMP
+#ifndef LIST_IJMP
 
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
@@ -173,7 +173,7 @@ void move_jmp_mappings(char *jit_addr, unsigned long jit_len, char *new_addr)
 	int i;
 	long diff = (long)new_addr-(long)jit_addr;
 
-#ifdef HASH_IJMP
+#ifndef LIST_IJMP
 	for (i=0; i<JMP_LIST_SIZE; i++)
 #else
 	for (i=0; i<jmp_list_size; i++)

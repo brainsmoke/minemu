@@ -632,7 +632,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
-#ifdef HASH_IJMP
+#ifndef LIST_IJMP
 
 static const char *call_head =
 	"\x68????"         /* push $retaddr */
@@ -885,7 +885,7 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			trans->imm += 2+off; trans->len += 2+off;
 			break;
 		case CR:
-#ifdef HASH_IJMP
+#ifndef LIST_IJMP
 			off = generate_call_head(dest, instr, trans);
 			generate_jump(&dest[off], pc+imm, trans, map, map_len);
 			trans->imm += off; trans->len += off;

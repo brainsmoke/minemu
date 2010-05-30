@@ -48,7 +48,7 @@ jmp *jit_eip
 # outcome of this routine is a resored state and a jump to the
 # right jit code.
 
-#ifdef HASH_IJMP
+#ifndef LIST_IJMP
 .global runtime_ijmp
 .type runtime_ijmp, @function
 runtime_ijmp:

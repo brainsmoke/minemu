@@ -4,7 +4,8 @@ EMU_LINK=ld
 
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
-CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -g -DHASH_IJMP=1
+CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -g
+#CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -g -DLIST_IJMP=1
 #CFLAGS=-Wall -Wshadow -pedantic -std=gnu99 -Os
 STRIP=strip --strip-all
 
