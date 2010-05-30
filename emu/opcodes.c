@@ -632,6 +632,38 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
+#ifdef HASH_IJMP
+
+static const char *call_head =
+	"\x68????"         /* push $retaddr */
+	"\xc7\x05????????" /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
+	"\xc7\x05????????" /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
+;
+
+static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+{
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	memcpy(dest, call_head, 0x19);
+	imm_to(&dest[0x01], (long)&instr->addr[instr->len]);
+	imm_to(&dest[0x07], (long)&jmp_list.addr[hash]);
+	imm_to(&dest[0x0B], (long)&instr->addr[instr->len]);
+ /* XXX MAKES CODE IMMOBILE */
+	imm_to(&dest[0x11], (long)&jmp_list.jit_addr[hash]);
+	return 0x19;
+}
+
+static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len = generate_call_head(dest, instr, trans);
+	generate_ijump(&dest[len], instr, trans);
+	trans->len += len;
+/* XXX FUGLY */
+	imm_to(&dest[0x15], (long)dest+trans->len);
+	return trans->len;
+}
+
+#else
+
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 {
 	dest[0] = '\x68';
@@ -641,6 +673,8 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 
 	return trans->len;
 }
+
+#endif
 
 static const char *ret_code  =
 	"\xA3????"         /* mov %eax, scratch_stack-4 */
@@ -851,10 +885,18 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			trans->imm += 2+off; trans->len += 2+off;
 			break;
 		case CR:
+#ifdef HASH_IJMP
+			off = generate_call_head(dest, instr, trans);
+			generate_jump(&dest[off], pc+imm, trans, map, map_len);
+			trans->imm += off; trans->len += off;
+			/* XXX FUGLY */
+			imm_to(&dest[0x15], (long)dest+trans->len);
+#else
 			dest[0] = '\x68';
 			memcpy(&dest[1], &pc, sizeof(long));
 			generate_jump(&dest[5], pc+imm, trans, map, map_len);
 			trans->imm += 5; trans->len += 5;
+#endif
 			break;
 		case JOIN:
 			generate_ill(dest, trans);

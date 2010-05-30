@@ -510,7 +510,7 @@ debug("miss: addr %x", addr);
 
 //	add_jmp_mapping(addr, jit_addr);
 
-//fd_printf(0, "x", 1);
+//fd_printf(1, "x", 1);
 //if (addr == 0x40000414)
 //{print_map(map);
 //die("");

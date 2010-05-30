@@ -25,18 +25,19 @@ void print_jmp_list(void)
 
 #ifdef HASH_IJMP
 
-#define HASH_INDEX(addr) ((unsigned long)(addr)&0xfffful)
-#define HASH_OFFSET(i, addr) (((unsigned long)(i)-(unsigned long)(addr))&0xfffful)
-
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
+
+//debug("..... %08x %08x", jmp_list.addr[0xf4a2], jmp_list.jit_addr[0xf4a2]);
 
 	for (i=hash; i<JMP_LIST_SIZE; i++)
 		if ( jmp_list.addr[i] == NULL )
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
+//debug("%08x %04x", addr, i);
+if (i == 0xf4a2) debug ("xx");
 			return;
 		}
 
@@ -55,6 +56,7 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 
 static void jmp_list_clear(char *addr, unsigned long len)
 {
+debug ("clear");
 	int i, last;
 	char *tmp_addr, *tmp_jit_addr;
 
@@ -69,17 +71,19 @@ static void jmp_list_clear(char *addr, unsigned long len)
 
 	for (i=0; i<JMP_LIST_SIZE; i++)
 	{
-		if ( HASH_OFFSET(last, jmp_list.addr[i]) <
-		     HASH_OFFSET(i, jmp_list.addr[i]) )
+		if ( jmp_list.addr[i] == NULL )
+			last = i;
+		else if ( HASH_OFFSET(last, jmp_list.addr[i]) <
+		          HASH_OFFSET(i, jmp_list.addr[i]) )
 		{
 			tmp_addr = jmp_list.addr[i];
 			tmp_jit_addr = jmp_list.jit_addr[i];
 			jmp_list.addr[i] = jmp_list.jit_addr[i] = NULL;
+//fd_printf(2, "moving ");
 			add_jmp_mapping(tmp_addr, tmp_jit_addr);
+			last = i;
 		}
 
-		if ( jmp_list.addr[i] == NULL )
-			last = i;
 	}
 }
 

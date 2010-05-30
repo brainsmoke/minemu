@@ -61,11 +61,12 @@ mov $jmp_list, %edi
 lookup_loop:
 cmpl %eax, (%edi, %ecx, 4)
 je,pt found
-testl $0x0, (%edi, %ecx, 4)
+testl $-1, (%edi, %ecx, 4)
 jz,pn cache_miss
 inc %cx
 cmp %ax, %cx
-jz,pn cache_miss
+je,pn cache_miss
+
 jmp lookup_loop
 
 found:
