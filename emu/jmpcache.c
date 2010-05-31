@@ -14,54 +14,11 @@ void print_jmp_list(void)
 {
 	int i;
 	debug("jmp_list:");
-#ifdef LIST_IJMP
-	for (i=0; i<jmp_list_size; i++)
-#else
 	for (i=0; i<JMP_LIST_SIZE; i++) if (jmp_list.addr[i])
-#endif
 		debug("%x -> %x", jmp_list.addr[i], jmp_list.jit_addr[i]);
 	debug("");
 }
 
-#ifdef LIST_IJMP
-
-static void jmp_list_clear(char *addr, unsigned long len)
-{
-	int i_read, i_write;
-
-	for (i_read=0, i_write=0; i_read<jmp_list_size; i_read++)
-		if ( !contains(addr, len, jmp_list.addr[i_read]) )
-		{
-			jmp_list.addr[i_write] = jmp_list.addr[i_read];
-			jmp_list.jit_addr[i_write] = jmp_list.jit_addr[i_read];
-			i_write++;
-		}
-
-	jmp_list_size = i_write;
-}
-
-void add_jmp_mapping(char *addr, char *jit_addr)
-{
-	if (jmp_list_size >= JMP_LIST_SIZE)
-		die("jump list overflow");
-
-	jmp_list.addr[jmp_list_size] = addr;
-	jmp_list.jit_addr[jmp_list_size] = jit_addr;
-	jmp_list_size++;
-}
-
-char *find_jmp_mapping(char *addr)
-{
-	int i;
-
-	for (i=0; jmp_list.addr[i]; i++)
-		if (jmp_list.addr[i] == addr)
-			return jmp_list.jit_addr[i];
-
-	return NULL;
-}
-
-#else
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
@@ -133,8 +90,6 @@ char *find_jmp_mapping(char *addr)
 	return NULL;
 }
 
-#endif
-
 static void jmp_cache_clear(char *addr, unsigned long len)
 {
 	int i;
@@ -168,11 +123,7 @@ void move_jmp_mappings(char *jit_addr, unsigned long jit_len, char *new_addr)
 	int i;
 	long diff = (long)new_addr-(long)jit_addr;
 
-#ifdef LIST_IJMP
-	for (i=0; i<jmp_list_size; i++)
-#else
 	for (i=0; i<JMP_LIST_SIZE; i++)
-#endif
 		if ( !contains(jit_addr, jit_len, jmp_list.jit_addr[i]) )
 			jmp_list.jit_addr[i] += diff;
 

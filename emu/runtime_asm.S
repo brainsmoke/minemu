@@ -27,10 +27,6 @@ pop %esp
 jmp *jit_eip
 
 #
-# OLD VERSION
-#
-
-#
 # runtime_ijmp() is called from the jit code and has hackish calling
 # conventions, optimized for small jit code and speed:
 #
@@ -47,43 +43,6 @@ jmp *jit_eip
 #
 # outcome of this routine is a resored state and a jump to the
 # right jit code.
-
-#ifdef LIST_IJMP
-
-.global runtime_ijmp
-.type runtime_ijmp, @function
-runtime_ijmp:
-# look up the jump address in the jmp_list
-cld
-push %edi
-push %ecx
-mov jmp_list_size, %ecx
-mov $jmp_list, %edi
-test %edi, %edi          # clear ZF
-repne scasl
-jne,pn cache_miss
-
-# address found in jmp_list,
-# look up the mapping in the corresponding
-# jit_address list
-movl (JMP_LIST_SIZE*4-4)(%edi), %eax
-
-# - save jit_address in cache
-# - restore register state
-# - jump to jit_address
-jit_return:
-mov 8(%esp), %edi
-pop %ecx
-mov %eax, (%edi)
-pop %edi
-addl $4, %esp
-mov %eax, jit_eip
-popf
-pop %eax
-pop %esp
-jmp *jit_eip
-
-#else
 
 .global runtime_ijmp
 .type runtime_ijmp, @function
@@ -124,8 +83,6 @@ popf
 pop %eax
 pop %esp
 jmp *jit_eip
-
-#endif
 
 #
 # this symbol is used by the signal interceptor to set a breakpoint
