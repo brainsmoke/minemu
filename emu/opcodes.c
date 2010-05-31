@@ -50,8 +50,6 @@
 
 #define BAT (BATSHIT)
 
-
-
 static const unsigned char main_optable[] =
 {
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
@@ -632,7 +630,19 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
-#ifndef LIST_IJMP
+#ifdef LIST_IJMP
+
+static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
+{
+	dest[0] = '\x68';
+	imm_to(&dest[1], (long)&instr->addr[instr->len]);
+	generate_ijump(&dest[5], instr, trans);
+	trans->len += 5;
+
+	return trans->len;
+}
+
+#else
 
 /* XXX MAKES CODE IMMOBILE */
 static const char *call_head =
@@ -662,18 +672,6 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	trans->len += len;
 /* XXX FUGLY */
 	imm_to(&dest[0x15], (long)dest+trans->len);
-	return trans->len;
-}
-
-#else
-
-static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
-{
-	dest[0] = '\x68';
-	imm_to(&dest[1], (long)&instr->addr[instr->len]);
-	generate_ijump(&dest[5], instr, trans);
-	trans->len += 5;
-
 	return trans->len;
 }
 
@@ -888,17 +886,17 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			trans->imm += 2+off; trans->len += 2+off;
 			break;
 		case CR:
-#ifndef LIST_IJMP
+#ifdef LIST_IJMP
+			dest[0] = '\x68';
+			memcpy(&dest[1], &pc, sizeof(long));
+			generate_jump(&dest[5], pc+imm, trans, map, map_len);
+			trans->imm += 5; trans->len += 5;
+#else
 			off = generate_call_head(dest, instr, trans);
 			generate_jump(&dest[off], pc+imm, trans, map, map_len);
 			trans->imm += off; trans->len += off;
 			/* XXX FUGLY */
 			imm_to(&dest[0x15], (long)dest+trans->len);
-#else
-			dest[0] = '\x68';
-			memcpy(&dest[1], &pc, sizeof(long));
-			generate_jump(&dest[5], pc+imm, trans, map, map_len);
-			trans->imm += 5; trans->len += 5;
 #endif
 			break;
 		case JOIN:
