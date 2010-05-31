@@ -634,6 +634,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 
 #ifndef LIST_IJMP
 
+/* XXX MAKES CODE IMMOBILE */
 static const char *call_head =
 	"\x68????"         /* push $retaddr */
 	"\xc7\x05????????" /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
@@ -647,8 +648,10 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
 	imm_to(&dest[0x01], (long)&instr->addr[instr->len]);
 	imm_to(&dest[0x07], (long)&jmp_list.addr[hash]);
 	imm_to(&dest[0x0B], (long)&instr->addr[instr->len]);
- /* XXX MAKES CODE IMMOBILE */
 	imm_to(&dest[0x11], (long)&jmp_list.jit_addr[hash]);
+/* XXX FUGLY translated address is inserted by caller since we don't know
+ * yet how long the instruction translation will be
+ */
 	return 0x19;
 }
 

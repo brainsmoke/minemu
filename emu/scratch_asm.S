@@ -12,8 +12,6 @@
 .global jmp_list
 .lcomm jmp_list_size, 4
 .global jmp_list_size
-.lcomm prof_tmp, 4
-.global prof_tmp
 .lcomm user_eip, 4
 .global user_eip
 .lcomm jit_eip, 4
