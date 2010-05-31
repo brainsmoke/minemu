@@ -89,17 +89,16 @@ jmp *jit_eip
 .type runtime_ijmp, @function
 runtime_ijmp:
 # look up the jump address in the jmp_list
-cld
 push %edi
 push %ecx
-movzx %ax, %ecx
+movzx %ax, %ecx                  # jump address & 0xffff -> %ecx
 mov $jmp_list, %edi
 lookup_loop:
-cmpl %eax, (%edi, %ecx, 4)
+cmpl %eax, (%edi, %ecx, 4)       # jmp_list.addr[%ecx]
 je,pt found
 testl $-1, (%edi, %ecx, 4)
 jz,pn cache_miss
-inc %cx
+inc %cx                          # %ecx = (%ecx+1) % 0x10000
 cmp %ax, %cx
 je,pn cache_miss
 
