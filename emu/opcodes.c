@@ -550,9 +550,9 @@ static int gen_code(char *dst, char *fmt, ...)
 			}
 			case 'S': case 's':
 			{
-				short l = va_arg(ap, int);
-				dst[j]   = (char)l;
-				dst[j+1] = (char)(l>>4);
+				short s = va_arg(ap, int);
+				dst[j]   = (char)s;
+				dst[j+1] = (char)(s>>4);
 				j += 2;
 				break;
 			}
