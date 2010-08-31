@@ -19,15 +19,32 @@ void print_jmp_list(void)
 	debug("");
 }
 
+extern jmp_list_t tmp_list;
+void print_jmp_listdiff(void)
+{
+	int i;
+	for (i=0; i<JMP_LIST_SIZE; i++)
+		if (!jmp_list.addr[i] || !jmp_list.jit_addr[i])
+if (tmp_list.addr[i] || tmp_list.jit_addr[i])
+		debug("%x -> %x (was %x -> %x)", jmp_list.addr[i], jmp_list.jit_addr[i], tmp_list.addr[i], tmp_list.jit_addr[i]);
+//		if ( (jmp_list.addr[i] != tmp_list.addr[i]) ||
+//		     (jmp_list.jit_addr[i] != tmp_list.jit_addr[i]) )
+//if (tmp_list.addr[i] && tmp_list.jit_addr[i])
+//		debug("%x -> %x (was %x -> %x)", jmp_list.addr[i], jmp_list.jit_addr[i], tmp_list.addr[i], tmp_list.jit_addr[i]);
+	tmp_list = jmp_list;
+}
+
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
+print_jmp_listdiff();
 
 	for (i=hash; i<JMP_LIST_SIZE; i++)
 		if ( jmp_list.addr[i] == NULL )
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
+debug("%04x %08x", i, addr);
 			return;
 		}
 
@@ -36,12 +53,14 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
+debug("%04x %08x", i, addr);
 			return;
 		}
 
 	debug("warning, hash jump table full");
 	jmp_list.addr[hash] = addr;
 	jmp_list.jit_addr[hash] = jit_addr;
+
 }
 
 static void jmp_list_clear(char *addr, unsigned long len)

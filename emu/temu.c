@@ -12,6 +12,9 @@
 #include "jit.h"
 #include "codemap.h"
 
+//
+#include "opcodes.h"
+
 int temu_main(int argc, char **argv, char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);

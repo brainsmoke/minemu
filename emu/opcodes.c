@@ -526,6 +526,142 @@ void imm_to(char *dest, long imm)
 	memcpy(dest, &imm, sizeof(long));
 }
 
+static int gen_code(char *dst, char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	int i,j, c, outc=1;
+	for (i=0,j=0; (c=fmt[i]); i++)
+	{
+		if ( (unsigned int)(c-'0') < 10 )
+			outc = outc*16 + (c-'0');
+		else if ( (unsigned int)(c-'A') < 6 )
+			outc = outc*16 + (c-'A'+10);
+		else if ( (unsigned int)(c-'a') < 6 )
+			outc = outc*16 + (c-'a'+10);
+		else switch (c)
+		{
+			case 'L': case 'l':
+			{
+				long l = va_arg(ap, long);
+				imm_to(&dst[j], l);
+				j += 4;
+				break;
+			}
+			case 'S': case 's':
+			{
+				short l = va_arg(ap, int);
+				dst[j]   = (char)l;
+				dst[j+1] = (char)(l>>4);
+				j += 2;
+				break;
+			}
+			case '$':
+			{
+				char *s = va_arg(ap, char *);
+				int len = va_arg(ap, int);
+				memcpy(&dst[j], s, len);
+				j+=len;
+				break;
+			}
+			case '.':
+			{
+				char x = va_arg(ap, int);
+				dst[j] = x;
+				j++;
+				break;
+			}
+			case '?':
+			{
+				char x = va_arg(ap, int);
+				if (x)
+				{
+					dst[j] = x;
+					j++;
+				}
+				break;
+			}
+			default:
+				break;
+		}
+		if (outc > 0xff)
+		{
+			dst[j] = (char)outc;
+			outc = 1;
+			j++;
+		}
+	}
+	va_end(ap);
+	return j;
+}
+
+static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
+{
+	return gen_code(
+		dest,
+
+		"89 25 L"     /* mov %esp, scratch_stack   */
+		"BC    L"     /* mov $scratch_stack-4 %esp */
+		"9c"          /* pushf                     */
+		"3B 05 L"     /* cmp o_addr, %eax          */
+		"2E 75 09"    /* jne, predict hit          */
+		"9d"          /* popf                      */
+		"58"          /* pop %eax                  */
+		"5C"          /* pop %esp                  */
+		"FF 25 L"     /* jmp *j_addr               */
+		"A3    L"     /* mov %eax, o_addr          */
+		"68    L"     /* push j_addr               */
+		"FF 25 L",    /* jmp *runtime_ijmp_addr    */
+
+		&scratch_stack,
+		&scratch_stack-1,
+		jmp_orig,
+		jmp_jit,
+		jmp_orig,
+		jmp_jit,
+		&runtime_ijmp_addr
+	);                         
+}
+
+static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+{
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	/* XXX FUGLY translated address is inserted by caller since we don't know
+	 * yet how long the instruction translation will be
+	 */
+	return gen_code(dest,
+		"68 L"          /* push $retaddr */
+		"c7 05 L L"     /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
+		"c7 05 L L",    /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
+		&instr->addr[instr->len],
+		&jmp_list.addr[hash],
+		&instr->addr[instr->len],
+		&jmp_list.jit_addr[hash], 0xdeadbeef
+	);
+}
+
+static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
+{
+	char **cache = alloc_jmp_cache(instr->addr);
+	long mrm_len = instr->len - instr->mrm;
+
+	int len = gen_code(
+		dest,
+		"A3 L"        /* mov %eax, scratch_stack-4 */
+		"? 8B",       /* mov ... ( -> %eax )       */
+		&scratch_stack-1,
+		instr->p[P2-PREFIX]
+	);   
+
+	memcpy(&dest[len], &instr->addr[instr->mrm], mrm_len);
+	dest[len] &= 0xC7; /* -> %eax */
+	len += mrm_len;
+	len += generate_ijump_tail(&dest[len], &cache[0], &cache[1]);
+	*trans = (trans_t){ .len = len };
+
+	return len;
+}
+
 int generate_jump(char *dest, char *jmp_addr, trans_t *trans,
                   char *map, unsigned long map_len)
 {
@@ -571,84 +707,79 @@ static int generate_jcc(char *dest, char *jmp_addr, int cond, trans_t *trans,
 	return trans->len;
 }
 
-static const char *ijump_head  =
-	"\xA3????"         /* mov %eax, scratch_stack-4 */
-;
-
-static const char *ijump_tail =
-	"\x89\x25????"     /* mov %esp, scratch_stack   */
-	"\xBC????"         /* mov $scratch_stack-4 %esp */
-	"\x9c"             /* pushf                     */
-	"\x3B\x05????"     /* cmp o_addr, %eax          */
-	"\x2E\x75\x09"     /* jne, predict hit          */
-	"\x9d"             /* popf                      */
-	"\x58"             /* pop %eax                  */
-	"\x5C"             /* pop %esp                  */
-	"\xFF\x25????"     /* jmp *j_addr               */
-	"\xA3????"         /* mov %eax, o_addr          */
-	"\x68????"         /* push j_addr               */
-	"\xFF\x25????"     /* jmp *runtime_ijmp_addr    */
- ;                         
-
-static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
+static int generate_ret(char *dest, char *addr, trans_t *trans)
 {
-	memcpy(&dest[0x00], ijump_tail, 0x2E);
+	char **cache = alloc_jmp_cache(addr);
+	int len = gen_code(
+		dest,
 
-	imm_to(&dest[0x02], (long)&scratch_stack);
-	imm_to(&dest[0x07], (long)&scratch_stack-4);
-	imm_to(&dest[0x0E], (long)jmp_orig);
-	imm_to(&dest[0x1A], (long)jmp_jit);
-	imm_to(&dest[0x1F], (long)jmp_orig);
-	imm_to(&dest[0x24], (long)jmp_jit);
-	imm_to(&dest[0x2A], (long)&runtime_ijmp_addr);
+		"A3 L"           /* mov %eax, scratch_stack-4 */
+		"58"             /* pop %eax                  */
+		"89 25 L"        /* mov %esp, scratch_stack   */
+		"BC L"           /* mov $scratch_stack-4 %esp */
+		"9c"             /* pushf                     */
+		"3B 05 L"        /* cmp o_addr, %eax          */
+		"2E 75 09"       /* jne, predict hit          */
+		"9d"             /* popf                      */
+		"58"             /* pop %eax                  */
+		"5C"             /* pop %esp                  */
+		"FF 25 L"        /* jmp *j_addr               */
+		"A3 L"           /* mov %eax, o_addr          */
+		"68 L"           /* push j_addr               */
+		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
-	return 0x2E;
+		&scratch_stack-1,
+		&scratch_stack,
+		&scratch_stack-1,
+		&cache[0],
+		&cache[1],
+		&cache[0],
+		&cache[1],
+		&runtime_ijmp_addr
+	);
+
+	*trans = (trans_t){ .len=len };
+
+	return len;
 }
 
-static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
+static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 {
-	char **cache = alloc_jmp_cache(instr->addr);
-	long mrm_len = instr->len - instr->mrm;
-	*trans = (trans_t){ .len=0x05 };
+	char **cache = alloc_jmp_cache(addr);
+	int len = gen_code(
+		dest,
 
-	memcpy(dest, ijump_head, 0x05);
-	imm_to(&dest[0x01], (long)&scratch_stack-4);
+		"A3 L"           /* mov %eax, scratch_stack-4 */
+		"58"             /* pop %eax                  */
+		"89 25 L"        /* mov %esp, scratch_stack   */
+		"BC L"           /* mov $scratch_stack-4 %esp */
+		"9c"             /* pushf                     */
+		"81 44 24 08"    /* add ??, 8(%esp)           */
+		"S 00 00"
+		"3B 05 L"        /* cmp o_addr, %eax          */
+		"2E 75 09"       /* jne, predict hit          */
+		"9d"             /* popf                      */
+		"58"             /* pop %eax                  */
+		"5C"             /* pop %esp                  */
+		"FF 25 L"        /* jmp *j_addr               */
+		"A3 L"           /* mov %eax, o_addr          */
+		"68 L"           /* push j_addr               */
+		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
-	if (instr->p[P2-PREFIX]) /* needed for call *%gs:0x10, sysenter mechanism */
-	{
-		dest[trans->len] = instr->p[P2-PREFIX];
-		trans->len++;
-	}
-	dest[trans->len] = '\x8B'; /* mov ... ( -> %eax )       */
-	trans->len++;
+		&scratch_stack-1,
+		&scratch_stack,
+		&scratch_stack-1,
+		addr[1] + (addr[2]<<4),
+		&cache[0],
+		&cache[1],
+		&cache[0],
+		&cache[1],
+		&runtime_ijmp_addr
+	);
 
-	memcpy(&dest[trans->len], &instr->addr[instr->mrm], mrm_len);
-	dest[trans->len] &= 0xC7; /* -> %eax */
-	trans->len += mrm_len;
-	trans->len += generate_ijump_tail(&dest[trans->len], &cache[0], &cache[1]);
+	*trans = (trans_t){ .len=len };
 
-	return trans->len;
-}
-
-/* XXX MAKES CODE IMMOBILE */
-static const char *call_head =
-	"\x68????"         /* push $retaddr */
-	"\xc7\x05????????" /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
-	"\xc7\x05????????" /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
-;
-
-static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
-{
-	int hash = HASH_INDEX(&instr->addr[instr->len]);
-	memcpy(dest, call_head, 0x19);
-	imm_to(&dest[0x01], (long)&instr->addr[instr->len]);
-	imm_to(&dest[0x07], (long)&jmp_list.addr[hash]);
-	imm_to(&dest[0x0B], (long)&instr->addr[instr->len]);
-	imm_to(&dest[0x11], (long)&jmp_list.jit_addr[hash]);
-/* XXX FUGLY translated address is inserted by caller since we don't know
- * yet how long the instruction translation will be
- */
-	return 0x19;
+	return len;
 }
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
@@ -661,141 +792,61 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
-static const char *ret_code  =
-	"\xA3????"         /* mov %eax, scratch_stack-4 */
-	"\x58"             /* pop %eax                  */
-	"\x89\x25????"     /* mov %esp, scratch_stack   */
-	"\xBC????"         /* mov $scratch_stack-4 %esp */
-	"\x9c"             /* pushf                     */
-	"\x3B\x05????"     /* cmp o_addr, %eax          */
-	"\x2E\x75\x09"     /* jne, predict hit          */
-	"\x9d"             /* popf                      */
-	"\x58"             /* pop %eax                  */
-	"\x5C"             /* pop %esp                  */
-	"\xFF\x25????"     /* jmp *j_addr               */
-	"\xA3????"         /* mov %eax, o_addr          */
-	"\x68????"         /* push j_addr               */
-	"\xFF\x25????"     /* jmp *runtime_ijmp_addr    */
-;
-
-static int generate_ret(char *dest, char *addr, trans_t *trans)
-{
-	char **cache = alloc_jmp_cache(addr);
-
-	memcpy(dest, ret_code, 0x34);
-	imm_to(&dest[0x01], (long)&scratch_stack-4);
-	imm_to(&dest[0x08], (long)&scratch_stack);
-	imm_to(&dest[0x0D], (long)&scratch_stack-4);
-	imm_to(&dest[0x14], (long)&cache[0]);
-	imm_to(&dest[0x20], (long)&cache[1]);
-	imm_to(&dest[0x25], (long)&cache[0]);
-	imm_to(&dest[0x2A], (long)&cache[1]);
-	imm_to(&dest[0x30], (long)&runtime_ijmp_addr);
-
-	*trans = (trans_t){ .len=0x34 };
-
-	return 0x34;
-}
-
-
-static const char *ret_cleanup_code  =
-	"\xA3????"         /* mov %eax, scratch_stack-4 */
-	"\x58"             /* pop %eax                  */
-	"\x89\x25????"     /* mov %esp, scratch_stack   */
-	"\xBC????"         /* mov $scratch_stack-4 %esp */
-	"\x9c"             /* pushf                     */
-	"\x81\x44\x24\x08" /* add ??, 8(%esp)           */
-	"??\x00\x00"
-	"\x3B\x05????"     /* cmp o_addr, %eax          */
-	"\x2E\x75\x09"     /* jne, predict hit          */
-	"\x9d"             /* popf                      */
-	"\x58"             /* pop %eax                  */
-	"\x5C"             /* pop %esp                  */
-	"\xFF\x25????"     /* jmp *j_addr               */
-	"\xA3????"         /* mov %eax, o_addr          */
-	"\x68????"         /* push j_addr               */
-	"\xFF\x25????"     /* jmp *runtime_ijmp_addr    */
-;
-
-static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
-{
-	char **cache = alloc_jmp_cache(addr);
-
-	memcpy(dest, ret_cleanup_code, 0x3C);
-	imm_to(&dest[0x01], (long)&scratch_stack-4);
-	imm_to(&dest[0x08], (long)&scratch_stack);
-	imm_to(&dest[0x0D], (long)&scratch_stack-4);
-	dest[0x16] = addr[1];
-	dest[0x17] = addr[2];
-	imm_to(&dest[0x1C], (long)&cache[0]);
-	imm_to(&dest[0x28], (long)&cache[1]);
-	imm_to(&dest[0x2D], (long)&cache[0]);
-	imm_to(&dest[0x32], (long)&cache[1]);
-	imm_to(&dest[0x38], (long)&runtime_ijmp_addr);
-
-	*trans = (trans_t){ .len=0x3C };
-
-	return 0x3C;
-}
-
-static const char *linux_sysenter_code  =
-	"\xFF\x25????"     /* call *linux_sysenter_emu_addr */
-;
-
 static int generate_linux_sysenter(char *dest, trans_t *trans)
 {
-	memcpy(&dest[0x0], linux_sysenter_code, 0x6);
-	imm_to(&dest[0x2], (long)&linux_sysenter_emu_addr);
-	*trans = (trans_t){ .len=0x6 };
-	return 0x6;
+	int len = gen_code(
+		dest,
+		"FF 25 L",     /* call *linux_sysenter_emu_addr */
+		&linux_sysenter_emu_addr
+	);
+	*trans = (trans_t){ .len=len };
+	return len;
 }
-
-static const char *int80_code  =
-	"\x89\x25????"     /* mov %esp, scratch_stack   */
-	"\xBC????"         /* mov $scratch_stack %esp   */
-	"\x50"             /* push %eax                 */
-	"\x68????"         /* push post_addr            */
-	"\xFF\x15????"     /* call *int80_emu_addr      */
-;
 
 static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 {
-	memcpy(&dest[0x00], int80_code, 0x17);
+	int len = gen_code(
+		dest,
 
-	imm_to(&dest[0x02], (long)&scratch_stack);
-	imm_to(&dest[0x07], (long)&scratch_stack);
-	imm_to(&dest[0x0D], (long)&instr->addr[instr->len]);
-	imm_to(&dest[0x13], (long)&int80_emu_addr);
+		"89 25 L"        /* mov %esp, scratch_stack   */
+		"BC L"           /* mov $scratch_stack %esp   */
+		"50"             /* push %eax                 */
+		"68 L"           /* push post_addr            */
+		"FF 15 L",       /* call *int80_emu_addr      */
 
-	*trans = (trans_t){ .len=0x17 };
+		&scratch_stack,
+		&scratch_stack,
+		&instr->addr[instr->len],
+		&int80_emu_addr);
 
-	return 0x17;
+	*trans = (trans_t){ .len=len };
+
+	return len;
 }
-
-static const char *stub_code  =
-	"\x89\x25????"     /* mov %esp, scratch_stack   */
-	"\xBC????"         /* mov $scratch_stack %esp   */
-	"\x50"             /* push %eax                 */
-	"\x9c"             /* pushf                     */
-	"\xB8????"         /* mov $o_addr, %eax         */
-	"\x68????"         /* push j_addr               */
-	"\xFF\x25????"     /* jmp *runtime_ijmp_addr    */
-;
 
 int generate_stub(char *dest, char *jmp_addr, char *imm_addr)
 {
 	char **cache = alloc_stub_cache(imm_addr, jmp_addr, dest);
-
 	memcpy(imm_addr, &cache[1], 4);
-	memcpy(&dest[0x00], stub_code, 0x1D);
+	
+	int len = gen_code(
+		dest,
 
-	imm_to(&dest[0x02], (long)&scratch_stack);
-	imm_to(&dest[0x07], (long)&scratch_stack);
-	imm_to(&dest[0x0E], (long)jmp_addr);
-	imm_to(&dest[0x13], (long)&cache[1]);
-	imm_to(&dest[0x19], (long)&runtime_ijmp_addr);
+		"89 25 L"        /* mov %esp, scratch_stack   */
+		"BC L"           /* mov $scratch_stack %esp   */
+		"50"             /* push %eax                 */
+		"9c"             /* pushf                     */
+		"B8 L"           /* mov $o_addr, %eax         */
+		"68 L"           /* push j_addr               */
+		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
-	return 0x1D;
+		&scratch_stack,
+		&scratch_stack,
+		jmp_addr,
+		&cache[1],
+		&runtime_ijmp_addr);
+
+	return len;
 }
 
 static int generate_ill(char *dest, trans_t *trans)

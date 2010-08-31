@@ -21,7 +21,6 @@ static void clear_code_map(int i)
 
 static void del_code_map(int i)
 {
-//debug("del map: addr %x, len %x, index %d", codemaps[i].addr, codemaps[i].len, i);
 	clear_code_map(i);
 
 	for (; i<n_codemaps; i++)
@@ -45,7 +44,6 @@ void add_code_region(char *addr, unsigned long len)
 {
 	int i;
 
-//debug("new map: addr %x, len %x", addr, len);
 	del_code_region(addr, len);
 
 	if (n_codemaps >= MAX_CODEMAPS)
@@ -57,8 +55,6 @@ void add_code_region(char *addr, unsigned long len)
 		else
 			break;
 
-//debug("new map: addr %x, len %x, index %d", addr, len, i);
-
 	codemaps[i] = (code_map_t){ addr, len, NULL, 0 };
 	n_codemaps++;
 }
@@ -66,7 +62,6 @@ void add_code_region(char *addr, unsigned long len)
 void del_code_region(char *addr, unsigned long len)
 {
 	int i = n_codemaps-1;
-//debug("del region: addr %x, len %x", addr, len);
 
 	while (i >= 0)
 	{

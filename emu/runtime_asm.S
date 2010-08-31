@@ -7,15 +7,15 @@
 #
 .global enter
 .type enter, @function
-enter:
-movl 4(%esp), %eax         # instruction pointer
-movl %eax, jit_eip
-movl 8(%esp), %eax         # stack pointer
-movl %eax, scratch_stack
-movl $scratch_stack, %esp
-call shield
+enter: # (long eip, long esp)
+movl 4(%esp), %eax         # load jit translated %eip from arg1
+movl %eax, jit_eip         # and store it in the jit_eip variable
+movl 8(%esp), %eax         # load user's stack pointer from arg2
+movl %eax, scratch_stack   # and store it on top of the scratch stack
+movl $scratch_stack, %esp  # set the stack to the scratch stack
+call shield                # protect emulator memory
 xor %eax, %eax
-xor %ecx, %ecx
+xor %ecx, %ecx             # clear registers and flags
 xor %edx, %edx
 xor %ebx, %ebx
 xor %esi, %esi
@@ -23,8 +23,8 @@ xor %edi, %edi
 xor %ebp, %ebp
 push $0
 popf
-pop %esp
-jmp *jit_eip
+pop %esp                   # set stack pointer to user's stack pointer
+jmp *jit_eip               # jump to jit translated code
 
 #
 # runtime_ijmp() is called from the jit code and has hackish calling
