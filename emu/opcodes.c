@@ -664,8 +664,8 @@ static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
 		"68    L"     /* push j_addr               */
 		"FF 25 L",    /* jmp *runtime_ijmp_addr    */
 
-		&scratch_stack,
-		&scratch_stack-1,
+		scratch_stack,
+		&scratch_stack[-1],
 		jmp_orig,
 		jmp_jit,
 		jmp_orig,
@@ -684,7 +684,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 		dest,
 		"A3 L"        /* mov %eax, scratch_stack-4 */
 		"? 8B %$",       /* mov ... ( -> %eax )       */
-		&scratch_stack-1,
+		&scratch_stack[-1],
 		instr->p[P2-PREFIX], &i, &instr->addr[instr->mrm], mrm_len
 	);
 
@@ -745,9 +745,9 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 		"68 L"           /* push j_addr               */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
-		&scratch_stack-1,
-		&scratch_stack,
-		&scratch_stack-1,
+		&scratch_stack[-1],
+		scratch_stack,
+		&scratch_stack[-1],
 		&cache[0],
 		&cache[1],
 		&cache[0],
@@ -783,9 +783,9 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		"68 L"           /* push j_addr               */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
-		&scratch_stack-1,
-		&scratch_stack,
-		&scratch_stack-1,
+		&scratch_stack[-1],
+		scratch_stack,
+		&scratch_stack[-1],
 		addr[1] + (addr[2]<<4),
 		&cache[0],
 		&cache[1],
@@ -821,8 +821,8 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 		"68 L"           /* push post_addr            */
 		"FF 15 L",       /* call *int80_emu_addr      */
 
-		&scratch_stack,
-		&scratch_stack,
+		scratch_stack,
+		scratch_stack,
 		&instr->addr[instr->len],
 		&int80_emu_addr);
 
@@ -847,8 +847,8 @@ int generate_stub(char *dest, char *jmp_addr, char *imm_addr)
 		"68 L"           /* push j_addr               */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
-		&scratch_stack,
-		&scratch_stack,
+		scratch_stack,
+		scratch_stack,
 		jmp_addr,
 		&cache[1],
 		&runtime_ijmp_addr);

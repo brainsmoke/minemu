@@ -30,7 +30,7 @@ extern jmp_list_t jmp_list;
 
 extern unsigned long jmp_list_size;
 
-extern unsigned long scratch_stack;
+extern unsigned long scratch_stack[];
 
 extern long user_eip;
 extern long jit_eip;
