@@ -10,6 +10,7 @@
 #include "codemap.h"
 #include "jmpcache.h"
 #include "opcodes.h"
+#include "jitcode.h"
 #include "error.h"
 #include "runtime.h"
 
@@ -503,7 +504,7 @@ debug("miss: addr %x", addr);
 		jit_translate(map, addr);
 		jit_addr = jit_map_lookup_addr(map, addr);
 	}
-//print_map(map);
+print_map(map);
 
 	if (jit_addr == NULL)
 		die("jit failed");

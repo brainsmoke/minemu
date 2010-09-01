@@ -98,6 +98,7 @@ EMU_OBJECTS=\
 	emu/scratch_asm.o\
 	emu/syscalls_asm.o\
 	emu/opcodes.o\
+	emu/jitcode.o\
 	emu/jit.o\
 	emu/codemap.o\
 	emu/jmpcache.o\
@@ -201,3 +202,116 @@ clean:
 	-rm Makefile.bak
 
 # DO NOT DELETE
+
+test/tracer/faketsc.o: tracer/trace.h tracer/arch.h tracer/util.h
+test/tracer/faketsc.o: tracer/signal_queue.h tracer/process.h
+test/tracer/writeecho.o: tracer/debug.h tracer/trace.h tracer/arch.h
+test/tracer/writeecho.o: tracer/util.h tracer/signal_queue.h tracer/process.h
+test/rnr/openstat.o: tracer/debug.h tracer/trace.h tracer/arch.h
+test/rnr/openstat.o: tracer/util.h tracer/signal_queue.h tracer/process.h
+test/rnr/printtrace.o: tracer/debug.h tracer/trace.h tracer/arch.h
+test/rnr/printtrace.o: tracer/util.h tracer/signal_queue.h
+test/rnr/printtrace.o: syscalls/debug_syscalls.h rnr/serialize.h
+test/syscalls/nosignals.o: tracer/trace.h tracer/arch.h syscalls/debug_wrap.h
+test/syscalls/nosignals.o: tracer/util.h tracer/signal_queue.h
+test/syscalls/nosignals.o: tracer/process.h
+test/syscalls/printregs.o: tracer/errors.h tracer/debug.h tracer/trace.h
+test/syscalls/printregs.o: tracer/arch.h syscalls/debug_syscalls.h
+test/syscalls/printregs.o: tracer/util.h tracer/signal_queue.h
+test/syscalls/printregs.o: tracer/process.h
+test/bdiff.o: tracer/errors.h tracer/debug.h tracer/trace.h tracer/arch.h
+tracer/dataset.o: tracer/dataset.h tracer/errors.h
+tracer/debug.o: tracer/debug.h tracer/trace.h tracer/arch.h tracer/util.h
+tracer/debug.o: tracer/signal_queue.h
+tracer/errors.o: tracer/errors.h
+tracer/process.o: tracer/process.h tracer/errors.h
+tracer/signal_info.o: tracer/signal_info.h
+tracer/signal_queue.o: tracer/trace.h tracer/arch.h tracer/util.h
+tracer/signal_queue.o: tracer/signal_queue.h tracer/dataset.h tracer/errors.h
+tracer/trace.o: tracer/trace.h tracer/arch.h tracer/errors.h
+tracer/trace.o: tracer/trace_map.h tracer/util.h tracer/signal_queue.h
+tracer/trace_map.o: tracer/trace_map.h tracer/trace.h tracer/arch.h
+tracer/trace_map.o: tracer/errors.h
+tracer/util.o: tracer/trace.h tracer/arch.h tracer/util.h
+tracer/util.o: tracer/signal_queue.h tracer/errors.h
+rnr/call_data.o: tracer/trace.h tracer/arch.h tracer/util.h
+rnr/call_data.o: tracer/signal_queue.h tracer/dataset.h tracer/errors.h
+rnr/call_data.o: syscalls/syscall_info.h rnr/call_data.h
+rnr/emu_data.o: tracer/trace.h tracer/arch.h tracer/dataset.h rnr/emu_data.h
+rnr/fd_data.o: tracer/trace.h tracer/arch.h tracer/dataset.h tracer/errors.h
+rnr/fd_data.o: rnr/fd_data.h tracer/util.h tracer/signal_queue.h
+rnr/record.o: rnr/record.h rnr/serialize.h tracer/trace.h tracer/arch.h
+rnr/record.o: tracer/util.h tracer/signal_queue.h tracer/process.h
+rnr/record.o: syscalls/syscall_info.h rnr/syscall_copy.h
+rnr/record.o: rnr/syscall_validate.h tracer/signal_info.h rnr/emu_data.h
+rnr/record.o: rnr/call_data.h rnr/fd_data.h syscalls/debug_wrap.h
+rnr/record.o: tracer/debug.h
+rnr/record_main.o: rnr/record.h rnr/serialize.h tracer/trace.h tracer/arch.h
+rnr/record_main.o: tracer/errors.h
+rnr/replay.o: tracer/errors.h rnr/replay.h tracer/debug.h tracer/trace.h
+rnr/replay.o: tracer/arch.h syscalls/debug_syscalls.h syscalls/debug_wrap.h
+rnr/replay.o: rnr/serialize.h tracer/util.h tracer/signal_queue.h
+rnr/replay.o: tracer/process.h syscalls/syscall_info.h rnr/syscall_copy.h
+rnr/replay.o: tracer/signal_info.h rnr/call_data.h rnr/emu_data.h
+rnr/replay_main.o: rnr/replay.h tracer/errors.h
+rnr/rnr.o: rnr/record.h rnr/serialize.h tracer/trace.h tracer/arch.h
+rnr/rnr.o: rnr/replay.h tracer/errors.h
+rnr/serialize.o: tracer/errors.h rnr/serialize.h tracer/trace.h tracer/arch.h
+rnr/serialize.o: tracer/debug.h
+rnr/syscall_copy.o: tracer/errors.h tracer/trace.h tracer/arch.h
+rnr/syscall_copy.o: tracer/util.h tracer/signal_queue.h rnr/serialize.h
+rnr/syscall_copy.o: syscalls/syscall_info.h rnr/syscall_copy.h
+rnr/syscall_copy.o: rnr/call_data.h tracer/debug.h
+rnr/syscall_validate.o: tracer/util.h tracer/trace.h tracer/arch.h
+rnr/syscall_validate.o: tracer/signal_queue.h rnr/syscall_validate.h
+rnr/syscall_validate.o: syscalls/syscall_info.h rnr/call_data.h
+syscalls/debug_syscalls.o: tracer/util.h tracer/trace.h tracer/arch.h
+syscalls/debug_syscalls.o: tracer/signal_queue.h tracer/debug.h
+syscalls/debug_syscalls.o: syscalls/debug_syscalls.h syscalls/syscall_info.h
+syscalls/debug_wrap.o: tracer/errors.h tracer/debug.h tracer/trace.h
+syscalls/debug_wrap.o: tracer/arch.h syscalls/debug_syscalls.h
+syscalls/debug_wrap.o: syscalls/debug_wrap.h tracer/util.h
+syscalls/debug_wrap.o: tracer/signal_queue.h tracer/signal_info.h
+syscalls/syscall_info.o: syscalls/syscall_info.h tracer/trace.h tracer/arch.h
+syscalls/syscall_info.o: tracer/util.h tracer/signal_queue.h
+
+test/testcases/raise.o: syscalls/debug_syscalls.c tracer/util.h
+test/testcases/raise.o: tracer/trace.h tracer/arch.h tracer/signal_queue.h
+test/testcases/raise.o: tracer/debug.h syscalls/debug_syscalls.h
+test/testcases/raise.o: syscalls/syscall_info.h
+
+test/emu/debug.o: test/emu/debug.h
+test/emu/memoffsets.o: emu/mm.h
+test/emu/offset_mem.o: test/emu/debug.h test/emu/codeexec.h emu/opcodes.h
+test/emu/offset_mem.o: emu/lib.h emu/taint.h
+test/emu/shellcode.o: test/emu/debug.h test/emu/codeexec.h
+test/emu/taint_test.o: test/emu/debug.h test/emu/codeexec.h emu/taint.h
+test/emu/taint_test.o: emu/opcodes.h emu/lib.h
+emu/call_emul.o: emu/scratch.h emu/runtime.h emu/codemap.h emu/jitmm.h
+emu/call_emul.o: emu/jit.h emu/opcodes.h emu/lib.h emu/mm.h emu/error.h
+emu/call_emul.o: emu/syscalls.h
+emu/codemap.o: emu/lib.h emu/mm.h emu/jit.h emu/opcodes.h emu/error.h
+emu/codemap.o: emu/jmpcache.h emu/codemap.h emu/jitmm.h emu/runtime.h
+emu/codemap.o: emu/scratch.h
+emu/error.o: emu/lib.h emu/error.h emu/syscalls.h
+emu/jit.o: emu/lib.h emu/mm.h emu/jit.h emu/opcodes.h emu/jitmm.h
+emu/jit.o: emu/codemap.h emu/jmpcache.h emu/jitcode.h emu/error.h
+emu/jit.o: emu/runtime.h emu/scratch.h
+emu/jitcode.o: emu/jitcode.h emu/lib.h emu/opcodes.h emu/jmpcache.h
+emu/jitcode.o: emu/scratch.h emu/runtime.h emu/codemap.h emu/jitmm.h
+emu/jitcode.o: emu/error.h emu/taint.h
+emu/jitmm.o: emu/lib.h emu/mm.h emu/jit.h emu/opcodes.h emu/codemap.h
+emu/jitmm.o: emu/jitmm.h emu/jmpcache.h emu/error.h emu/runtime.h
+emu/jitmm.o: emu/scratch.h
+emu/jmpcache.o: emu/lib.h emu/error.h emu/jmpcache.h emu/scratch.h
+emu/lib.o: emu/syscalls.h emu/error.h
+emu/load_elf.o: emu/error.h emu/syscalls.h emu/load_elf.h emu/lib.h emu/mm.h
+emu/mm.o: emu/mm.h emu/error.h emu/lib.h emu/syscalls.h emu/runtime.h
+emu/mm.o: emu/scratch.h emu/codemap.h emu/jitmm.h emu/jit.h emu/opcodes.h
+emu/opcodes.o: emu/opcodes.h emu/lib.h
+emu/runtime.o: emu/syscalls.h emu/runtime.h emu/scratch.h emu/codemap.h
+emu/runtime.o: emu/jitmm.h emu/mm.h emu/jmpcache.h
+emu/taint.o: emu/taint.h emu/error.h emu/opcodes.h emu/lib.h
+emu/temu.o: emu/syscalls.h emu/error.h emu/load_elf.h emu/lib.h emu/mm.h
+emu/temu.o: emu/runtime.h emu/scratch.h emu/codemap.h emu/jitmm.h emu/jit.h
+emu/temu.o: emu/opcodes.h

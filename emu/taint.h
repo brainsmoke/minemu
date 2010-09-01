@@ -1,8 +1,8 @@
 #ifndef TAINT_H
 #define TAINT_H
 
-#include "lib.h"
-#include "opcodes.h"
+//#include "lib.h"
+//#include "opcodes.h"
 
 int is_memop(char *mrm);
 int offset_mem(char *dst_mrm, char *src_mrm, long offset);

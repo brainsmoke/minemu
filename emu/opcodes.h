@@ -9,30 +9,44 @@
 #define CODE_STOP (-2)
 #define CODE_ERR  (-3)
 
+#define COPY_INSTRUCTION       (0)
+
+#define UNDEFINED_INSTRUCTION  (1)
+
+#define CONTROL                (0x20)
+#define CONTROL_MASK         (~(CONTROL-1))
+
+#define JUMP_RELATIVE          (CONTROL|0)
+#define JUMP_CONDITIONAL       (CONTROL|1)
+#define JUMP_FAR               (CONTROL|2)
+#define JUMP_INDIRECT          (CONTROL|3)
+
+#define LOOP                   (CONTROL|4)
+
+#define CALL_RELATIVE          (CONTROL|5)
+#define CALL_FAR             /*(CONTROL|6)*/ U
+#define CALL_INDIRECT          (CONTROL|7)
+
+#define RETURN                 (CONTROL|8)
+#define RETURN_CLEANUP         (CONTROL|9)
+#define RETURN_FAR           /*(CONTROL|10)*/ U
+
+#define INT                    (0x40)
+#define SYSENTER               (0x41)
+
+#define JOIN (CONTROL|12)
+
+#define TAINT                  (0x80)
+#define TAINT_MASK           (~(TAINT-1))
+
+
 typedef struct
 {
 	char *addr;
 	unsigned char mrm, imm, len, type, action, err, p1, p2, p3, p4;
 } instr_t;
 
-typedef struct
-{
-	char *jmp_addr;
-	unsigned char imm, len;
-
-} trans_t;
-
 int read_op(char *addr, instr_t *instr, int max_len);
 int op_size(char *addr, int max_len);
-
-long imm_at(char *addr, long size);
-void imm_to(char *dest, long imm);
-
-void translate_op(char *dest, instr_t *instr, trans_t *trans,
-                  char *map, unsigned long map_len);
-
-int generate_jump(char *jit_addr, char *dest, trans_t *trans, char *map, unsigned long map_len);
-int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
-
 
 #endif /* OPCODES_H */
