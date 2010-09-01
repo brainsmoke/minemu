@@ -556,6 +556,12 @@ static int gen_code(char *dst, char *fmt, ...)
 				j += 2;
 				break;
 			}
+			case '%':
+			{
+				int *ix = va_arg(ap, int *);
+				*ix = j;
+				break;
+			}
 			case '$':
 			{
 				char *s = va_arg(ap, char *);
@@ -593,73 +599,6 @@ static int gen_code(char *dst, char *fmt, ...)
 	}
 	va_end(ap);
 	return j;
-}
-
-static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
-{
-	return gen_code(
-		dest,
-
-		"89 25 L"     /* mov %esp, scratch_stack   */
-		"BC    L"     /* mov $scratch_stack-4 %esp */
-		"9c"          /* pushf                     */
-		"3B 05 L"     /* cmp o_addr, %eax          */
-		"2E 75 09"    /* jne, predict hit          */
-		"9d"          /* popf                      */
-		"58"          /* pop %eax                  */
-		"5C"          /* pop %esp                  */
-		"FF 25 L"     /* jmp *j_addr               */
-		"A3    L"     /* mov %eax, o_addr          */
-		"68    L"     /* push j_addr               */
-		"FF 25 L",    /* jmp *runtime_ijmp_addr    */
-
-		&scratch_stack,
-		&scratch_stack-1,
-		jmp_orig,
-		jmp_jit,
-		jmp_orig,
-		jmp_jit,
-		&runtime_ijmp_addr
-	);                         
-}
-
-static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
-{
-	int hash = HASH_INDEX(&instr->addr[instr->len]);
-	/* XXX FUGLY translated address is inserted by caller since we don't know
-	 * yet how long the instruction translation will be
-	 */
-	return gen_code(dest,
-		"68 L"          /* push $retaddr */
-		"c7 05 L L"     /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
-		"c7 05 L L",    /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
-		&instr->addr[instr->len],
-		&jmp_list.addr[hash],
-		&instr->addr[instr->len],
-		&jmp_list.jit_addr[hash], 0xdeadbeef
-	);
-}
-
-static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
-{
-	char **cache = alloc_jmp_cache(instr->addr);
-	long mrm_len = instr->len - instr->mrm;
-
-	int len = gen_code(
-		dest,
-		"A3 L"        /* mov %eax, scratch_stack-4 */
-		"? 8B",       /* mov ... ( -> %eax )       */
-		&scratch_stack-1,
-		instr->p[P2-PREFIX]
-	);   
-
-	memcpy(&dest[len], &instr->addr[instr->mrm], mrm_len);
-	dest[len] &= 0xC7; /* -> %eax */
-	len += mrm_len;
-	len += generate_ijump_tail(&dest[len], &cache[0], &cache[1]);
-	*trans = (trans_t){ .len = len };
-
-	return len;
 }
 
 int generate_jump(char *dest, char *jmp_addr, trans_t *trans,
@@ -707,6 +646,84 @@ static int generate_jcc(char *dest, char *jmp_addr, int cond, trans_t *trans,
 	return trans->len;
 }
 
+static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
+{
+	return gen_code(
+		dest,
+
+		"89 25 L"     /* mov %esp, scratch_stack   */
+		"BC    L"     /* mov $scratch_stack-4 %esp */
+		"9C"          /* pushf                     */
+		"3B 05 L"     /* cmp o_addr, %eax          */
+		"2E 75 09"    /* jne, predict hit          */
+		"9D"          /* popf                      */
+		"58"          /* pop %eax                  */
+		"5C"          /* pop %esp                  */
+		"FF 25 L"     /* jmp *j_addr               */
+		"A3    L"     /* mov %eax, o_addr          */
+		"68    L"     /* push j_addr               */
+		"FF 25 L",    /* jmp *runtime_ijmp_addr    */
+
+		&scratch_stack,
+		&scratch_stack-1,
+		jmp_orig,
+		jmp_jit,
+		jmp_orig,
+		jmp_jit,
+		&runtime_ijmp_addr
+	);                         
+}
+
+static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
+{
+	char **cache = alloc_jmp_cache(instr->addr);
+	long mrm_len = instr->len - instr->mrm;
+	int i;
+
+	int len = gen_code(
+		dest,
+		"A3 L"        /* mov %eax, scratch_stack-4 */
+		"? 8B %$",       /* mov ... ( -> %eax )       */
+		&scratch_stack-1,
+		instr->p[P2-PREFIX], &i, &instr->addr[instr->mrm], mrm_len
+	);
+
+	dest[i] &= 0xC7; /* -> %eax */
+	len += generate_ijump_tail(&dest[len], &cache[0], &cache[1]);
+	*trans = (trans_t){ .len = len };
+
+	return len;
+}
+
+static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+{
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	/* XXX FUGLY translated address is inserted by caller since we don't know
+	 * yet how long the instruction translation will be
+	 */
+	return gen_code(
+		dest,
+
+		"68 L"          /* push $retaddr */
+		"C7 05 L L"     /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
+		"C7 05 L L",    /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
+
+		&instr->addr[instr->len],
+		&jmp_list.addr[hash],       &instr->addr[instr->len],
+		&jmp_list.jit_addr[hash],   0xdeadbeef
+	);
+}
+
+static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len = generate_call_head(dest, instr, trans);
+	generate_ijump(&dest[len], instr, trans);
+	trans->len += len;
+/* XXX FUGLY */
+	imm_to(&dest[0x15], (long)dest+trans->len);
+	return trans->len;
+}
+
 static int generate_ret(char *dest, char *addr, trans_t *trans)
 {
 	char **cache = alloc_jmp_cache(addr);
@@ -717,10 +734,10 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 		"58"             /* pop %eax                  */
 		"89 25 L"        /* mov %esp, scratch_stack   */
 		"BC L"           /* mov $scratch_stack-4 %esp */
-		"9c"             /* pushf                     */
+		"9C"             /* pushf                     */
 		"3B 05 L"        /* cmp o_addr, %eax          */
 		"2E 75 09"       /* jne, predict hit          */
-		"9d"             /* popf                      */
+		"9D"             /* popf                      */
 		"58"             /* pop %eax                  */
 		"5C"             /* pop %esp                  */
 		"FF 25 L"        /* jmp *j_addr               */
@@ -780,16 +797,6 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 	*trans = (trans_t){ .len=len };
 
 	return len;
-}
-
-static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
-{
-	int len = generate_call_head(dest, instr, trans);
-	generate_ijump(&dest[len], instr, trans);
-	trans->len += len;
-/* XXX FUGLY */
-	imm_to(&dest[0x15], (long)dest+trans->len);
-	return trans->len;
 }
 
 static int generate_linux_sysenter(char *dest, trans_t *trans)
