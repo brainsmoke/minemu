@@ -383,17 +383,38 @@ int read_op(char *addr, instr_t *instr, int max_len)
 
 		switch (type)
 		{
-			case P1: case P2: case P3: case P4:
-
-				if (instr->p[type-PREFIX] != 0)
+			case P1:
+				if (instr->p1 != 0)
 				{
 					instr->action = U;
 					return CODE_ERR;
 				}
-
-				instr->p[type-PREFIX] = code;
+				instr->p1 = code;
 				continue;
-
+			case P2:
+				if (instr->p2 != 0)
+				{
+					instr->action = U;
+					return CODE_ERR;
+				}
+				instr->p2 = code;
+				continue;
+			case P3:
+				if (instr->p3 != 0)
+				{
+					instr->action = U;
+					return CODE_ERR;
+				}
+				instr->p3 = code;
+				continue;
+			case P4:
+				if (instr->p4 != 0)
+				{
+					instr->action = U;
+					return CODE_ERR;
+				}
+				instr->p4 = code;
+				continue;
 			case ESC:
 				optable = esc_optable;
 				action = esc_action;
@@ -449,7 +470,7 @@ int read_op(char *addr, instr_t *instr, int max_len)
 				instr->action = C;
 		}
 
-		if (instr->p[P4-PREFIX] == 0x67)
+		if (instr->p4 == 0x67)
 			instr->action = U;
 	}
 
@@ -465,7 +486,7 @@ int read_op(char *addr, instr_t *instr, int max_len)
 
 	if (type & IMMW)
 	{
-		if (instr->p[P3-PREFIX] == 0x66)
+		if (instr->p3 == 0x66)
 			instr->len += 2;
 		else
 			instr->len += 4;
@@ -473,7 +494,7 @@ int read_op(char *addr, instr_t *instr, int max_len)
 
 	if (type & IMMA)
 	{
-		if (instr->p[P4-PREFIX] == 0x67)
+		if (instr->p4 == 0x67)
 			instr->len += 2;
 		else
 			instr->len += 4;
@@ -552,7 +573,7 @@ static int gen_code(char *dst, char *fmt, ...)
 			{
 				short s = va_arg(ap, int);
 				dst[j]   = (char)s;
-				dst[j+1] = (char)(s>>4);
+				dst[j+1] = (char)(s>>8);
 				j += 2;
 				break;
 			}
@@ -685,7 +706,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 		"A3 L"        /* mov %eax, scratch_stack-4 */
 		"? 8B %$",       /* mov ... ( -> %eax )       */
 		&scratch_stack[-1],
-		instr->p[P2-PREFIX], &i, &instr->addr[instr->mrm], mrm_len
+		instr->p2, &i, &instr->addr[instr->mrm], mrm_len
 	);
 
 	dest[i] &= 0xC7; /* -> %eax */
@@ -770,12 +791,12 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		"58"             /* pop %eax                  */
 		"89 25 L"        /* mov %esp, scratch_stack   */
 		"BC L"           /* mov $scratch_stack-4 %esp */
-		"9c"             /* pushf                     */
+		"9C"             /* pushf                     */
 		"81 44 24 08"    /* add ??, 8(%esp)           */
 		"S 00 00"
 		"3B 05 L"        /* cmp o_addr, %eax          */
 		"2E 75 09"       /* jne, predict hit          */
-		"9d"             /* popf                      */
+		"9D"             /* popf                      */
 		"58"             /* pop %eax                  */
 		"5C"             /* pop %esp                  */
 		"FF 25 L"        /* jmp *j_addr               */
@@ -786,7 +807,7 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		&scratch_stack[-1],
 		scratch_stack,
 		&scratch_stack[-1],
-		addr[1] + (addr[2]<<4),
+		addr[1] + (addr[2]<<8),
 		&cache[0],
 		&cache[1],
 		&cache[0],
@@ -914,7 +935,7 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			generate_ret_cleanup(dest, instr->addr, trans);
 			break;
 		case L: /* loops */
-			if (instr->p[P4-PREFIX] == 0x67)
+			if (instr->p4 == 0x67)
 			{
 				off = 1;
 				dest[0] = '\x67';

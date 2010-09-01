@@ -12,7 +12,7 @@
 typedef struct
 {
 	char *addr;
-	unsigned char mrm, imm, len, type, action, err, p[4];
+	unsigned char mrm, imm, len, type, action, err, p1, p2, p3, p4;
 } instr_t;
 
 typedef struct

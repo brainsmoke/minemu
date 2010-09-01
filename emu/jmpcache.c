@@ -22,7 +22,6 @@ void print_jmp_list(void)
 extern jmp_list_t tmp_list;
 void print_jmp_listdiff(void)
 {
-return;
 	int i;
 	for (i=0; i<JMP_LIST_SIZE; i++)
 		if (!jmp_list.addr[i] || !jmp_list.jit_addr[i])
