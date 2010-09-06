@@ -176,12 +176,17 @@ void unshield(void)
 
 void init_temu_mem(char **envp)
 {
-	char c[1];
 	long ret = 0;
+
+	char c[1];
+
+	fill_last_page_hack();
 
 	ret |= sys_mmap2(TAINT_END, PAGE_BASE(c-0x1000)-TAINT_END,
 	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
+
+	fill_last_page_hack();
 
 	ret |= sys_mmap2(JIT_CODE_START, JIT_CODE_SIZE,
 	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
@@ -190,8 +195,6 @@ void init_temu_mem(char **envp)
 	ret |= sys_mmap2(TAINT_START, TAINT_SIZE,
 	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
-
-	fill_last_page_hack();
 
 	if ( high_user_addr(envp) > stack_top(envp) )
 		ret |= sys_mmap2(stack_top(envp), high_user_addr(envp)-stack_top(envp),

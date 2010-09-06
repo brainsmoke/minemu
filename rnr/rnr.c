@@ -9,7 +9,9 @@
 #include <string.h>
 
 #include "record.h"
+/*
 #include "shadow_dir.h"
+*/
 #include "replay.h"
 #include "errors.h"
 

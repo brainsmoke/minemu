@@ -1,5 +1,5 @@
 
-#include "../src/syscalls.h"
+#include "syscalls.h"
 
 char *data = "data";
 

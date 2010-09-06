@@ -48,8 +48,6 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 	long eip = (long)jit(prog.entry);
 	long esp = (long)prog.sp;
 
-	debug("%x, %x", eip, esp);
-
 	enter(eip, esp);
 
 	sys_exit(1);

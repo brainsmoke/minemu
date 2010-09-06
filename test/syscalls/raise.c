@@ -1,5 +1,5 @@
 
-#include "../../syscalls/debug_syscalls.c"
+#include "debug_syscalls.c"
 
 #include <stdlib.h>
 

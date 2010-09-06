@@ -172,6 +172,8 @@ movl user_eip, %eax
 push $jit_eip
 jmp runtime_ijmp
 
+debug_string: .asciz "debug\n"
+
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
@@ -180,6 +182,29 @@ lea  8(%esp), %esp
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
 pushf
+# XXX DEBUG
+
+push %ebp
+push %edi
+push %esi
+push %edx
+push %ecx
+push %ebx
+push %eax
+mov $4, %eax
+mov $1, %ebx
+mov debug_string, %ecx
+mov $6, %edx
+int $0x80
+pop %eax
+pop %ebx
+pop %ecx
+pop %edx
+pop %esi
+pop %edi
+pop %ebp
+
+#
 call runtime_syscall
 popf
 push %eax
