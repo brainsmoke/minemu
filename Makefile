@@ -1,13 +1,18 @@
-CC=gcc
-AS=gcc
-LINK=gcc
-EMU_LINK=@ld
-STRIP=strip --strip-all
+SILENT=@
+
+CC=$(SILENT)gcc
+AS=$(SILENT)gcc
+LINK=$(SILENT)gcc
+EMU_LINK=$(SILENT)ld
+STRIP=$(SILENT)strip --strip-all
+MKDIR=$(SILENT)mkdir
+RM=$(SILENT)rm -r
 
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
 CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g
 #CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
+TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer
 SYSCALLS_CFLAGS=$(CFLAGS) -Itracer -Isyscalls
 RNR_CFLAGS=$(CFLAGS) -Itracer -Isyscalls -Irnr
@@ -49,7 +54,7 @@ RNR_OBJECTS=\
 EMU_OBJECTS=$(patsubst %.c, %.o, $(wildcard emu/*.c))
 EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard emu/*.S))
 
-TESTCASES_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/tracer/*.c))
+TESTCASES_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/testcases/*.c))
 TRACER_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/tracer/*.c))
 SYSCALLS_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/syscalls/*.c))
 RNR_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/rnr/*.c))
@@ -75,10 +80,10 @@ CLEAN=$(TARGETS) $(OBJECTS) .dep
 all: depend $(TARGETS)
 
 depend:
-	mkdir -p .dep{/test,}/{tracer,rnr,syscalls,emu,testcases}/
+	$(MKDIR) -p .dep{/test,}/{tracer,rnr,syscalls,emu,testcases}/
 
 clean:
-	-rm $(CLEAN)
+	-$(RM) $(CLEAN)
 
 -include .dep/*/*.d .dep/test/*/*.d
 
@@ -95,6 +100,9 @@ $(SYSCALLS_OBJECTS) $(SYSCALLS_TEST_OBJECTS): %.o: %.c
 
 $(RECORD_MAIN) $(REPLAY_MAIN) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS): %.o: %.c
 	$(CC) $(RNR_CFLAGS) -c -o $@ $<
+
+$(TESTCASES_OBJECTS): %.o: %.c
+	$(CC) $(TESTCASES_CFLAGS) -c -o $@ $<
 
 $(EMU_OBJECTS) $(EMU_TEST_OBJECTS): %.o: %.c
 	$(CC) -c $(EMU_CFLAGS) -o $@ $<
@@ -126,6 +134,9 @@ test/syscalls/%: test/syscalls/%.o $(TRACER_OBJECTS) $(SYSCALLS_OBJECTS)
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
 test/tracer/%: test/tracer/%.o $(TRACER_OBJECTS)
+	$(LINK) -o $@ $^ $(LDFLAGS)
+
+test/emu/%: test/emu/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
 temu: emu/mm.ld emu/temu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)

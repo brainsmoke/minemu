@@ -37,14 +37,14 @@ if (tmp_list.addr[i] || tmp_list.jit_addr[i])
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
-print_jmp_listdiff();
+//print_jmp_listdiff();
 
 	for (i=hash; i<JMP_LIST_SIZE; i++)
 		if ( jmp_list.addr[i] == NULL )
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
-debug("%04x %08x", i, addr);
+//debug("%04x %08x", i, addr);
 			return;
 		}
 
@@ -53,7 +53,7 @@ debug("%04x %08x", i, addr);
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
-debug("%04x %08x", i, addr);
+//debug("%04x %08x", i, addr);
 			return;
 		}
 

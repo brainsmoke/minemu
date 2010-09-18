@@ -9,6 +9,7 @@ PHDRS
   scratch PT_LOAD;
   bss PT_LOAD;
   data PT_LOAD;
+  data PT_GNU_STACK;
 }
 
 SECTIONS

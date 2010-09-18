@@ -82,7 +82,9 @@ trace_t *get_trace(trace_map_t *map, pid_t pid)
 		list = list->next;
 	}
 
+/*
 	fatal_error("no trace with pid %d", pid);
+*/
 	return NULL;
 }
 

@@ -1,8 +1,8 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 
-#include <syscall.h>
 #include <signal.h>
+#include <syscall.h>
 
 long syscall0(long no);
 long syscall1(long no, long a0);
@@ -70,7 +70,16 @@ long syscall6(long no, long a0, long a1, long a2, long a3, long a4, long a5);
 #define sys_execve(a, b, c) \
 	syscall3(SYS_execve, (long)(a), (long)(b), (long)(c))
 
+#define sys_ptrace(a, b, c, d) \
+	syscall4(SYS_ptrace, (long)(a), (long)(b), (long)(c), (long)(d))
+
+#define sys_waitpid(a, b, c) \
+	syscall3(SYS_waitpid, (long)(a), (long)(b), (long)(c))
+
 #define sigaltstack(ss, oss) \
 	syscall2(SYS_sigaltstack, (long)(ss), (long)(oss))
+
+#define sys_fork() \
+	syscall2(SYS_clone, SIGCHLD, 0)
 
 #endif /* SYSCALLS_H */

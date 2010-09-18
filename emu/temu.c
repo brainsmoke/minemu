@@ -11,9 +11,8 @@
 #include "scratch.h"
 #include "jit.h"
 #include "codemap.h"
-
-//
-#include "opcodes.h"
+//#include "opcodes.h"
+#include "sigwrap.h"
 
 int temu_main(int argc, char **argv, char **envp, long *auxv)
 {
@@ -22,6 +21,7 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 	if (ADDR_COMPAT_LAYOUT & ~pers)
 	{
 		sys_personality(ADDR_COMPAT_LAYOUT | pers);
+//		temu_signal_wrapper();
 		sys_execve("/proc/self/exe", argv, envp);
 	}
 

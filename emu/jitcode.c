@@ -169,7 +169,7 @@ static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
 		jmp_orig,
 		jmp_jit,
 		&runtime_ijmp_addr
-	);                         
+	);
 }
 
 static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
@@ -180,7 +180,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 
 	int len = gen_code(
 		dest,
-		"A3 L"        /* mov %eax, scratch_stack-4 */
+		"A3 L"           /* mov %eax, scratch_stack-4 */
 		"? 8B %$",       /* mov ... ( -> %eax )       */
 		&scratch_stack[-1],
 		instr->p2, &i, &instr->addr[instr->mrm], mrm_len
@@ -196,6 +196,10 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	/* XXX FUGLY as a speed optimisation, we insert the return address
+	 * directly into the cache, this makes relocating code impossible :-(
+	 * proposed fix: more advanced linking for moving code
+	 */
 	/* XXX FUGLY translated address is inserted by caller since we don't know
 	 * yet how long the instruction translation will be
 	 */

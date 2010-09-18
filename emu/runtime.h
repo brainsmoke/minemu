@@ -16,4 +16,7 @@ extern long (*linux_sysenter_emu_addr)(void);
 
 extern char syscall_hooks[N_SYSCALL_HOOKS];
 
+void pre_ptrace_syscall();
+void post_ptrace_syscall();
+
 #endif /* RUNTIME_H */

@@ -494,7 +494,7 @@ char *jit(char *addr)
 	code_map_t *map = find_code_map(addr);
 
 	if (map == NULL)
-		die("attempting to jump in non-executable code addr: %X", addr);
+		die("attempting to jump in non-executable code addr: %X ", addr);
 
 	jit_addr = jit_map_lookup_addr(map, addr);
 

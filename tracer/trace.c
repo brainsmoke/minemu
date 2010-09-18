@@ -188,7 +188,15 @@ void trace(pid_t pid, tracer_plugin_t *plug)
 		}
 
 		pid = plug->pid_selector(plug->data);
-		pid = waitpid(pid, &status, __WALL);
+
+		do
+		{
+			pid = waitpid(pid, &status, __WALL);
+			t = get_trace(map, pid);
+			if ( t == NULL )
+				fatal_error("unknown pid %d", pid);
+		}
+		while ( t == NULL );
 
 		if (pid < 0)
 			fatal_error("waitpid: %s", strerror(errno));
@@ -196,7 +204,6 @@ void trace(pid_t pid, tracer_plugin_t *plug)
 		if ( WIFEXITED(status) || WIFSIGNALED(status) || !WIFSTOPPED(status) )
 			fatal_error("unexpected behaviour: process in unexpected state");
 
-		t = get_trace(map, pid);
 		t->status = status;
 		t->signal = (status>>8) & 0xff;
 		event = (status>>16) & 0xff;

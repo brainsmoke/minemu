@@ -184,26 +184,26 @@ movl $scratch_stack, %esp
 pushf
 # XXX DEBUG
 
-push %ebp
-push %edi
-push %esi
-push %edx
-push %ecx
-push %ebx
-push %eax
-mov $4, %eax
-mov $1, %ebx
-mov debug_string, %ecx
-mov $6, %edx
-int $0x80
-pop %eax
-pop %ebx
-pop %ecx
-pop %edx
-pop %esi
-pop %edi
-pop %ebp
-
+#push %ebp
+#push %edi
+#push %esi
+#push %edx
+#push %ecx
+#push %ebx
+#push %eax
+#mov $4, %eax
+#mov $1, %ebx
+#mov debug_string, %ecx
+#mov $6, %edx
+#int $0x80
+#pop %eax
+#pop %ebx
+#pop %ecx
+#pop %edx
+#pop %esi
+#pop %edi
+#pop %ebp
+#
 #
 call runtime_syscall
 popf

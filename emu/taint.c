@@ -4,7 +4,8 @@
 #include "taint.h"
 
 #include "error.h"
-#include "opcodes.h"
+//#include "opcodes.h"
+#include "jitcode.h"
 
 /*       .____.____.____.____.
  * xmm5  |    scratch reg    |
@@ -33,7 +34,7 @@ static int scratch_reg(void)
 
 int offset_mem(char *dst_mrm, char *src_mrm, long offset)
 {
-	int mrm = (unsigned char)src_mrm[0], sib;
+	int mrm = (unsigned char)src_mrm[0], sib=0;
 	int disp32 = offset;
 	int imm_index=1;
 
