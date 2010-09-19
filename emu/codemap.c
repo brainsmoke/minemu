@@ -40,6 +40,17 @@ code_map_t *find_code_map(char *addr)
 	return NULL;
 }
 
+code_map_t *find_jit_code_map(char *jit_addr)
+{
+	int i;
+
+	for (i=0; i<n_codemaps; i++)
+		if (contains(codemaps[i].jit_addr, codemaps[i].jit_len, jit_addr))
+			return &codemaps[i];
+
+	return NULL;
+}
+
 void add_code_region(char *addr, unsigned long len)
 {
 	int i;

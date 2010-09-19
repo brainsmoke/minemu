@@ -192,9 +192,9 @@ static void printhex_diff_descr(const void *data1, ssize_t len1,
 			if ( (row*16+i) % grane == 0 )
 			{
 				if ( (minlen != maxlen && minlen-i-row*16 < grane) ||
-				      bcmp( (char*)data1+row*16+i,
-				            (char*)data2+row*16+i,
-				            min(grane, minlen-i-row*16)) )
+				      memcmp( (char*)data1+row*16+i,
+				              (char*)data2+row*16+i,
+				              min(grane, minlen-i-row*16)) )
 					diff = DIFF;
 				else
 					diff = NODIFF;
@@ -229,7 +229,7 @@ void print_trace_diff(trace_t *new, trace_t *old)
 
 void print_trace_if_diff(trace_t *new, trace_t *old)
 {
-	if ( bcmp(&new->regs, &old->regs, sizeof(registers_t)) != 0 )
+	if ( memcmp(&new->regs, &old->regs, sizeof(registers_t)) != 0 )
 		print_trace_diff(new, old);
 }
 
@@ -246,7 +246,7 @@ void print_registers_diff(registers_t *new, registers_t *old)
 
 void print_registers_if_diff(registers_t *new, registers_t *old)
 {
-	if ( bcmp(new, old, sizeof(registers_t)) != 0 )
+	if ( memcmp(new, old, sizeof(registers_t)) != 0 )
 		print_registers_diff(new, old);
 }
 
@@ -256,7 +256,7 @@ static long lastop[100000];
 
 void print_steptrace_debug(trace_t *t, registers_t *cmp)
 {
-	if ( bcmp(cmp, &t->regs, sizeof(registers_t)) != 0 )
+	if ( memcmp(cmp, &t->regs, sizeof(registers_t)) != 0 )
 	{
 		print_registers_diff(cmp, &t->regs);
 		unsigned long prev_opcode_len = t->regs.eip-lastop[t->pid];

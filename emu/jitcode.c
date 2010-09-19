@@ -28,8 +28,14 @@ static int gen_code(char *dst, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	int i,j, c, outc=1;
-	for (i=0,j=0; (c=fmt[i]); i++)
+	int i,j=0, c, outc=1;
+#ifdef EMU_DEBUG
+	dst[0] = '\xC7'; dst[1] = '\x05';
+	imm_to(&dst[2], (long)&last_jit);
+	imm_to(&dst[6], (long)&dst[20]);
+	j=10;
+#endif
+	for (i=0; (c=fmt[i]); i++)
 	{
 		if ( (unsigned int)(c-'0') < 10 )
 			outc = outc*16 + (c-'0');
@@ -193,7 +199,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	return len;
 }
 
-static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *retaddr_index)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
 	/* XXX FUGLY as a speed optimisation, we insert the return address
@@ -206,23 +212,24 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
 	return gen_code(
 		dest,
 
-		"68 L"          /* push $retaddr */
-		"C7 05 L L"     /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
-		"C7 05 L L",    /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
+		"68 L"                /* push $retaddr */
+		"C7 05 L L"           /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
+		"C7 05 L % DEADBEEF", /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
 
 		&instr->addr[instr->len],
 		&jmp_list.addr[hash],       &instr->addr[instr->len],
-		&jmp_list.jit_addr[hash],   0xdeadbeef
+		&jmp_list.jit_addr[hash],   retaddr_index
 	);
 }
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 {
-	int len = generate_call_head(dest, instr, trans);
+	int len, retaddr_index;
+	len = generate_call_head(dest, instr, trans, &retaddr_index);
 	generate_ijump(&dest[len], instr, trans);
 	trans->len += len;
 /* XXX FUGLY */
-	imm_to(&dest[0x15], (long)dest+trans->len);
+	imm_to(&dest[retaddr_index], (long)dest+trans->len);
 	return trans->len;
 }
 
@@ -305,7 +312,7 @@ static int generate_linux_sysenter(char *dest, trans_t *trans)
 {
 	int len = gen_code(
 		dest,
-		"FF 25 L",     /* call *linux_sysenter_emu_addr */
+		"FF 25 L",     /* jmp *linux_sysenter_emu_addr */
 		&linux_sysenter_emu_addr
 	);
 	*trans = (trans_t){ .len=len };
@@ -344,7 +351,7 @@ int generate_stub(char *dest, char *jmp_addr, char *imm_addr)
 		"89 25 L"        /* mov %esp, scratch_stack   */
 		"BC L"           /* mov $scratch_stack %esp   */
 		"50"             /* push %eax                 */
-		"9c"             /* pushf                     */
+		"9C"             /* pushf                     */
 		"B8 L"           /* mov $o_addr, %eax         */
 		"68 L"           /* push j_addr               */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
@@ -384,6 +391,7 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 {
 	char *pc = instr->addr+instr->len;
 	long imm=0, imm_len, off;
+	int retaddr_index;
 
 	imm_len=instr->len-instr->imm;
 	if (instr->action == JUMP_FAR)
@@ -430,11 +438,11 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			trans->imm += 2+off; trans->len += 2+off;
 			break;
 		case CALL_RELATIVE:
-			off = generate_call_head(dest, instr, trans);
+			off = generate_call_head(dest, instr, trans, &retaddr_index);
 			generate_jump(&dest[off], pc+imm, trans, map, map_len);
 			trans->imm += off; trans->len += off;
 			/* XXX FUGLY */
-			imm_to(&dest[0x15], (long)dest+trans->len);
+			imm_to(&dest[retaddr_index], (long)dest+trans->len);
 			break;
 		case JOIN:
 			generate_ill(dest, trans);

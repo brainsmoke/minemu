@@ -515,6 +515,6 @@ int op_size(char *addr, int max_len)
 {
 	instr_t instr;
 	int ret = read_op(addr, &instr, max_len);
-	return ret<0 ? ret : instr.len;
+	return ret==CODE_JOIN ? -1 : instr.len;
 }
 

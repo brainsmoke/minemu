@@ -10,7 +10,7 @@ RM=$(SILENT)rm -r
 
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
-CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g
+CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
 #CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer

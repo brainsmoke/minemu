@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <stdarg.h>
 
+#undef isprint
+int isprint(int c);
+
 int fd_vprintf(int fd, const char *format, va_list ap);
 int fd_printf(int fd, const char *format, ...);
 

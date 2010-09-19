@@ -20,3 +20,7 @@
 .global user_eip
 .lcomm jit_eip, 4
 .global jit_eip
+#ifdef EMU_DEBUG
+.lcomm last_jit, 4
+.global last_jit
+#endif

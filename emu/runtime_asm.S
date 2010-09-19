@@ -172,49 +172,46 @@ movl user_eip, %eax
 push $jit_eip
 jmp runtime_ijmp
 
-debug_string: .asciz "debug\n"
-
+# Emulate sysenter, depends on the way sysenter is used
+# on linux
+#
+# %esp is still on the user stack, we emulate the code until the RET
+# instruction
+#
+# user stack, push order:
+#
+# - %ecx
+# - %edx
+# - %ebp
+# - return address
+#
+# XXX NO TAINT ANALYSIS DONE YET
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
-pop %ebp
-lea  8(%esp), %esp
+mov (%esp), %ebp
+
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
-pushf
-# XXX DEBUG
 
-#push %ebp
-#push %edi
-#push %esi
-#push %edx
-#push %ecx
-#push %ebx
-#push %eax
-#mov $4, %eax
-#mov $1, %ebx
-#mov debug_string, %ecx
-#mov $6, %edx
-#int $0x80
-#pop %eax
-#pop %ebx
-#pop %ecx
-#pop %edx
-#pop %esi
-#pop %edi
-#pop %ebp
-#
-#
-call runtime_syscall
-popf
+  pushf
+  push %ebx
+  call runtime_syscall
+  pop %ebx
+  popf
+
 push %eax
 pushf
 push $jit_eip
-movl 12(%esp), %eax                 # user stack pointer
+mov 12(%esp), %eax
+lea 16(%eax), %eax
+mov %eax,     12(%esp)
 
-movl  -8(%eax), %edx
-movl  -4(%eax), %ecx
-movl    (%eax), %eax                 # return address
+mov -16(%eax), %ebp
+mov -12(%eax), %edx
+mov  -8(%eax), %ecx
+mov  -4(%eax), %eax # return address
+
 jmp runtime_ijmp
 
 runtime_jit:

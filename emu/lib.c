@@ -9,6 +9,11 @@
 
 /* versions of stdlib functions */
 
+int isprint(int c)
+{
+	return c >= ' ' && c <= '~';
+}
+
 char *strncpy(char *dest, const char *src, size_t n)
 {
 	size_t i;

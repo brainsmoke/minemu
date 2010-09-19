@@ -13,6 +13,7 @@
 #include "jitcode.h"
 #include "error.h"
 #include "runtime.h"
+#include "debug.h"
 
 #define TRANSLATED_MAX_SIZE (255)
 
@@ -236,7 +237,7 @@ void print_map(code_map_t *map)
 	}
 }
 
-/**/
+/* address lookup (also called by runtime_ijmp in case of a cache miss) */
 
 static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 {
@@ -289,6 +290,65 @@ char *jit_lookup_addr(char *addr)
 
 	return NULL;
 }
+
+/* reverse address lookup */
+
+static char *jit_chunk_rev_lookup_addr(jit_chunk_t *hdr, char *jit_addr, char **jit_op_start, long *jit_op_len)
+{
+	if (!contains((char *)hdr, hdr->chunk_len, jit_addr))
+		return NULL;
+
+	unsigned long n_ops=hdr->n_ops, i;
+	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
+	char *jit_addr_iter = (char *)&hdr[1], *addr=hdr->addr;
+
+	for (i=0; i<n_ops; i++)
+	{
+		if (contains(jit_addr_iter, sizes[i].jit, jit_addr))
+		{
+			if (jit_op_start)
+				*jit_op_start = jit_addr_iter;
+			if (jit_op_len)
+				*jit_op_len = sizes[i].jit;
+			return addr;
+		}
+
+		addr += sizes[i].orig;
+		jit_addr_iter += sizes[i].jit;
+	}
+
+	return NULL;
+}
+
+static char *jit_map_rev_lookup_addr(code_map_t *map, char *jit_addr, char **jit_op_start, long *jit_op_len)
+{
+	unsigned long off = 0;
+	char *addr;
+
+	while (off < map->jit_len)
+	{
+		jit_chunk_t *hdr = (jit_chunk_t *)&map->jit_addr[off];
+
+		if ( (addr = jit_chunk_rev_lookup_addr(hdr, jit_addr, jit_op_start, jit_op_len)) )
+			return addr;
+
+		off += hdr->chunk_len;
+	}
+
+	return NULL;
+}
+
+char *jit_rev_lookup_addr(char *jit_addr, char **jit_op_start, long *jit_op_len)
+{
+	code_map_t *map = find_jit_code_map(jit_addr);
+
+	if (map)
+		return jit_map_rev_lookup_addr(map, jit_addr, jit_op_start, jit_op_len);
+
+	return NULL;
+}
+
+/*  */
 
 static void jit_chunk_fill_mapping(code_map_t *map, jit_chunk_t *hdr,
                                    unsigned long *mapping)
@@ -494,8 +554,19 @@ char *jit(char *addr)
 	code_map_t *map = find_code_map(addr);
 
 	if (map == NULL)
+{
+#ifdef EMU_DEBUG
+char *jit_op, *op;
+long jit_op_len, op_len;
+op = jit_rev_lookup_addr(last_jit, &jit_op, &jit_op_len);
+op_len = op_size(op, 16);
+		debug("last opcode at: %X %d", op, op_len);
+		printhex(op, op_len);
+		debug("last jit opcode at: %X ", last_jit);
+		printhex(jit_op, jit_op_len);
+#endif
 		die("attempting to jump in non-executable code addr: %X ", addr);
-
+}
 	jit_addr = jit_map_lookup_addr(map, addr);
 
 	if (jit_addr == NULL)
