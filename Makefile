@@ -10,8 +10,8 @@ RM=$(SILENT)rm -r
 
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
-CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
+#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
+CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer
 SYSCALLS_CFLAGS=$(CFLAGS) -Itracer -Isyscalls
@@ -59,6 +59,7 @@ TRACER_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/tracer/*.c))
 SYSCALLS_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/syscalls/*.c))
 RNR_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/rnr/*.c))
 EMU_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/emu/*.c))
+EMU_GEN_OBJECTS=$(patsubst %.c, %.o, $(wildcard emu/gen/*.c))
 
 RECORD_MAIN=rnr/record_main.o
 REPLAY_MAIN=rnr/replay_main.o
@@ -71,7 +72,9 @@ OBJECTS=\
 	$(TRACER_OBJECTS) $(TRACER_TEST_OBJECTS)\
 	$(SYSCALLS_OBJECTS) $(SYSCALLS_TEST_OBJECTS)\
 	$(RNR_OBJECTS) $(RNR_TEST_OBJECTS)\
-	$(EMU_OBJECTS) $(EMU_ASM_OBJECTS) $(EMU_TEST_OBJECTS)
+	$(EMU_OBJECTS) $(EMU_ASM_OBJECTS) $(EMU_TEST_OBJECTS)\
+	$(EMU_GEN_OBJECTS)
+
 
 CLEAN=$(TARGETS) $(OBJECTS) .dep
 
@@ -80,15 +83,15 @@ CLEAN=$(TARGETS) $(OBJECTS) .dep
 all: depend $(TARGETS)
 
 depend:
-	$(MKDIR) -p .dep{/test,}/{tracer,rnr,syscalls,emu,testcases}/
+	$(MKDIR) -p .dep{/test,}/{tracer,rnr,syscalls,emu,testcases}/ .dep/emu/gen/
 
 clean:
 	-$(RM) $(CLEAN)
 
--include .dep/*/*.d .dep/test/*/*.d
+-include .dep/*/*.d .dep/test/*/*.d .dep/emu/gen/*.d
 
 strip: $(TARGETS)
-	$(STRIP) --strip-all $(TARGETS)
+	$(STRIP) $(TARGETS)
 
 # Compiling
 
@@ -104,7 +107,7 @@ $(RECORD_MAIN) $(REPLAY_MAIN) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS): %.o: %.c
 $(TESTCASES_OBJECTS): %.o: %.c
 	$(CC) $(TESTCASES_CFLAGS) -c -o $@ $<
 
-$(EMU_OBJECTS) $(EMU_TEST_OBJECTS): %.o: %.c
+$(EMU_OBJECTS) $(EMU_TEST_OBJECTS) $(EMU_GEN_OBJECTS): %.o: %.c
 	$(CC) -c $(EMU_CFLAGS) -o $@ $<
 
 $(EMU_ASM_OBJECTS): %.o: %.S

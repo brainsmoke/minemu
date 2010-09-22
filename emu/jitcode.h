@@ -2,6 +2,7 @@
 #define JITCODE_H
 
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "lib.h"
 #include "opcodes.h"
@@ -15,6 +16,8 @@ typedef struct
 
 long imm_at(char *addr, long size);
 void imm_to(char *dest, long imm);
+
+int gen_code(char *dst, char *fmt, ...);
 
 void translate_op(char *dest, instr_t *instr, trans_t *trans,
                   char *map, unsigned long map_len);

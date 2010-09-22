@@ -26,7 +26,7 @@ typedef struct
 
 } mem_map_t;
 
-/*static*/ mem_map_t shield_maps[] =
+static mem_map_t shield_maps[] =
 {
 	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ            },
 	{ .start = JIT_CODE_START,     .length = JIT_CODE_SIZE,     .prot = PROT_READ|PROT_EXEC  },
@@ -35,7 +35,7 @@ typedef struct
 	{ .start = 0 },
 };
 
-/*static*/ mem_map_t unshield_maps[] =
+static mem_map_t unshield_maps[] =
 {
 /*	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ|PROT_WRITE },
 	{ .start = JIT_CODE_START,     .length = JIT_CODE_SIZE,     .prot = PROT_READ|PROT_WRITE },*/
@@ -200,6 +200,10 @@ void init_temu_mem(char **envp)
 		ret |= sys_mmap2(stack_top(envp), high_user_addr(envp)-stack_top(envp),
 		                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 		                 -1, 0);
+
+	ret |= sys_munmap(FAULT_PAGE_0, PG_SIZE);
+	ret |= sys_munmap(FAULT_PAGE_1, PG_SIZE);
+	ret |= sys_munmap(FAULT_PAGE_2, PG_SIZE);
 
 	mem_map_t *i;
 

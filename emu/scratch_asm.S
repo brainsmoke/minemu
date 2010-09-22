@@ -1,10 +1,30 @@
 #include "scratch.h"
 .bss
-.align 4
-.lcomm stack_bottom, 65532
-.global stack_bottom
-.lcomm scratch_stack, 4
-.global scratch_stack
+.balign 4096 # .{b,p2,}align doesn't seem to work
+
+.lcomm stack_bottom, 32764                     # signal stack
+.global stack_bottom                           #
+.lcomm signal_stack, 4                         #
+.global signal_stack                           #
+.lcomm scratch_stack_bottom, 32764             # runtime stack
+.global scratch_stack_bottom                   #
+.lcomm scratch_stack, 4                        #
+.global scratch_stack                          #
+
+.lcomm fault_page_0, 4096
+.global fault_page_0
+
+.lcomm jit_linux_sysenter_return, 4096
+.global jit_linux_sysenter_return
+
+.lcomm fault_page_1, 4096
+.global fault_page_1
+
+.lcomm jit_finish_instruction, 4096
+.global jit_finish_instruction
+
+.lcomm fault_page_2, 4096
+.global fault_page_2
 
 .lcomm jmp_cache, JMP_CACHE_MEM_SIZE
 .global jmp_cache
@@ -24,3 +44,4 @@
 .lcomm last_jit, 4
 .global last_jit
 #endif
+

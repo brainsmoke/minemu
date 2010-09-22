@@ -14,6 +14,7 @@
 #include "error.h"
 #include "runtime.h"
 #include "debug.h"
+#include "syscalls.h"
 
 #define TRANSLATED_MAX_SIZE (255)
 
@@ -163,16 +164,6 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 }
 
 /**/
-
-void print_hex(char *s, long len)
-{
-	long i=0;
-
-	for (i=0; i<len; i++)
-		fd_printf(1, "%02X", (unsigned char)s[i]);
-
-	fd_printf(1, "\n");
-}
 
 void print_op_pair(char *orig_addr, int orig_size,
                    char *jit_addr,  int jit_size)
@@ -435,6 +426,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	              d_off = map->jit_len+sizeof(jit_chunk_t),
 	              chunk_base = map->jit_len;
 	int stop = 0;
+//	int stop_count = 2000;
 
 	instr_t instr;
 	trans_t trans;
@@ -452,7 +444,11 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		translate_op(&jit_addr[d_off], &instr, &trans, map->addr, map->len);
 
 		if (stop==CODE_STOP)
-			stop = 0;
+		{
+//			stop_count--;
+//			if (stop_count)
+				stop = 0;
+		}
 
 		/* try to resolve translated jumps early */
 		if ( (trans.imm != 0) && !try_resolve_jmp(map, trans.jmp_addr,
@@ -539,9 +535,39 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 			jit_translate_chunk(map, j.addr, &jmp_heap, mapping);
 }
 
+/* after the sysenter call, we lose track of the instruction pointer,
+ * but we know what kind of return code we can expect (yes, this is ugly)
+ * so we generate jit code for this expected code.
+ */
+extern char linux_sysenter_return[],
+            jit_linux_sysenter_return[];
+
+static void jit_init_sysenter_emu(void)
+{
+	instr_t instr;
+	trans_t trans;
+	int s_off=0, d_off=0, stop;
+
+	do
+	{
+		stop = read_op(&linux_sysenter_return[s_off], &instr, 16);
+		s_off += instr.len;
+		translate_op(&jit_linux_sysenter_return[d_off], &instr, &trans,
+		              jit_linux_sysenter_return, PG_SIZE);
+		d_off += trans.len;
+	}
+	while (stop != CODE_STOP);
+
+	memset(&jit_linux_sysenter_return[d_off], '\x90', PG_SIZE-d_off); /* nop slope into segfault */
+
+	if (sys_mprotect(&jit_linux_sysenter_return, PG_SIZE, PROT_READ|PROT_EXEC))
+		die("jit_init_sysenter_emu(): mprotect() failed");
+}
+
 void jit_init(void)
 {
 	jit_mm_init();
+	jit_init_sysenter_emu();
 }
 
 char *jit(char *addr)
@@ -571,22 +597,13 @@ op_len = op_size(op, 16);
 
 	if (jit_addr == NULL)
 	{
-debug("miss: addr %x", addr);
 		jit_translate(map, addr);
 		jit_addr = jit_map_lookup_addr(map, addr);
 	}
-//print_map(map);
 
 	if (jit_addr == NULL)
 		die("jit failed");
 
-//	add_jmp_mapping(addr, jit_addr);
-
-//fd_printf(1, "x", 1);
-//if (addr == 0x40000414)
-//{print_map(map);
-//die("");
-//}//	print_jmp_list();
 	return jit_addr;
 }
 

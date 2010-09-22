@@ -1,6 +1,5 @@
 
 #include <string.h>
-#include <stdarg.h>
 
 #include "jitcode.h"
 #include "jmpcache.h"
@@ -24,7 +23,7 @@ void imm_to(char *dest, long imm)
 	memcpy(dest, &imm, sizeof(long));
 }
 
-static int gen_code(char *dst, char *fmt, ...)
+int gen_code(char *dst, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);

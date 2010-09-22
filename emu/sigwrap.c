@@ -1,4 +1,4 @@
-
+/*
 #include <sys/ptrace.h>
 #include <linux/ptrace.h>
 #include <sys/wait.h>
@@ -122,7 +122,7 @@ void temu_signal_wrapper(void)
 {
 	pid_t pid = sys_fork();
 
-	if (pid > 0) /* parent process */
+	if (pid > 0) /* parent process *
 	{
 		trace(pid);
 		sys_exit(EXIT_SUCCESS);
@@ -133,4 +133,4 @@ void temu_signal_wrapper(void)
 	else if ( sys_ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1 )
 		die("trace failed");
 }
-
+*/

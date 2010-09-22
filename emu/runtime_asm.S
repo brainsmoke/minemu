@@ -101,6 +101,7 @@ addl $4, %esp        # pop function argument (undefined value)
 test %eax, %eax      # jit_addr or NULL
 jnz lookup_hit
 
+# the code we're looking for has not been translated yet
 push (%esp)
 call runtime_jit
 addl $4, %esp
@@ -118,11 +119,30 @@ pop %ebx
 pop %edx
 jmp jit_return
 
+#
+# total miss, we have to translate some code
+#
+runtime_jit:
+call unshield                       # unprotect jit stack
+movl 4(%esp), %eax
+movl %esp, temu_stack_bottom        # switch to jit stack
+movl $temu_stack_bottom, %esp       #
+push %eax                           # address to be translated
+call jit
+addl $4, %esp
+pop %esp                            # revert to scratch stack
+push %eax
+call shield                         # protect jit stack
+pop %eax                            # translated address is stored in %eax
+ret
 
 #
 # syscall wrapper
 #
 runtime_syscall:
+pushf
+push %ecx
+push %edx
 push %ebp
 push %edi
 push %esi
@@ -132,6 +152,9 @@ push %ebx
 push %eax
 call syscall_emu
 lea 28(%esp), %esp
+pop %edx
+pop %ecx
+popf
 ret
 
 # Values on the stack (in push order)
@@ -149,15 +172,7 @@ movl %eax, jit_eip
 pop %eax
 movl %eax, user_eip
 pop %eax                # original %eax
-pushf
-push %edx
-push %ebx
-push %ecx
 call runtime_syscall
-pop %ecx
-pop %ebx
-pop %edx
-popf
 push %eax
 pushf
 movl jit_eip, %eax
@@ -172,59 +187,31 @@ movl user_eip, %eax
 push $jit_eip
 jmp runtime_ijmp
 
-# Emulate sysenter, depends on the way sysenter is used
-# on linux
+# linux_sysenter_emu()
 #
-# %esp is still on the user stack, we emulate the code until the RET
-# instruction
+# Emulate the sysenter instruction, depends on the way sysenter is used
+# on linux. Processor state is exactly as it would be during the normal sysenter
 #
-# user stack, push order:
-#
-# - %ecx
-# - %edx
-# - %ebp
-# - return address
-#
-# XXX NO TAINT ANALYSIS DONE YET
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
-mov (%esp), %ebp
-
+mov (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
-
-  pushf
-  push %ebx
-  call runtime_syscall
-  pop %ebx
-  popf
-
-push %eax
-pushf
-push $jit_eip
-mov 12(%esp), %eax
-lea 16(%eax), %eax
-mov %eax,     12(%esp)
-
-mov -16(%eax), %ebp
-mov -12(%eax), %edx
-mov  -8(%eax), %ecx
-mov  -4(%eax), %eax # return address
-
-jmp runtime_ijmp
-
-runtime_jit:
-call unshield
-movl 4(%esp), %eax
-movl %esp, temu_stack_bottom
-movl $temu_stack_bottom, %esp
-push %eax
-call jit
-addl $4, %esp
+call runtime_syscall
 pop %esp
-push %eax
-call shield
-pop %eax
+jmp jit_linux_sysenter_return # translated version of linux_sysenter_return
+
+# Sysenter depends on the kernel to restore the instruction pointer
+# so we cannot, with certainty, know where the process will resume execution.
+# We will assume that the code that is to be executed will be the following:
+#
+# This code is fed as imput to jit_init_sysenter_emu().
+.global linux_sysenter_return
+.type linux_sysenter_return, @function
+linux_sysenter_return:
+pop %ebp
+pop %edx
+pop %ecx
 ret
 
