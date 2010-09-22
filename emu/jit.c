@@ -535,39 +535,9 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 			jit_translate_chunk(map, j.addr, &jmp_heap, mapping);
 }
 
-/* after the sysenter call, we lose track of the instruction pointer,
- * but we know what kind of return code we can expect (yes, this is ugly)
- * so we generate jit code for this expected code.
- */
-extern char linux_sysenter_return[],
-            jit_linux_sysenter_return[];
-
-static void jit_init_sysenter_emu(void)
-{
-	instr_t instr;
-	trans_t trans;
-	int s_off=0, d_off=0, stop;
-
-	do
-	{
-		stop = read_op(&linux_sysenter_return[s_off], &instr, 16);
-		s_off += instr.len;
-		translate_op(&jit_linux_sysenter_return[d_off], &instr, &trans,
-		              jit_linux_sysenter_return, PG_SIZE);
-		d_off += trans.len;
-	}
-	while (stop != CODE_STOP);
-
-	memset(&jit_linux_sysenter_return[d_off], '\x90', PG_SIZE-d_off); /* nop slope into segfault */
-
-	if (sys_mprotect(&jit_linux_sysenter_return, PG_SIZE, PROT_READ|PROT_EXEC))
-		die("jit_init_sysenter_emu(): mprotect() failed");
-}
-
 void jit_init(void)
 {
 	jit_mm_init();
-	jit_init_sysenter_emu();
 }
 
 char *jit(char *addr)

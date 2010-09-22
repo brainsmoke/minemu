@@ -1,4 +1,3 @@
-
 .text
 #include "scratch.h"
 
@@ -187,11 +186,6 @@ movl user_eip, %eax
 push $jit_eip
 jmp runtime_ijmp
 
-# linux_sysenter_emu()
-#
-# Emulate the sysenter instruction, depends on the way sysenter is used
-# on linux. Processor state is exactly as it would be during the normal sysenter
-#
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
@@ -204,20 +198,3 @@ pushf
 movl sysenter_reentry, %eax
 push $jit_eip
 jmp runtime_ijmp
-
-pop %esp
-jmp jit_linux_sysenter_return # translated version of linux_sysenter_return
-
-# Sysenter depends on the kernel to restore the instruction pointer
-# so we cannot, with certainty, know where the process will resume execution.
-# We will assume that the code that is to be executed will be the following:
-#
-# This code is fed as imput to jit_init_sysenter_emu().
-.global linux_sysenter_return
-.type linux_sysenter_return, @function
-linux_sysenter_return:
-pop %ebp
-pop %edx
-pop %ecx
-ret
-

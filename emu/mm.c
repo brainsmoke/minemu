@@ -203,7 +203,6 @@ void init_temu_mem(char **envp)
 
 	ret |= sys_munmap(FAULT_PAGE_0, PG_SIZE);
 	ret |= sys_munmap(FAULT_PAGE_1, PG_SIZE);
-	ret |= sys_munmap(FAULT_PAGE_2, PG_SIZE);
 
 	mem_map_t *i;
 

@@ -14,17 +14,11 @@
 .lcomm fault_page_0, 4096
 .global fault_page_0
 
-.lcomm jit_linux_sysenter_return, 4096
-.global jit_linux_sysenter_return
-
-.lcomm fault_page_1, 4096
-.global fault_page_1
-
 .lcomm jit_finish_instruction, 4096
 .global jit_finish_instruction
 
-.lcomm fault_page_2, 4096
-.global fault_page_2
+.lcomm fault_page_1, 4096
+.global fault_page_1
 
 .lcomm jmp_cache, JMP_CACHE_MEM_SIZE
 .global jmp_cache
