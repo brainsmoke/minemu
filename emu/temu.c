@@ -21,7 +21,6 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 	if (ADDR_COMPAT_LAYOUT & ~pers)
 	{
 		sys_personality(ADDR_COMPAT_LAYOUT | pers);
-//		temu_signal_wrapper();
 		sys_execve("/proc/self/exe", argv, envp);
 	}
 
@@ -53,10 +52,7 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 
 	add_code_region(vdso, 0x1000); /* vdso */
 
-	long eip = (long)jit(prog.entry);
-	long esp = (long)prog.sp;
-
-	enter(eip, esp);
+	emu_start(prog.entry, prog.sp);
 
 	sys_exit(1);
 	return 1;

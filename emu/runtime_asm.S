@@ -2,28 +2,27 @@
 #include "scratch.h"
 
 #
-# enter(): Protect temu memory, load registers, jump to address
+# emu_start(): Protect temu memory, load registers, jump to address
 #
-.global enter
-.type enter, @function
-enter: # (long eip, long esp)
-movl 4(%esp), %eax         # load jit translated %eip from arg1
-movl %eax, jit_eip         # and store it in the jit_eip variable
-movl 8(%esp), %eax         # load user's stack pointer from arg2
-movl %eax, scratch_stack   # and store it on top of the scratch stack
-movl $scratch_stack, %esp  # set the stack to the scratch stack
+.global emu_start
+.type emu_start, @function
+emu_start: # (long eip, long esp)
+movl 4(%esp), %esi           # load jit translated %eip from arg1
+movl 8(%esp), %ebp           # load user's stack pointer from arg2
+movl $scratch_stack+4, %esp  # set the stack to the scratch stack
+push %ebp
 call shield                # protect emulator memory
-xor %eax, %eax
+movl %esi, %eax
 xor %ecx, %ecx             # clear registers and flags
 xor %edx, %edx
 xor %ebx, %ebx
 xor %esi, %esi
 xor %edi, %edi
 xor %ebp, %ebp
-push $0
-popf
-pop %esp                   # set stack pointer to user's stack pointer
-jmp *jit_eip               # jump to jit translated code
+push %ebx                  # cleared %eax
+push %ebx                  # cleared %eflags
+push $jit_eip              # jump to jit translated code
+jmp runtime_ijmp
 
 #
 # runtime_ijmp() is called from the jit code and has hackish calling
