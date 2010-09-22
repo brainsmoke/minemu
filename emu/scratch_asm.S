@@ -40,6 +40,8 @@
 .global user_eip
 .lcomm jit_eip, 4
 .global jit_eip
+.lcomm sysenter_reentry, 4
+.global sysenter_reentry
 #ifdef EMU_DEBUG
 .lcomm last_jit, 4
 .global last_jit

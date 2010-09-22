@@ -34,6 +34,7 @@ extern unsigned long scratch_stack[];
 
 extern long user_eip;
 extern long jit_eip;
+extern long sysenter_reentry;
 
 #ifdef EMU_DEBUG
 extern char *last_jit;

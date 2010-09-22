@@ -262,4 +262,12 @@ void qsort(void *base, size_t n, size_t size,
 	qsort(E(part+1), n-part-1, size, cmp);
 }
 
+long memscan(const char *hay, long haylen, const char *needle, long needlelen)
+{
+	long i, max = haylen-needlelen;
+	for (i=0; i<max; i++)
+		if ( memcmp(&hay[i], needle, needlelen) == 0 )
+			return i;
+	return -1;
+}
 

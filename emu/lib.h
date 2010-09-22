@@ -13,6 +13,8 @@ int fd_printf(int fd, const char *format, ...);
 long read_at(int fd, off_t off, void *buf, size_t size);
 char *numcat(char *dest, long l);
 
+long memscan(const char *hay, long haylen, const char *needle, long needlelen);
+
 static inline int overlap(char *addr1, unsigned long len1, char *addr2, unsigned long len2)
 {
 	return ((unsigned long)addr1 < (unsigned long)addr2+len2) &&

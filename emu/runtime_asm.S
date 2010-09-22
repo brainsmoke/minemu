@@ -195,10 +195,16 @@ jmp runtime_ijmp
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
-mov (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
+movl (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
 call runtime_syscall
+push %eax
+pushf
+movl sysenter_reentry, %eax
+push $jit_eip
+jmp runtime_ijmp
+
 pop %esp
 jmp jit_linux_sysenter_return # translated version of linux_sysenter_return
 

@@ -43,7 +43,15 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 
 	jit_init();
 
-	add_code_region((char *)get_aux(prog.auxv, AT_SYSINFO_EHDR), 0x1000); /* vdso */
+	char *vdso = (char *)get_aux(prog.auxv, AT_SYSINFO_EHDR);
+	long off = memscan(vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);
+
+	if (off < 0)
+		die("unable to guess sysenter re-entry");
+
+	sysenter_reentry = (long)&vdso[off];
+
+	add_code_region(vdso, 0x1000); /* vdso */
 
 	long eip = (long)jit(prog.entry);
 	long esp = (long)prog.sp;
