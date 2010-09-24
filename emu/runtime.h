@@ -6,7 +6,9 @@
 void emu_start(void *eip, long *esp);
 
 long runtime_ijmp(void);
+long runtime_ret(void);
 extern long (*runtime_ijmp_addr)(void);
+extern long (*runtime_ret_addr)(void);
 
 long int80_emu(void);
 extern long (*int80_emu_addr)(void);

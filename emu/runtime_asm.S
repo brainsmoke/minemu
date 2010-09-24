@@ -24,6 +24,17 @@ push %ebx                  # cleared %eflags
 push $jit_eip              # jump to jit translated code
 jmp runtime_ijmp
 
+
+.global runtime_ret
+.type runtime_ret, @function
+runtime_ret:
+#ifdef EMU_DEBUG
+incl ret_misses
+#endif
+pop %ecx
+push $jit_eip
+jmp runtime_ijmp
+
 #
 # runtime_ijmp() is called from the jit code and has hackish calling
 # conventions, optimized for small jit code and speed:

@@ -7,6 +7,7 @@
 #include "runtime.h"
 #include "error.h"
 #include "taint.h"
+#include "debug.h"
 
 long imm_at(char *addr, long size)
 {
@@ -244,54 +245,6 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
-/*static*/ int generate_ret_alt(char *dest, char *addr, trans_t *trans)
-{
-	char **cache = alloc_jmp_cache(addr);
-	int len = gen_code(
-		dest,
-
-		"A3 L"           /* mov %eax, scratch_stack-4 */
-		"58"             /* pop %eax                  */
-		"89 25 L"        /* mov %esp, scratch_stack   */
-		"BC L"           /* mov $scratch_stack-4 %esp */
-		"9C"             /* pushf                     */
-#ifdef EMU_DEBUG
-"FF 04 25 L"          /* incl ijmp_count           */
-#endif
-		"3B 05 L"        /* cmp o_addr, %eax          */
-		"2E 75 09"       /* jne, predict hit          */
-		"9D"             /* popf                      */
-		"58"             /* pop %eax                  */
-		"5C"             /* pop %esp                  */
-		"FF 25 L"        /* jmp *j_addr               */
-#ifdef EMU_DEBUG
-"FF 04 25 L"          /* incl ijmp_count           */
-#endif
-		"A3 L"           /* mov %eax, o_addr          */
-		"68 L"           /* push j_addr               */
-		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
-
-		&scratch_stack[-1],
-		scratch_stack,
-		&scratch_stack[-1],
-#ifdef EMU_DEBUG
-&ret_count,
-#endif
-		&cache[0],
-		&cache[1],
-#ifdef EMU_DEBUG
-&ret_misses,
-#endif
-		&cache[0],
-		&cache[1],
-		&runtime_ijmp_addr
-	);
-
-	*trans = (trans_t){ .len=len };
-
-	return len;
-}
-
 static int generate_ret(char *dest, char *addr, trans_t *trans)
 {
 	int len = gen_code(
@@ -316,11 +269,6 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 		"58"             /* pop %eax                  */
 		"5C"             /* pop %esp                  */
 		"FF 25 L"        /* jmp *j_addr               */
-#ifdef EMU_DEBUG
-"FF 04 25 L"             /* incl ret_misses           */
-#endif
-		"59"             /* pop %ebx                  */
-		"68 L"           /* push jit_eip              */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
 		&scratch_stack[-1],
@@ -333,11 +281,7 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 		&jmp_list.jit_addr[0],
 		&jit_eip,
 		&jit_eip,
-#ifdef EMU_DEBUG
-&ret_misses,
-#endif
-		&jit_eip,
-		&runtime_ijmp_addr
+		&runtime_ret_addr
 	);
 
 	*trans = (trans_t){ .len=len };
@@ -347,7 +291,6 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 
 static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 {
-	char **cache = alloc_jmp_cache(addr);
 	int len = gen_code(
 		dest,
 
@@ -358,29 +301,39 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		"9C"             /* pushf                     */
 		"81 44 24 08"    /* add ??, 8(%esp)           */
 		"S 00 00"
-		"3B 05 L"        /* cmp o_addr, %eax          */
-		"2E 75 09"       /* jne, predict hit          */
+		"51"             /* push %ecx                 */
+		"0F B7 C8"       /* movzx %ax, %ecx           */
+#ifdef EMU_DEBUG
+"FF 04 25 L"             /* incl ret_count            */
+#endif
+		"3B 04 8D L"     /* cmp &jmp_list.addr[0](,%ecx,4), %eax     */
+		"2E 75 16"       /* jne, predict hit          */
+		"8B 04 8D L"     /* mov &jmp_list.jit_addr[0](,%ecx,4), %eax */
+		"59"             /* pop %ecx                  */
 		"9D"             /* popf                      */
+		"A3 L"           /* mov %eax, jit_eip         */
 		"58"             /* pop %eax                  */
 		"5C"             /* pop %esp                  */
 		"FF 25 L"        /* jmp *j_addr               */
-		"A3 L"           /* mov %eax, o_addr          */
-		"68 L"           /* push j_addr               */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
 		&scratch_stack[-1],
 		scratch_stack,
 		&scratch_stack[-1],
 		addr[1] + (addr[2]<<8),
-		&cache[0],
-		&cache[1],
-		&cache[0],
-		&cache[1],
-		&runtime_ijmp_addr
+#ifdef EMU_DEBUG
+&ret_count,
+#endif
+		&jmp_list.addr[0],
+		&jmp_list.jit_addr[0],
+		&jit_eip,
+		&jit_eip,
+		&runtime_ret_addr
 	);
 
 	*trans = (trans_t){ .len=len };
 
+printhex(dest, len);
 	return len;
 }
 
