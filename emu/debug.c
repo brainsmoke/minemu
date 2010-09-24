@@ -5,8 +5,17 @@
 
 #include "debug.h"
 #include "lib.h"
+#include "scratch.h"
+#include "error.h"
 
 static int out = 2;
+
+static const char *debug_desc[] =
+{
+	"    [ret miss ] [ret count]    [ijmp miss] [ijmpcount]",
+	"    [ last_jit]",
+};
+
 /*
 static FILE *out = NULL;
 
@@ -183,6 +192,14 @@ void printhex_diff(const void *data1, ssize_t len1,
 {
 	printhex_diff_descr(data1, len1, data2, len2, grane, 1, NULL);
 }
+
+#ifdef EMU_DEBUG
+void print_debug_data(void)
+{
+	debug("counts/misses ijmp: %u/%u ret: %u/%u", ijmp_count, ijmp_misses, ret_count, ret_misses);
+	printhex_descr(&ret_misses, 20, 0, debug_desc);
+}
+#endif
 
 /*
 void print_trace(trace_t *t)

@@ -19,6 +19,9 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 
 	long ret;
 
+#ifdef EMU_DEBUG
+print_debug_data();
+#endif
 	switch (call)
 	{
  		case __NR_brk:

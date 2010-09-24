@@ -152,7 +152,7 @@ int fd_vprintf(int fd, const char *format, va_list ap)
 				break;
 			case 's':
 				s = va_arg(ap, char *);
-				n_out += sys_write(fd, &s, strlen(s));
+				n_out += sys_write(fd, s, strlen(s));
 				break;
 			case 'c':
 				c = va_arg(ap, int);
