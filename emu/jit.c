@@ -392,13 +392,6 @@ static char *jit_map_resize(code_map_t *map, unsigned long new_len)
 /*#define UNTRANSLATED  ((unsigned long) 0)*/
 #define NEEDED        ((unsigned long)-1)
 
-/*
-static void imm_to(char *dest, long imm)
-{
-    memcpy(dest, &imm, sizeof(long));
-}
-*/
-
 static int try_resolve_jmp(code_map_t *map, char *jmp_addr, char *imm_addr,
                            unsigned long *mapping)
 {
@@ -433,7 +426,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	rel_jmp_t jmp;
 	size_pair_t sizes[map->len];
 
-//debug("chunk");
 	while (stop == 0)
 	{
 		if ( map->jit_len < d_off+TRANSLATED_MAX_SIZE )
@@ -468,7 +460,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 			mapping[trans.jmp_addr-map->addr] = NEEDED;
 		}
 
-//print_op_pair(&addr[s_off], instr.len, &jit_addr[d_off], trans.len);
 		d_off += trans.len;
 		s_off += instr.len;
 		sizes[n_ops] = (size_pair_t) { instr.len, trans.len };
