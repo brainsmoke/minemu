@@ -7,6 +7,7 @@
 #include "mm.h"
 #include "error.h"
 #include "syscalls.h"
+#include "sigwrap.h"
 
 long syscall_emu(long call, long arg1, long arg2, long arg3,
                             long arg4, long arg5, long arg6)
@@ -17,34 +18,44 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 	      call, arg1, arg2, arg3, arg4, arg5, arg6);
 */
 
-	long ret;
-
-#ifdef EMU_DEBUG
-print_debug_data();
-#endif
 	switch (call)
 	{
  		case __NR_brk:
-			unshield();
-			ret = user_brk(arg1);
-			shield();
-			jit_eip = 0;
-			break;
  		case __NR_mmap2:
-			unshield();
-			ret = user_mmap2(arg1,arg2,arg3,arg4,arg5,arg6);
-			shield();
-			jit_eip = 0;
-			break;
  		case __NR_mprotect:
-			unshield();
-			ret = user_mprotect(arg1,arg2,arg3);
-			shield();
-			jit_eip = 0;
 			break;
 		default:
-			ret = syscall6(call,arg1,arg2,arg3,arg4,arg5,arg6);
+			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 	}
+
+	long ret = -1;
+
+	if (!try_block_signals())
+		return ret; /* we have a signal in progress, revert to pre-syscall state */
+
+	unshield();
+
+	switch (call)
+	{
+		/* these calls are all non-blocking right?
+		 * blocked signals during blocking calls is a bad thing
+		 */
+ 		case __NR_brk:
+			ret = user_brk(arg1);
+			break;
+ 		case __NR_mmap2:
+			ret = user_mmap2(arg1,arg2,arg3,arg4,arg5,arg6);
+			break;
+ 		case __NR_mprotect:
+			ret = user_mprotect(arg1,arg2,arg3);
+			break;
+		default:
+			break;
+	}
+
+	shield();
+	unblock_signals();
+	jit_eip = 0;
 
 	return ret;
 }

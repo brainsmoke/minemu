@@ -11,9 +11,9 @@
 #include "scratch.h"
 #include "jit.h"
 #include "codemap.h"
-//#include "opcodes.h"
 #include "sigwrap.h"
 
+/* not called main() to avoid warnings about extra parameters :-(  */
 int temu_main(int argc, char **argv, char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);
@@ -38,7 +38,7 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 
 	int ret = load_elf(&prog);
 	if (ret < 0)
-		die("load_elf", ret);
+		die("load_elf: %d", ret);
 
 	jit_init();
 

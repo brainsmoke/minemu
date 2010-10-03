@@ -10,7 +10,7 @@
 #include "codemap.h"
 #include "jmpcache.h"
 #include "opcodes.h"
-#include "jitcode.h"
+#include "jit_code.h"
 #include "error.h"
 #include "runtime.h"
 #include "debug.h"

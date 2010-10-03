@@ -113,3 +113,34 @@ pop %ebx
 pop %ebp
 ret
 
+.global syscall_intr
+.type syscall_intr, @function
+syscall_intr:
+push %ebp
+movl %esp, %ebp
+push %ebx
+push %esi
+push %edi
+.global syscall_intr_critical_start
+mov $-1, %eax
+syscall_intr_critical_start:
+testl $-1, signal_pending
+jnz syscall_intr_call_return
+movl  8(%ebp),%eax
+movl 12(%ebp),%ebx
+movl 16(%ebp),%ecx
+movl 20(%ebp),%edx
+movl 24(%ebp),%esi
+movl 28(%ebp),%edi
+movl 32(%ebp),%ebp
+.global syscall_intr_critical_end
+syscall_intr_critical_end:
+int $0x80
+.global syscall_intr_call_return
+syscall_intr_call_return:
+pop %edi
+pop %esi
+pop %ebx
+pop %ebp
+ret
+

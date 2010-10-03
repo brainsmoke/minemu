@@ -12,6 +12,12 @@ long syscall4(long no, long a0, long a1, long a2, long a3);
 long syscall5(long no, long a0, long a1, long a2, long a3, long a4);
 long syscall6(long no, long a0, long a1, long a2, long a3, long a4, long a5);
 
+long syscall_emu(long call, long arg1, long arg2, long arg3,
+                            long arg4, long arg5, long arg6);
+
+/* does not go through if a signal arrived before the call */
+long syscall_intr(long call, long arg1, long arg2, long arg3,
+                             long arg4, long arg5, long arg6);
 
 #define sys_mmap2(a, b, c, d, e, f) \
 	syscall6(SYS_mmap2, (long)(a), (long)(b), (long)(c), (long)(d), (long)(e), (long)(f))

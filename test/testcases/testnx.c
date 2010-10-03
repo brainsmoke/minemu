@@ -14,7 +14,8 @@ void sigsegv_cb(int sig)
 int main(void)
 {
 	char ret[1]; ret[0] = '\xc3';
-	func_t func = (func_t)ret;
+	func_t func;
+	*(char **)(&func) = ret;
     signal(SIGSEGV, sigsegv_cb);
 	func();
 	printf("NX bit is off\n");

@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef void (*func_t)(void);
+
 #ifdef __i386__
 
 static char *swap_regs =
@@ -62,6 +64,9 @@ void codeexec(char *input, int input_sz, long *regs)
 	int sz = ( (max_len-1)|0xfff ) + 1;
 	int i;
 	char *code = get_rwmem(sz), *p=code;
+	func_t func;
+    *(char **)(&func) = code;
+
 
 	p = add_swap_flags(p, regs);
 	p = add_swap_regs(p, regs);
@@ -78,7 +83,7 @@ void codeexec(char *input, int input_sz, long *regs)
 	memset(p, 0, sz-(p-code));
 
 	mprotect(code, sz, PROT_READ|PROT_EXEC);
-	((void (*)(void))code)();
+	func();
 	munmap(code, sz);
 }
 

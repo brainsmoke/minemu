@@ -24,7 +24,6 @@ push %ebx                  # cleared %eflags
 push $jit_eip              # jump to jit translated code
 jmp runtime_ijmp
 
-
 .global runtime_ret
 .type runtime_ret, @function
 runtime_ret:
@@ -88,15 +87,19 @@ mov %eax, (%edi)
 pop %edi
 addl $4, %esp
 mov %eax, jit_eip
+
+.global runtime_ijmp_critical_start
+runtime_ijmp_critical_start:
+testl $-1, signal_pending
+jnz sighandler_return
 popf
 pop %eax
 pop %esp
+.global runtime_ijmp_critical_end
+runtime_ijmp_critical_end:
 jmp *jit_eip
-
-#
-# this symbol is used by the signal interceptor to set a breakpoint
-# all runtime code must jump back to jit code using this instuction
-#
+sighandler_return:
+ud2
 
 # address not found in jmp_list
 cache_miss:
@@ -208,3 +211,8 @@ pushf
 movl sysenter_reentry, %eax
 push $jit_eip
 jmp runtime_ijmp
+
+.global jit_block_exit
+.type jit_block_exit, @function
+jit_block_exit:
+ud2

@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "jitcode.h"
+#include "jit_code.h"
 #include "jmpcache.h"
 #include "scratch.h"
 #include "runtime.h"
@@ -60,7 +60,7 @@ int gen_code(char *dst, char *fmt, ...)
 				j += 2;
 				break;
 			}
-			case '%':
+			case '&':
 			{
 				int *ix = va_arg(ap, int *);
 				*ix = j;
@@ -72,6 +72,12 @@ int gen_code(char *dst, char *fmt, ...)
 				int len = va_arg(ap, int);
 				memcpy(&dst[j], s, len);
 				j+=len;
+				break;
+			}
+			case '+':
+			{
+				char x = va_arg(ap, int);
+				dst[j-1] += x;
 				break;
 			}
 			case '.':
@@ -199,7 +205,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	int len = gen_code(
 		dest,
 		"A3 L"           /* mov %eax, scratch_stack-4 */
-		"? 8B %$",       /* mov ... ( -> %eax )       */
+		"? 8B &$",       /* mov ... ( -> %eax )       */
 		&scratch_stack[-1],
 		instr->p2, &i, &instr->addr[instr->mrm], mrm_len
 	);
@@ -215,8 +221,9 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
 	/* XXX FUGLY as a speed optimisation, we insert the return address
-	 * directly into the cache, this makes relocating code impossible :-(
-	 * proposed fix: more advanced linking for moving code
+	 * directly into the cache, this makes relocating code more messy.
+	 * proposed fix: scan memory for call instructions upon relocation,
+     * change the address in-place
 	 */
 	/* XXX FUGLY translated address is inserted by caller since we don't know
 	 * yet how long the instruction translation will be
@@ -226,7 +233,7 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 
 		"68 L"                /* push $retaddr */
 		"C7 05 L L"           /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
-		"C7 05 L % DEADBEEF", /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
+		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
 
 		&instr->addr[instr->len],
 		&jmp_list.addr[hash],       &instr->addr[instr->len],
@@ -333,7 +340,6 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 
 	*trans = (trans_t){ .len=len };
 
-printhex(dest, len);
 	return len;
 }
 
@@ -394,7 +400,7 @@ int generate_stub(char *dest, char *jmp_addr, char *imm_addr)
 	return len;
 }
 
-static int generate_ill(char *dest, trans_t *trans)
+int generate_ill(char *dest, trans_t *trans)
 {
 	dest[0] = '\x0F';
 	dest[1] = '\x0B';
@@ -453,18 +459,17 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			generate_ret_cleanup(dest, instr->addr, trans);
 			break;
 		case LOOP: /* loops */
-			if (instr->p4 == 0x67)
-			{
-				off = 1;
-				dest[0] = '\x67';
-			}
-			else
-				off = 0;
+			off = gen_code(
+				dest,
 
-			dest[0+off] = instr->addr[instr->imm-1] ^ 1;
-			dest[1+off] = '\x05';
-			generate_jump(&dest[2+off], pc+imm, trans, map, map_len);
-			trans->imm += 2+off; trans->len += 2+off;
+				"$  02"
+				"EB 05",
+
+				instr->addr, instr->len-1
+			);
+
+			generate_jump(&dest[off], pc+imm, trans, map, map_len);
+			trans->imm += off; trans->len += off;
 			break;
 		case CALL_RELATIVE:
 			off = generate_call_head(dest, instr, trans, &retaddr_index);

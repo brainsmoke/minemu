@@ -170,10 +170,12 @@ int fd_vprintf(int fd, const char *format, va_list ap)
 
 int fd_printf(int fd, const char *format, ...)
 {
+	int ret;
 	va_list ap;
 	va_start(ap, format);
-	fd_vprintf(fd, format, ap);
+	ret=fd_vprintf(fd, format, ap);
 	va_end(ap);
+	return ret;
 }
 
 /* custom functions */
@@ -212,19 +214,6 @@ char *numcat(char *dest, long l)
 	*p = '\0';
 	return dest;
 }
-
-/*
-int overlap(char *addr1, unsigned long len1, char *addr2, unsigned long len2)
-{
-	return ((unsigned long)addr1 < (unsigned long)addr2+len2) &&
-	       ((unsigned long)addr2 < (unsigned long)addr1+len1);
-}
-
-int contains(char *addr1, unsigned long len1, char *addr2)
-{
-	return overlap(addr1, len1, addr2, 1);
-}
-*/
 
 static void swap(void *a, void *b, size_t size)
 {

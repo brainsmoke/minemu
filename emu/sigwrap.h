@@ -9,4 +9,7 @@ long user_rt_sigaction(int sig, const struct sigaction *act, struct sigaction *o
 long user_rt_sigreturn(void);
 unsigned long user_signal(int sig, __sighandler_t handler);
 
+int try_block_signals(void);
+void unblock_signals(void);
+
 #endif /* SIGWRAP_H */

@@ -32,7 +32,8 @@ TEST_TARGETS=$(patsubst %.c, %, $(wildcard test/testcases/*.c))\
 	test/emu/compat\
 	test/emu/write_vdso\
 	test/emu/offset_mem\
-	test/emu/taint_test
+	test/emu/taint_test\
+	test/emu/test_jit_adhoc
 
 TARGETS=$(TEST_TARGETS)\
 	record\
@@ -152,5 +153,8 @@ test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o emu/taint.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o emu/taint.o test/emu/debug.o
+	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
+
+test/emu/test_jit_adhoc: test/emu/test_jit_adhoc.o emu/jit_adhoc.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 

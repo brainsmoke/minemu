@@ -10,12 +10,6 @@
 
 static int out = 2;
 
-static const char *debug_desc[] =
-{
-	"    [ret miss ] [ret count]    [ijmp miss] [ijmpcount]",
-	"    [ last_jit]",
-};
-
 /*
 static FILE *out = NULL;
 

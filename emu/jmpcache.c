@@ -10,6 +10,7 @@ static char *jmp_cache_source[JMP_CACHE_SIZE];
 static char *stub[JMP_CACHE_SIZE];
 static long jmp_cache_size=0;
 
+/*
 void print_jmp_list(void)
 {
 	int i;
@@ -33,6 +34,7 @@ if (tmp_list.addr[i] || tmp_list.jit_addr[i])
 //		debug("%x -> %x (was %x -> %x)", jmp_list.addr[i], jmp_list.jit_addr[i], tmp_list.addr[i], tmp_list.jit_addr[i]);
 	tmp_list = jmp_list;
 }
+*/
 
 void add_jmp_mapping(char *addr, char *jit_addr)
 {

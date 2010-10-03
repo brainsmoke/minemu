@@ -31,7 +31,9 @@ extern jmp_list_t jmp_list;
 extern unsigned long jmp_list_size;
 
 extern unsigned long scratch_stack[];
+extern char jit_block_page[];
 
+extern long jit_block_exit_eip;
 extern long user_eip;
 extern long jit_eip;
 extern long sysenter_reentry;

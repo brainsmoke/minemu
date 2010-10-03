@@ -174,6 +174,12 @@ void unshield(void)
 	set_protection(unshield_maps);
 }
 
+void block_signals(void)
+{
+	
+}
+
+
 void init_temu_mem(char **envp)
 {
 	long ret = 0;

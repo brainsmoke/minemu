@@ -18,7 +18,7 @@ SECTIONS
 
   . = .user_end;
   .text : { *(.text) . = ALIGN(0x1000); } :text
-  .scratch_data : { emu/scratch*(.bss) . = ALIGN(0x1000); } :scratch
+  .scratch_data : { emu/scratch_asm*(.bss) emu/scratch*(.bss) . = ALIGN(0x1000); } :scratch
   runtime_data_start = . ;
   .runtime_bss : { *(.bss) . = ALIGN(0x1000); } :bss
   .runtime_data : { *(*) . = ALIGN(0x1000); } :data
