@@ -41,14 +41,15 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 		die("load_elf: %d", ret);
 
 	jit_init();
+	sigwrap_init();
 
 	char *vdso = (char *)get_aux(prog.auxv, AT_SYSINFO_EHDR);
 	long off = memscan(vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);
 
 	if (off < 0)
-		die("unable to guess sysenter re-entry");
-
-	sysenter_reentry = (long)&vdso[off];
+		sysenter_reentry = 0; /* assume int $0x80 syscalls, crash otherwise */
+	else
+		sysenter_reentry = (long)&vdso[off];
 
 	add_code_region(vdso, 0x1000); /* vdso */
 

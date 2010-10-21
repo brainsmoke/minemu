@@ -215,6 +215,7 @@ char *numcat(char *dest, long l)
 	return dest;
 }
 
+/*
 static void swap(void *a, void *b, size_t size)
 {
 	if (a==b)
@@ -250,6 +251,7 @@ void qsort(void *base, size_t n, size_t size,
 	qsort(E(0)     ,   part  , size, cmp);
 	qsort(E(part+1), n-part-1, size, cmp);
 }
+*/
 
 long memscan(const char *hay, long haylen, const char *needle, long needlelen)
 {

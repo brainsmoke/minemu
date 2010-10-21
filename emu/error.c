@@ -24,5 +24,5 @@ void die(char *fmt, ...)
 	fd_vprintf(2, fmt, ap);
 	va_end(ap);
 	fd_printf(2, "\n");
-	abort();
+	raise(SIGKILL);
 }

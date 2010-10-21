@@ -2,14 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "jit_adhoc.h"
+#include "jit_fragment.h"
 #include "syscalls.h"
 #include "error.h"
 #include "debug.h"
 #include "jit_code.h"
 
-char *jit_block_exit_eip;
-char *jit_block_exit_addr;
+char *jit_fragment_exit_eip;
+char *jit_fragment_exit_addr;
+
+char runtime_code_start[1];
+long runtime_code_size = 0;
 
 int fd_vprintf(int fd, const char *format, va_list ap)
 {
@@ -151,7 +154,7 @@ char *tests[] =
 	NULL
 };
 
-extern char jit_block_page[];
+extern char jit_fragment_page[];
 
 long common_len(const char *s1, const char *s2)
 {
@@ -173,17 +176,17 @@ int main(void)
 		entry_off = 0;
  		len = gen_code(code, tests[i], &entry_off);
 
-		memset(jit_block_page, 0, 4096);
-		entry = jit_fragment_translate(code, len, &code[entry_off]);
-		memcpy(diff_hack, jit_block_page, 4096);
-		memset(jit_block_page, 1, 4096);
-		entry = jit_fragment_translate(code, len, &code[entry_off]);
+		memset(jit_fragment_page, 0, 4096);
+		entry = jit_fragment(code, len, &code[entry_off]);
+		memcpy(diff_hack, jit_fragment_page, 4096);
+		memset(jit_fragment_page, 1, 4096);
+		entry = jit_fragment(code, len, &code[entry_off]);
 
-		jit_len = common_len(diff_hack, jit_block_page);
+		jit_len = common_len(diff_hack, jit_fragment_page);
 
-		debug("entry %d -> %d, start/end %x/%x", entry_off, entry-jit_block_page, code, &code[len]);
+		debug("entry %d -> %d, start/end %x/%x", entry_off, entry-jit_fragment_page, code, &code[len]);
 		printhex(code, len);
-		printhex(jit_block_page, jit_len);
+		printhex(jit_fragment_page, jit_len);
 		debug("");
 	}
 }

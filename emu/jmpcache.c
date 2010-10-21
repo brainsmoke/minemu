@@ -10,43 +10,15 @@ static char *jmp_cache_source[JMP_CACHE_SIZE];
 static char *stub[JMP_CACHE_SIZE];
 static long jmp_cache_size=0;
 
-/*
-void print_jmp_list(void)
-{
-	int i;
-	debug("jmp_list:");
-	for (i=0; i<JMP_LIST_SIZE; i++) if (jmp_list.addr[i])
-		debug("%x -> %x", jmp_list.addr[i], jmp_list.jit_addr[i]);
-	debug("");
-}
-
-extern jmp_list_t tmp_list;
-void print_jmp_listdiff(void)
-{
-	int i;
-	for (i=0; i<JMP_LIST_SIZE; i++)
-		if (!jmp_list.addr[i] || !jmp_list.jit_addr[i])
-if (tmp_list.addr[i] || tmp_list.jit_addr[i])
-		debug("%x -> %x (was %x -> %x)", jmp_list.addr[i], jmp_list.jit_addr[i], tmp_list.addr[i], tmp_list.jit_addr[i]);
-//		if ( (jmp_list.addr[i] != tmp_list.addr[i]) ||
-//		     (jmp_list.jit_addr[i] != tmp_list.jit_addr[i]) )
-//if (tmp_list.addr[i] && tmp_list.jit_addr[i])
-//		debug("%x -> %x (was %x -> %x)", jmp_list.addr[i], jmp_list.jit_addr[i], tmp_list.addr[i], tmp_list.jit_addr[i]);
-	tmp_list = jmp_list;
-}
-*/
-
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
-//print_jmp_listdiff();
 
 	for (i=hash; i<JMP_LIST_SIZE; i++)
 		if ( jmp_list.addr[i] == NULL )
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
-//debug("%04x %08x", i, addr);
 			return;
 		}
 
@@ -55,7 +27,6 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 		{
 			jmp_list.addr[i] = addr;
 			jmp_list.jit_addr[i] = jit_addr;
-//debug("%04x %08x", i, addr);
 			return;
 		}
 

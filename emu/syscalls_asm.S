@@ -122,9 +122,9 @@ push %ebx
 push %esi
 push %edi
 .global syscall_intr_critical_start
-mov $-1, %eax
 syscall_intr_critical_start:
-testl $-1, signal_pending
+movb $1, jit_fragment_restartsys
+testb $1, jit_fragment_running
 jnz syscall_intr_call_return
 movl  8(%ebp),%eax
 movl 12(%ebp),%ebx

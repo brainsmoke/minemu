@@ -358,16 +358,10 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 {
 	int len = gen_code(
 		dest,
+		"C7 05 L L"      /* movl $post_addr, user_eip */
+		"FF 25 L",       /* jmp *int80_emu_addr       */
 
-		"89 25 L"        /* mov %esp, scratch_stack   */
-		"BC L"           /* mov $scratch_stack %esp   */
-		"50"             /* push %eax                 */
-		"68 L"           /* push post_addr            */
-		"FF 15 L",       /* call *int80_emu_addr      */
-
-		scratch_stack,
-		scratch_stack,
-		&instr->addr[instr->len],
+		&user_eip, &instr->addr[instr->len],
 		&int80_emu_addr);
 
 	*trans = (trans_t){ .len=len };

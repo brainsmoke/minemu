@@ -165,6 +165,7 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 
 /**/
 
+#ifdef EMU_DEBUG
 void print_op_pair(char *orig_addr, int orig_size,
                    char *jit_addr,  int jit_size)
 {
@@ -227,8 +228,11 @@ void print_map(code_map_t *map)
 		off += hdr->chunk_len;
 	}
 }
+#endif
 
-/* address lookup (also called by runtime_ijmp in case of a cache miss) */
+/* address lookup
+ * also called by runtime_ijmp in case of a cache miss (on a small stack)
+ */
 
 static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 {
@@ -419,7 +423,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	              d_off = map->jit_len+sizeof(jit_chunk_t),
 	              chunk_base = map->jit_len;
 	int stop = 0;
-//	int stop_count = 2000;
 
 	instr_t instr;
 	trans_t trans;
@@ -436,11 +439,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		translate_op(&jit_addr[d_off], &instr, &trans, map->addr, map->len);
 
 		if (stop==CODE_STOP)
-		{
-//			stop_count--;
-//			if (stop_count)
-				stop = 0;
-		}
+			stop = 0;
 
 		/* try to resolve translated jumps early */
 		if ( (trans.imm != 0) && !try_resolve_jmp(map, trans.jmp_addr,
@@ -483,7 +482,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 
 		if (stop)
 			sizes[n_ops] = (size_pair_t) { 0, 0 };
-
 		
 		n_ops++;
 	}

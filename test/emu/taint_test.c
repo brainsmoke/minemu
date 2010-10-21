@@ -38,7 +38,9 @@ void fill(char *bin, int size)
 }
 
 long mem_test[8], mem_backup[8], taintmem_test[8], taintmem_backup[8];
-char fx_test[512], fx_backup[512], fx_orig[512];
+char fx_test[512]   __attribute__ ((aligned (16))),
+     fx_backup[512] __attribute__ ((aligned (16))),
+     fx_orig[512]   __attribute__ ((aligned (16)));
 long regs_test[9], regs_backup[9];
 long offset;
 int err = EXIT_SUCCESS;

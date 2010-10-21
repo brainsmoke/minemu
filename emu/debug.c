@@ -2,15 +2,103 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <signal.h>
+#include <stddef.h>
 
 #include "debug.h"
 #include "lib.h"
 #include "scratch.h"
 #include "error.h"
+#include "sigwrap.h"
 
 static int out = 2;
 
+const char *sigframe_pre_desc[] =
+{
+	"    [*pretcode] [   sig   ]",
+};
+
+const char *sigframe_post_desc[] =
+{
+	"    [extramask] [         retcode        ]",
+};
+
+const char *rt_sigframe_pre_desc[] =
+{
+	"    [*pretcode] [   sig   ]    [ *pinfo  ] [   *puc   ]",
+};
+
+const char *rt_sigframe_post_desc[] =
+{
+	"    [       retcode       ]",
+};
+
+const char *ucontext_pre_desc[] =
+{
+	"    [ uc_flags] [ *uc_link]    [  *ss_sp ] [ ss_flags ]",
+	"    [ ss_size ]"
+};
+
+const char *ucontext_post_desc[] =
+{
+	"    [      uc_sigmask     ]"
+};
+
+const char *sigcontext_desc[] =
+{
+	"    [ gs] [gsh] [ fs] [fsh]    [ es] [esh] [ ds] [dsh]",
+	"    [   edi   ] [   esi   ]    [   ebp   ] [   esp   ]",
+	"    [   ebx   ] [   edx   ]    [   ecx   ] [   eax   ]",
+	"    [  trapno ] [   err   ]    [   eip   ] [ cs] [csh]",
+	"    [  eflags ] [ esp@sig ]    [ ss] [ssh] [ *fpstate]",
+	"    [  oldmask] [   cr2   ]",
+};
+
+const char *fpstate_desc[] =
+{
+	"    [    cw   ] [    sw   ]    [   tag   ] [  ipoff  ]",
+	"    [  cssel  ] [ dataoff ]    [ datasel ] [  st[0]   ",
+	"                    ] [            st[1]             ]",
+	"    [            st[2]             ] [         st[3]  ",
+	"              ] [             st[4]            ] [    ",
+	"           st[5]          ]    [             st[6]    ",
+    "        ] [            st[7]             ] [sts] [mgc]",
+    "    [         ] [         ]    [         ] [         ]",
+    "    [         ] [         ]    [  mxcsr  ] [ reserved]",
+    "    [      _fxsr_st[0]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[1]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[2]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[3]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[4]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[5]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[6]         <   exp  >] [ padding ]",
+    "    [      _fxsr_st[7]         <   exp  >] [ padding ]",
+    "    [                    _xmm[0]                     ]",
+    "    [                    _xmm[1]                     ]",
+    "    [                    _xmm[2]                     ]",
+    "    [                    _xmm[3]                     ]",
+    "    [                    _xmm[4]                     ]",
+    "    [                    _xmm[5]                     ]",
+    "    [                    _xmm[6]                     ]",
+    "    [                    _xmm[7]                     ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+    "    [                                                ]",
+
+};
 /*
+
 static FILE *out = NULL;
 
 void debug_init(FILE *outfile)
@@ -191,43 +279,98 @@ void printhex_diff(const void *data1, ssize_t len1,
 void print_debug_data(void)
 {
 	debug("counts/misses ijmp: %u/%u ret: %u/%u", ijmp_count, ijmp_misses, ret_count, ret_misses);
-	printhex_descr(&ret_misses, 20, 0, debug_desc);
 }
 #endif
 
-/*
-void print_trace(trace_t *t)
+void print_sigcontext(struct sigcontext *sc)
 {
-	printhex_descr(t, sizeof(trace_t), 0, trace_desc);
+	printhex_descr(sc, sizeof(*sc), 1, sigcontext_desc);
 }
 
-void print_trace_diff(trace_t *new, trace_t *old)
+void print_sigcontext_diff(struct sigcontext *sc1, struct sigcontext *sc2)
 {
-	printhex_diff_descr(new, sizeof(trace_t),
-	                    old, sizeof(trace_t), 4, 0, trace_desc);
+	printhex_diff_descr(sc1, sizeof(*sc1), sc2, sizeof(*sc2), sizeof(long), 1, sigcontext_desc);
 }
 
-void print_trace_if_diff(trace_t *new, trace_t *old)
+void print_fpstate(struct _fpstate *fpstate)
 {
-	if ( memcmp(&new->regs, &old->regs, sizeof(registers_t)) != 0 )
-		print_trace_diff(new, old);
+	printhex_descr(fpstate, sizeof(*fpstate), 1, fpstate_desc);
 }
 
-void print_registers(registers_t *regs)
+void print_fpstate_diff(struct _fpstate *fpstate1, struct _fpstate *fpstate2)
 {
-	printhex_descr(regs, sizeof(registers_t), 0, registers_desc);
+	printhex_diff_descr(fpstate1, sizeof(*fpstate1), fpstate2, sizeof(*fpstate2), sizeof(long), 1, fpstate_desc);
 }
 
-void print_registers_diff(registers_t *new, registers_t *old)
+void print_siginfo(siginfo_t *info)
 {
-	printhex_diff_descr(new, sizeof(registers_t),
-	                    old, sizeof(registers_t), 4, 0, registers_desc);
+	printhex(info, sizeof(*info));
 }
 
-void print_registers_if_diff(registers_t *new, registers_t *old)
+void print_siginfo_diff(siginfo_t *info1, siginfo_t *info2)
 {
-	if ( memcmp(new, old, sizeof(registers_t)) != 0 )
-		print_registers_diff(new, old);
+	printhex_diff(info1, sizeof(*info1), info2, sizeof(*info2), sizeof(long));
 }
-*/
+
+void print_ucontext(struct kernel_ucontext *uc)
+{
+	printhex_descr(uc, offsetof(struct kernel_ucontext, uc_mcontext), 1, ucontext_pre_desc);
+	print_sigcontext(&uc->uc_mcontext);
+	printhex_descr(&uc->uc_sigmask, sizeof(uc->uc_sigmask), 1, ucontext_post_desc);
+}
+
+void print_ucontext_diff(struct kernel_ucontext *uc1, struct kernel_ucontext *uc2)
+{
+	printhex_diff_descr(uc1, offsetof(struct kernel_ucontext, uc_mcontext),
+	                    uc2, offsetof(struct kernel_ucontext, uc_mcontext), sizeof(long), 1, ucontext_pre_desc);
+	print_sigcontext_diff(&uc1->uc_mcontext, &uc2->uc_mcontext);
+	printhex_diff_descr(&uc1->uc_sigmask, sizeof(uc1->uc_sigmask),
+	                    &uc2->uc_sigmask, sizeof(uc2->uc_sigmask), sizeof(long), 1, ucontext_post_desc);
+}
+
+void print_rt_sigframe(struct kernel_rt_sigframe *frame)
+{
+	debug("start: %x, end: %x, size: %x", frame, &frame[1], sizeof(*frame));
+	debug("@ %x", frame);
+	printhex_descr(frame, 16, 1, rt_sigframe_pre_desc);
+	debug("@ %x", &frame->info);
+	print_siginfo(&frame->info);
+	debug("@ %x", &frame->uc);
+	print_ucontext(&frame->uc);
+	debug("@ %x", &frame->fpstate);
+	print_fpstate(&frame->fpstate);
+	debug("@ %x", &frame->retcode);
+	printhex_descr(&frame->retcode, 8, 1, rt_sigframe_post_desc);
+}
+
+void print_rt_sigframe_diff(struct kernel_rt_sigframe *frame1, struct kernel_rt_sigframe *frame2)
+{
+	printhex_diff_descr(frame1, 16, frame2, 16, sizeof(long), 1, rt_sigframe_pre_desc);
+	print_siginfo_diff(&frame1->info, &frame2->info);
+	print_ucontext_diff(&frame1->uc, &frame2->uc);
+	print_fpstate_diff(&frame1->fpstate, &frame2->fpstate);
+	printhex_diff_descr(&frame1->retcode, 8, &frame2->retcode, 8, sizeof(long), 1, rt_sigframe_post_desc);
+}
+
+void print_sigframe(struct kernel_sigframe *frame)
+{
+	debug("start: %x, end: %x, size: %x", frame, &frame[1], sizeof(*frame));
+	debug("@ %x", frame);
+	printhex_descr(frame, 8, 1, sigframe_pre_desc);
+	debug("@ %x", &frame->sc);
+	print_sigcontext(&frame->sc);
+	debug("@ %x", &frame->fpstate);
+	print_fpstate(&frame->fpstate);
+	debug("@ %x", &frame->extramask);
+	printhex_descr(&frame->extramask, 12, 1, sigframe_post_desc);
+}
+
+void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe *frame2)
+{
+	printhex_diff_descr(frame1, 8, frame2, 8, sizeof(long), 1, sigframe_pre_desc);
+	print_sigcontext_diff(&frame1->sc, &frame2->sc);
+	print_fpstate_diff(&frame1->fpstate, &frame2->fpstate);
+	printhex_diff_descr(&frame1->extramask, 12, &frame2->extramask, 12, sizeof(long), 1, sigframe_post_desc);
+}
+
 

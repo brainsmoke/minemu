@@ -21,6 +21,12 @@ static inline int overlap(char *addr1, unsigned long len1, char *addr2, unsigned
 	       ((unsigned long)addr2 < (unsigned long)addr1+len1);
 }
 
+static inline int between(char *start, char *end, char *addr)
+{
+	return ((unsigned long)addr >= (unsigned long)start) &&
+	       ((unsigned long)addr <= (unsigned long)end);
+}
+
 static inline int contains(char *addr1, unsigned long len1, char *addr2)
 {
 	return overlap(addr1, len1, addr2, 1);

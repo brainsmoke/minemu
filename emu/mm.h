@@ -81,17 +81,16 @@
  * some information is doubly represented so we can use them
  * as constants in our mapping tables.
  */
-/*
-extern char runtime_text_end, runtime_text_size, temu_text_end, temu_text_size,
-            runtime_data_end, runtime_data_size, temu_data_end, temu_data_size,
-            jit_code_size;
-*/
-extern char runtime_data_start[], runtime_data_size[],
+extern char runtime_code_start[], runtime_code_size[],
+            runtime_data_start[], runtime_data_size[],
             jit_code_start[], jit_code_size[],
             jit_data_size[],
-            fault_page_0[], fault_page_1[], fault_page_2[];
+            fault_page_0[], fault_page_1[], fault_page_2[], fault_page_3[];
 
 #define SYM_VAR(a) ((unsigned long)a)
+
+#define RUNTIME_CODE_START SYM_VAR(runtime_code_start)
+#define RUNTIME_CODE_SIZE SYM_VAR(runtime_code_size)
 
 #define RUNTIME_DATA_START SYM_VAR(runtime_data_start)
 #define RUNTIME_DATA_SIZE SYM_VAR(runtime_data_size)
@@ -99,6 +98,7 @@ extern char runtime_data_start[], runtime_data_size[],
 #define FAULT_PAGE_0 (fault_page_0)
 #define FAULT_PAGE_1 (fault_page_1)
 #define FAULT_PAGE_2 (fault_page_2)
+#define FAULT_PAGE_3 (fault_page_3)
 
 #define JIT_CODE_START SYM_VAR(jit_code_start)
 #define JIT_CODE_SIZE SYM_VAR(jit_code_size)

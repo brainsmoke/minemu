@@ -30,10 +30,15 @@ extern jmp_list_t jmp_list;
 
 extern unsigned long jmp_list_size;
 
+extern unsigned long sigwrap_stack[];
+extern unsigned long sigwrap_stack_bottom[];
 extern unsigned long scratch_stack[];
-extern char jit_block_page[];
+extern char jit_fragment_page[];
 
-extern long jit_block_exit_eip;
+extern long jit_fragment_exit_eip;
+extern long jit_fragment_restartsys;
+extern long jit_fragment_running;
+extern long jit_fragment_scratch;
 extern long user_eip;
 extern long jit_eip;
 extern long sysenter_reentry;

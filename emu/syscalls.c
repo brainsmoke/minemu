@@ -23,12 +23,20 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_brk:
  		case __NR_mmap2:
  		case __NR_mprotect:
+
+ 		case __NR_sigaltstack:
+ 		case __NR_signal:
+ 		case __NR_sigaction:
+ 		case __NR_rt_sigaction:
+
+		case __NR_sigreturn:
+		case __NR_rt_sigreturn:
 			break;
 		default:
 			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 	}
 
-	long ret = -1;
+	long ret = call;
 
 	if (!try_block_signals())
 		return ret; /* we have a signal in progress, revert to pre-syscall state */
@@ -49,14 +57,38 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_mprotect:
 			ret = user_mprotect(arg1,arg2,arg3);
 			break;
+
+ 		case __NR_sigaltstack:
+			ret = user_sigaltstack((stack_t *)arg1, (stack_t *)arg2);
+			break;
+ 		case __NR_signal:
+		{
+			void (*handler) (int, siginfo_t *, void *);
+			*(long*)&handler = arg2;
+			ret = (long)user_signal(arg1, handler);
+			break;
+		}
+ 		case __NR_sigaction:
+			ret = user_sigaction(arg1, (struct kernel_old_sigaction *)arg2,
+			                           (struct kernel_old_sigaction *)arg3);
+			break;
+ 		case __NR_rt_sigaction:
+			ret = user_rt_sigaction(arg1, (struct kernel_sigaction *)arg2,
+			                              (struct kernel_sigaction *)arg3, arg4);
+			break;
+ 		case __NR_sigreturn:
+			user_sigreturn();
+			break;
+ 		case __NR_rt_sigreturn:
+			user_rt_sigreturn();
+			break;
 		default:
+			die("unimplemented syscall");
 			break;
 	}
 
 	shield();
 	unblock_signals();
-	jit_eip = 0;
-
 	return ret;
 }
 

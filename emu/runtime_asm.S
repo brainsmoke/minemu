@@ -24,6 +24,7 @@ push %ebx                  # cleared %eflags
 push $jit_eip              # jump to jit translated code
 jmp runtime_ijmp
 
+
 .global runtime_ret
 .type runtime_ret, @function
 runtime_ret:
@@ -90,16 +91,20 @@ mov %eax, jit_eip
 
 .global runtime_ijmp_critical_start
 runtime_ijmp_critical_start:
-testl $-1, signal_pending
-jnz sighandler_return
+testl $-1, jit_fragment_running
+jnz interrupted
 popf
 pop %eax
 pop %esp
 .global runtime_ijmp_critical_end
 runtime_ijmp_critical_end:
 jmp *jit_eip
-sighandler_return:
-ud2
+
+interrupted:
+popf
+pop %eax
+pop %esp
+jmp jit_fragment_exit
 
 # address not found in jmp_list
 cache_miss:
@@ -169,32 +174,14 @@ pop %ecx
 popf
 ret
 
-# Values on the stack (in push order)
-#
-# - original stack pointer
-# - eax
-# - original address following interrupt
-# - jit address following interrupt
-#
 .global int80_emu
 .type int80_emu, @function
 int80_emu:
-pop %eax
-movl %eax, jit_eip
-pop %eax
-movl %eax, user_eip
-pop %eax                # original %eax
+movl %esp, scratch_stack
+movl $scratch_stack, %esp
 call runtime_syscall
 push %eax
 pushf
-movl jit_eip, %eax
-test %eax, %eax
-jz int80_address_lost
-popf
-pop %eax
-pop %esp
-jmp *jit_eip
-int80_address_lost:
 movl user_eip, %eax
 push $jit_eip
 jmp runtime_ijmp
@@ -212,7 +199,14 @@ movl sysenter_reentry, %eax
 push $jit_eip
 jmp runtime_ijmp
 
-.global jit_block_exit
-.type jit_block_exit, @function
-jit_block_exit:
-ud2
+.global state_restore
+.type state_restore, @function
+state_restore:
+movl %esp, scratch_stack
+movl $scratch_stack, %esp
+push %eax
+pushf
+movl user_eip, %eax
+push $jit_eip
+jmp runtime_ijmp
+

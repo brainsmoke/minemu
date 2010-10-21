@@ -17,7 +17,9 @@ SECTIONS
   /* user: text,brk,bss,heap,mmaps,stack */
 
   . = .user_end;
+  runtime_code_start = . ;
   .text : { *(.text) . = ALIGN(0x1000); } :text
+  runtime_code_size = . - .user_end;
   .scratch_data : { emu/scratch_asm*(.bss) emu/scratch*(.bss) . = ALIGN(0x1000); } :scratch
   runtime_data_start = . ;
   .runtime_bss : { *(.bss) . = ALIGN(0x1000); } :bss

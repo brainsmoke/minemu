@@ -82,8 +82,11 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_waitpid(a, b, c) \
 	syscall3(SYS_waitpid, (long)(a), (long)(b), (long)(c))
 
-#define sigaltstack(ss, oss) \
+#define sys_sigaltstack(ss, oss) \
 	syscall2(SYS_sigaltstack, (long)(ss), (long)(oss))
+
+#define sys_rt_sigaction(sig, act, oact, sigsetsize) \
+	syscall4(SYS_rt_sigaction, (long)(sig), (long)(act), (long)(oact), (long)(sigsetsize))
 
 #define sys_fork() \
 	syscall2(SYS_clone, SIGCHLD, 0)
