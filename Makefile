@@ -1,4 +1,5 @@
 SILENT=@
+DEBUG=1
 
 CC=$(SILENT)gcc
 AS=$(SILENT)gcc
@@ -10,69 +11,63 @@ RM=$(SILENT)rm -r
 
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
+
+ifdef $(DEBUG)
+CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
+EMU_EXCLUDE=
+else
 CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
+EMU_EXCLUDE=emu/debug.o
+endif
+
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer
 SYSCALLS_CFLAGS=$(CFLAGS) -Itracer -Isyscalls
 RNR_CFLAGS=$(CFLAGS) -Itracer -Isyscalls -Irnr
 EMU_CFLAGS=$(CFLAGS) -Iemu
 
-TEST_TARGETS=$(patsubst %.c, %, $(wildcard test/testcases/*.c))\
-	test/tracer/bdiff\
-	test/tracer/writeecho\
-	test/tracer/faketsc\
-	test/syscalls/nosignals\
-	test/syscalls/printregs\
-	test/rnr/printtrace\
-	test/rnr/openstat\
-	test/emu/shellcode\
-	test/emu/mprotect\
-	test/emu/stack\
-	test/emu/compat\
-	test/emu/write_vdso\
-	test/emu/offset_mem\
-	test/emu/taint_test\
-	test/emu/test_jit_fragment
-
-TARGETS=$(TEST_TARGETS)\
-	record\
-	replay\
-	temu
-
+TRACER_TARGETS=record replay
 TRACER_OBJECTS=$(patsubst %.c, %.o, $(wildcard tracer/*.c))
-SYSCALLS_OBJECTS=$(patsubst %.c, %.o, $(wildcard syscalls/*.c))
-RNR_OBJECTS=\
-	rnr/call_data.o\
-	rnr/emu_data.o\
-	rnr/fd_data.o\
-	rnr/record.o\
-	rnr/replay.o\
-	rnr/serialize.o\
-	rnr/syscall_copy.o\
-	rnr/syscall_validate.o\
-
-EMU_OBJECTS=$(patsubst %.c, %.o, $(wildcard emu/*.c))
-EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard emu/*.S))
-
-TESTCASES_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/testcases/*.c))
 TRACER_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/tracer/*.c))
+
+SYSCALLS_OBJECTS=$(patsubst %.c, %.o, $(wildcard syscalls/*.c))
 SYSCALLS_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/syscalls/*.c))
+
+RNR_MAINS=$(patsubst %.c, %.o, $(wildcard rnr/*_main.c))
+RNR_OBJECTS=$(filter-out $(RNR_MAINS), $(patsubst %.c, %.o, $(wildcard rnr/*.c)))
 RNR_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/rnr/*.c))
+
+EMU_TARGETS=temu
+EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard emu/*.c)))
+EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard emu/*.S))
 EMU_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/emu/*.c))
 EMU_GEN_OBJECTS=$(patsubst %.c, %.o, $(wildcard emu/gen/*.c))
 
-RECORD_MAIN=rnr/record_main.o
-REPLAY_MAIN=rnr/replay_main.o
-RNR_MAIN=rnr/rnr.o
+TESTCASES_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/testcases/*.c))
+TESTCASES_ASM_OBJECTS=$(patsubst %_asm.S, %.o, $(wildcard test/testcases/*_asm.S))
 
-PROGS=$(RECORD_MAIN) $(REPLAY_MAIN) $(RNR_MAIN)
+TEST_OBJECTS_COMMON=\
+	test/emu/code_offset.o\
+	test/emu/debug.o\
+	test/emu/codeexec.o\
+	test/emu/memoffsets.o\
+	test/syscalls/raise.o
+
+TEST_TARGETS=$(patsubst %.o, %, $(filter-out $(TEST_OBJECTS_COMMON), \
+	$(TESTCASES_OBJECTS) \
+	$(TESTCASES_ASM_OBJECTS) \
+	$(TRACER_TEST_OBJECTS) \
+	$(SYSCALLS_TEST_OBJECTS) \
+	$(RNR_TEST_OBJECTS) \
+	$(EMU_TEST_OBJECTS)))
+
+TARGETS=$(TEST_TARGETS) $(TRACER_TARGETS) $(EMU_TARGETS)
 
 OBJECTS=\
-	$(PROGS) $(TESTCASES_OBJECTS)\
+	$(TESTCASES_OBJECTS) $(TESTCASES_ASM_OBJECTS)\
 	$(TRACER_OBJECTS) $(TRACER_TEST_OBJECTS)\
 	$(SYSCALLS_OBJECTS) $(SYSCALLS_TEST_OBJECTS)\
-	$(RNR_OBJECTS) $(RNR_TEST_OBJECTS)\
+	$(RNR_MAINS) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS)\
 	$(EMU_OBJECTS) $(EMU_ASM_OBJECTS) $(EMU_TEST_OBJECTS)\
 	$(EMU_GEN_OBJECTS)
 
@@ -102,7 +97,7 @@ $(TRACER_OBJECTS) $(TRACER_TEST_OBJECTS): %.o: %.c
 $(SYSCALLS_OBJECTS) $(SYSCALLS_TEST_OBJECTS): %.o: %.c
 	$(CC) $(SYSCALLS_CFLAGS) -c -o $@ $<
 
-$(RECORD_MAIN) $(REPLAY_MAIN) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS): %.o: %.c
+$(RNR_MAINS) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS): %.o: %.c
 	$(CC) $(RNR_CFLAGS) -c -o $@ $<
 
 $(TESTCASES_OBJECTS): %.o: %.c
@@ -114,8 +109,8 @@ $(EMU_OBJECTS) $(EMU_TEST_OBJECTS) $(EMU_GEN_OBJECTS): %.o: %.c
 $(EMU_ASM_OBJECTS): %.o: %.S
 	$(AS) -c $(EMU_CFLAGS) -o $@ $<
 
-test/testcases/intint: test/testcases/intint.S
-	$(AS) -nostdlib -o $@ $<
+$(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
+	$(AS) -c $(CFLAGS) -o $@ $<
 
 # Linking
 
@@ -125,10 +120,10 @@ emu/mm.ld: emu/gen/gen_mm_ld
 test/testcases/%: test/testcases/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
-rnr: rnr.o $(RNR_OBJECTS) $(SYSCALLS_OBJECTS) $(TRACER_OBJECTS)
-	$(LINK) -o $@ $^ $(LDFLAGS)
+test/testcases/intint: test/testcases/intint.o
+	$(LINK) -nostdlib -o $@ $^
 
-record replay: %: rnr/%_main.o $(RNR_OBJECTS) $(SYSCALLS_OBJECTS) $(TRACER_OBJECTS)
+$(TRACER_TARGETS): %: rnr/%_main.o $(RNR_OBJECTS) $(SYSCALLS_OBJECTS) $(TRACER_OBJECTS)
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
 test/rnr/%: test/rnr/%.o $(RNR_OBJECTS) $(SYSCALLS_OBJECTS) $(TRACER_OBJECTS)

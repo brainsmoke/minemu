@@ -35,6 +35,14 @@ size_t strlen(const char *s)
 	return i;
 }
 
+int strcmp(const char *s1, const char *s2)
+{
+	size_t i;
+	int c;
+	for (i=0; ((c=s1[i]-s2[i]) == 0) && s1[i]; i++);
+		return c;
+}
+
 int memcmp(const void *v1, const void *v2, size_t n)
 {
 	const char *s1=v1, *s2=v2;

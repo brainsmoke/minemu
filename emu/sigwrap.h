@@ -9,6 +9,7 @@ int try_block_signals(void);
 void unblock_signals(void);
 void sigwrap_init(void);
 void load_sigframe(long call, void *frame);
+void load_rt_sigframe(long call, void *frame);
 
 #define KERNEL_NSIG (64)
 typedef struct
@@ -69,8 +70,8 @@ long user_sigaction(int sig, const struct kernel_old_sigaction *act,
 long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
                                       struct kernel_sigaction *oact, size_t sigsetsize);
 
-long user_sigreturn(void);
-long user_rt_sigreturn(void);
+void user_sigreturn(void);
+void user_rt_sigreturn(void);
 
 unsigned long user_signal(int sig, void (*handler) (int, siginfo_t *, void *));
 

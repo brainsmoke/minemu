@@ -57,15 +57,12 @@ static void finish_instruction(struct sigcontext *context)
 
 	if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, (char *)context->eip) )
 	{
-debug("in runtime!!!");
 		if ( between(syscall_intr_critical_start, syscall_intr_critical_end, (char *)context->eip) )
 		{
 			context->eip = (long)syscall_intr_critical_start;
-debug("syscall_intr_critical_start");
 		}
 		else if ( between(runtime_ijmp_critical_start, runtime_ijmp_critical_end, (char *)context->eip) )
 		{
-debug("runtime_ijmp_critical_start");
 			context->eip = (long)runtime_ijmp_critical_start;
 			context->esp = (long)&scratch_stack[-2];
 		}
@@ -92,10 +89,7 @@ debug("runtime_ijmp_critical_start");
 	context->eip = (long)orig_eip;
 
 	if (jit_fragment_restartsys)
-{
 		context->eip -= 2;
-debug("restartsys!");}
-
 }
 
 #define __USER_CS (0x73)
@@ -132,8 +126,6 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 }
 
 
-struct kernel_sigframe XXX;
-
 static struct kernel_sigframe *copy_sigframe(struct kernel_sigframe *frame,
                                              struct kernel_sigaction *action,
                                              struct sigcontext *context)
@@ -143,8 +135,8 @@ static struct kernel_sigframe *copy_sigframe(struct kernel_sigframe *frame,
 
 	*copy = *frame;
 
-	if (frame->pretcode == frame->retcode)
-		copy->pretcode = copy->retcode;
+	if (frame->pretcode == &frame->retcode[0])
+		copy->pretcode = &copy->retcode[0];
 
 	return copy;
 }
@@ -158,6 +150,17 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 
 	*copy = *frame;
 
+	if (frame->pretcode == &frame->retcode[0])
+		copy->pretcode = &copy->retcode[0];
+
+	if (frame->pinfo == &frame->info)
+		copy->pinfo = &copy->info;
+
+	if (frame->puc == &frame->uc)
+		copy->puc = &copy->uc;
+
+	copy->uc.uc_stack = user_altstack;
+
 	return copy;
 }
 
@@ -169,11 +172,6 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	struct kernel_sigaction *action = &user_sigaction_list[sig];
 	struct sigcontext *context;
 	unsigned long *sigmask, *extramask;
-
-//if ( action->flags & SA_SIGINFO )
-//	print_rt_sigframe(rt_sigframe);
-//else
-//	print_sigframe(sigframe);
 
 	if ( (sig < 0) || (sig >= KERNEL_NSIG) )
 		die("bad signo. %d", sig);
@@ -234,15 +232,10 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	*sigmask   |= action->mask.bitmask[0];
 	*extramask |= action->mask.bitmask[1];
 
-//if ( action->flags & SA_SIGINFO )
-//	print_rt_sigframe_diff(rt_sigframe, (struct kernel_rt_sigframe *)(((long)&sig)-4));
-//else
-//	print_sigframe_diff(sigframe, (struct kernel_sigframe *)(((long)&sig)-4));
-
 	/* let the kernel 'deliver' a signal using (rt_)sigreturn! */
 }
 
-long user_sigreturn(void)
+void user_sigreturn(void)
 {
 	long *esp = (long *)scratch_stack[0]; /* ugly */
 	struct kernel_sigframe *sigframe = (struct kernel_sigframe *)&esp[-2];
@@ -251,25 +244,24 @@ long user_sigreturn(void)
 	
 	user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore; /* not user code       */
-//	print_sigframe_diff(sigframe, &frame);
-//	load_sigframe(__NR_sigreturn, &frame);
-	print_sigframe_diff(sigframe, &XXX);
-	die("x");
-	return -1;
+	load_sigframe(__NR_sigreturn, &frame);
 }
 
-long user_rt_sigreturn(void)
+void user_rt_sigreturn(void)
 {
 	long *esp = (long *)scratch_stack[0]; /* ugly */
-	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *)&esp[-2];
+	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *)&esp[-1];
 	struct kernel_rt_sigframe frame = *rt_sigframe;
 	struct sigcontext *context = &frame.uc.uc_mcontext;
 	user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore; /* not user code       */
-//	print_rt_sigframe_diff(rt_sigframe, &frame);
-	load_sigframe(__NR_rt_sigreturn, &frame);
-	die("x");
-	return -1;
+	frame.uc.uc_stack = (stack_t)
+	{
+		.ss_sp = sigwrap_stack_bottom,
+		.ss_flags = 0,
+		.ss_size = sigwrap_stack-sigwrap_stack_bottom
+	};
+	load_rt_sigframe(__NR_rt_sigreturn, &frame);
 }
 
 static void altstack_setup(void)
@@ -401,5 +393,4 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 
 	return ret;
 }
-
 
