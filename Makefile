@@ -1,5 +1,4 @@
 SILENT=@
-DEBUG=1
 
 CC=$(SILENT)gcc
 AS=$(SILENT)gcc
@@ -12,13 +11,8 @@ RM=$(SILENT)rm -r
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
 
-ifdef $(DEBUG)
-CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
-EMU_EXCLUDE=
-else
+#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g # -DEMU_DEBUG
 CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
-EMU_EXCLUDE=emu/debug.o
-endif
 
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer
