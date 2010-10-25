@@ -155,86 +155,66 @@ static const unsigned char g3A_optable[] =
 
 #define XXX (C) /* todo */
 #define IGN (C) /* todo */
+#define PRIV (C)
 
-#define TCM   (TAINT|0) /* copy taint:   reg -> mem */
-#define TCR   (TAINT|1) /*               mem -> reg */
-#define TEM   (TAINT|2) /* erase taint:  mem        */
-#define TER   (TAINT|3) /*               reg        */
-#define TOM   (TAINT|4) /* or taint:     reg -> mem */
-#define TOR   (TAINT|5) /* or taint:     mem -> reg */
-//#define TCA   (C)
-//#define TEA   (C)
-//#define TOA   (C)
-#define BCA   (C)
-//#define BEA   (C)
-//#define BOA   (C)
 
-#define TCO   (C)
-#define TCO   (C)
-//#define TEO   (C)
-//#define TOO   (C)
-#define BCO   (C)
-//#define BEO   (C)
-//#define BOO   (C)
 
-#define BCM   (TAINT|6)  /* copy taint:   reg -> mem */
-#define BCR   (TAINT|7)  /*               mem -> reg */
-#define BEM   (TAINT|8)  /* erase taint:  mem        */
-#define BER   (TAINT|9)  /*               reg        */
-#define BOM   (TAINT|10) /* or taint:     reg -> mem */
-#define BOR   (TAINT|11) /* or taint:     mem -> reg */
+#define TOMR ( TAINT | TAINT_OR    | TAINT_MODRM_TO_REG )
+#define TORM ( TAINT | TAINT_OR    | TAINT_REG_TO_MODRM )
+#define TXMR ( TAINT | TAINT_XOR   | TAINT_MODRM_TO_REG )
+#define TXRM ( TAINT | TAINT_XOR   | TAINT_REG_TO_MODRM )
+#define TCMR ( TAINT | TAINT_COPY  | TAINT_MODRM_TO_REG )
+#define TCRM ( TAINT | TAINT_COPY  | TAINT_REG_TO_MODRM )
+#define TCRP ( TAINT | TAINT_COPY  | TAINT_REG_TO_PUSH  )
+#define TCPR ( TAINT | TAINT_COPY  | TAINT_POP_TO_REG   )
+#define TCAO ( TAINT | TAINT_COPY  | TAINT_AX_TO_OFFSET )
+#define TCOA ( TAINT | TAINT_COPY  | TAINT_OFFSET_TO_AX )
+#define TSRM ( TAINT | TAINT_SWAP  | TAINT_REG_TO_MODRM )
+#define TSAR ( TAINT | TAINT_SWAP  | TAINT_AX_REG       )
+#define TCSS ( TAINT | TAINT_COPY  | TAINT_STR_TO_STR   )
+#define TPUA ( TAINT | TAINT_PUSHA                      )
+#define TPPA ( TAINT | TAINT_POPA                       )
+#define TLEA ( TAINT | TAINT_LEA                        )
+#define TLVE ( TAINT | TAINT_LEAVE                      )
+#define TER  ( TAINT | TAINT_ERASE | TAINT_REG          )
+#define TEP  ( TAINT | TAINT_ERASE | TAINT_PUSH         )
+#define TEH  ( TAINT | TAINT_ERASE | TAINT_HIGH_REG     )
+#define TED  ( TAINT | TAINT_ERASE | TAINT_DX           )
+#define TEA  ( TAINT | TAINT_ERASE | TAINT_AX           )
 
-#define TXM   (TAINT|12) /* or taint:     reg -> mem / clear if src==dest */
-#define TXR   (TAINT|13) /* or taint:     mem -> reg / clear if src==dest */
-#define BXM   (TAINT|12) /* or taint:     reg -> mem / clear if src==dest */
-#define BXR   (TAINT|13) /* or taint:     mem -> reg / clear if src==dest */
-
-#define TPR   (TAINT|14) /* copy taint  for push     */
-#define TPE   (TAINT|15) /* clear taint for push     */
-#define TPM   (TAINT|16) /* clear taint for push     */
-#define TQR   (TAINT|17) /* propagate taint for pop  */
-#define TQE   (TAINT|18) /* propagate taint for pop  */
-#define TQM   (TAINT|19) /* propagate taint for pop  */
-
-#define BMI   (TAINT|20) /* taint multiply with immediate */
-#define TMI   (TAINT|21) /* taint multiply with immediate */
-#define BMM   (TAINT|22) /* taint multiply */
-#define TMM   (TAINT|23) /* taint multiply */
-#define BMR   (TAINT|24) /* taint multiply */
-#define TMR   (TAINT|25) /* taint multiply */
-
-#define BSW   (TAINT|26)
-#define TSW   (TAINT|27)
-
-#define BSA   (TAINT|28)
-#define TSA   (TAINT|29)
-
-#define TCH   (TAINT|30)
-#define TCD   (TAINT|31)
-
-#define CMR   (TAINT|32)
-#define CMM   (TAINT|33)
+#define BORM ( TORM | TAINT_BYTE )
+#define BOMR ( TOMR | TAINT_BYTE )
+#define BXRM ( TXRM | TAINT_BYTE )
+#define BXMR ( TXMR | TAINT_BYTE )
+#define BCRM ( TCRM | TAINT_BYTE )
+#define BCMR ( TCMR | TAINT_BYTE )
+#define BCAO ( TCAO | TAINT_BYTE )
+#define BCOA ( TCOA | TAINT_BYTE )
+#define BCSS ( TCSS | TAINT_BYTE )
+#define BSRM ( TSRM | TAINT_BYTE )
+#define BEA  ( TEA  | TAINT_BYTE )
+#define BER  ( TER  | TAINT_BYTE )
 
 static const unsigned char main_action[] =
 
 {
-/*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
-/* 0? */ BOM,TOM,BOR,TOR, C , C , C , C ,BOM,TOM,BOR,TOR, C , C , C , C ,
-/* 1? */ BOM,TOM,BOR,TOR, C , C , C , C ,BXM,TXM,BXR,TXR, C , C , C , C ,
-/* 2? */ BOM,TOM,BOR,TOR, C , C , C , C ,BXM,TXM,BXR,TXR, C , C , C , C ,
-/* 3? */ BXM,TXM,BXR,TXR, C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 5? */ TPR,TPR,TPR,TPR,TPR,TPR,TPR,TPR,TQR,TQR,TQR,TQR,TQR,TQR,TQR,TQR,
-/* 6? */ IGN,IGN, C , C , C , C , C , C ,TPE,IGN,TPE,IGN,IGN,IGN,IGN,IGN,
-/* 7? */  JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC,
-/* 8? */  C , C , C , C , C , C ,BSW,TSW,BCM,TCM,BCR,TCR,IGN,IGN,IGN,IGN,
-/* 9? */  C ,TSA,TSA,TSA,TSA,TSA,TSA,TSA,TCH,TCD, CF, C ,TPE, C , C ,BCA,
-/* A? */ BCO,TCO, C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* C? */  C , C , RC, R , C , C , C , C , C , C , RF, RF, C ,INT, C , C ,
-/* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* E? */  L , L , L , L , C , C , C , C , CR, JR, JF, JR, C , C , C , C ,
-/* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , IA,
+/*        ?0   ?1   ?2   ?3   ?4   ?5   ?6   ?7   ?8   ?9   ?A   ?B   ?C   ?D   ?E   ?F  */
+/* 0? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C , 
+/* 1? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C , 
+/* 2? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C , 
+/* 3? */ BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* 4? */   C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* 5? */ TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR, 
+/* 6? */ TPUA,TPPA,  C ,PRIV,  C ,  C ,  C ,  C , TEP,TCMR, TEP,TCMR,PRIV,PRIV,PRIV,PRIV, 
+/* 7? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , 
+/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, IGN,TLEA, IGN, XXX, 
+/* 9? */   C ,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR, TEH, TED,  CF,  C , TEP,  C ,  C , BEA, 
+/* A? */ BCOA,TCOA,BCAO,TCAO,BCSS,TCSS,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* B? */  BER, BER, BER, BER, BER, BER, BER, BER, TER, TER, TER, TER, TER, TER, TER, TER, 
+/* C? */  XXX, XXX,  RC,  R , IGN, IGN, XXX, XXX, IGN,TLVE,  RF,  RF,  C , INT,  C ,  C , 
+/* D? */  XXX, XXX, XXX, XXX,  C ,  C ,  C , IGN,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* E? */   L ,  L ,  L ,  L ,PRIV,PRIV,PRIV,PRIV, CR,  JR,  JF , JR ,PRIV,PRIV,PRIV,PRIV, 
+/* F? */   C ,  C ,  C ,  C ,PRIV,  C , XXX, XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C , IA , 
 };
 static const unsigned char esc_action[] =
 {

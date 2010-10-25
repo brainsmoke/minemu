@@ -32,10 +32,12 @@
 .lcomm jmp_list, JMP_LIST_MEM_SIZE
 .global jmp_list
 
-.global xmm_a
-.lcomm xmm_a, 16
-.global xmm_b
-.lcomm xmm_b, 16
+.global scratch_xmm5
+.lcomm scratch_xmm5, 16
+.global scratch_xmm6
+.lcomm scratch_xmm6, 16
+.global scratch_xmm7
+.lcomm scratch_xmm7, 16
 
 .lcomm jmp_list_size, 4
 .global jmp_list_size
