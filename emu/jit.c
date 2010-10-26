@@ -438,9 +438,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
 		translate_op(&jit_addr[d_off], &instr, &trans, map->addr, map->len);
 
-		if (stop==CODE_STOP)
-			stop = 0;
-
 		/* try to resolve translated jumps early */
 		if ( (trans.imm != 0) && !try_resolve_jmp(map, trans.jmp_addr,
 		                                          &jit_addr[d_off+trans.imm],
@@ -463,9 +460,9 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		s_off += instr.len;
 		sizes[n_ops] = (size_pair_t) { instr.len, trans.len };
 
-		if ( (stop == 0) && TRANSLATED(mapping[s_off]) )
+		if ( TRANSLATED(mapping[s_off]) )
 		{
-			stop = CODE_STOP;
+			stop = 1;
 			generate_jump(&jit_addr[d_off], &addr[s_off], &trans,
 			              map->addr, map->len);
 
@@ -476,9 +473,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 
 			d_off += trans.len;
 		}
-
-		if ( (stop == CODE_STOP) && (mapping[s_off] == NEEDED) )
-			stop = 0;
 
 		if (stop)
 			sizes[n_ops] = (size_pair_t) { 0, 0 };

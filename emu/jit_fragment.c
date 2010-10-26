@@ -79,7 +79,7 @@ static long jit_fragment_jump_indirect_exit(char *dest, instr_t *instr, char *ju
 		"FF 25 L",                              /* *jit_fragment_exit_addr             */
 
 		&jit_fragment_scratch,    
-		instr->p2, &i, &instr->addr[instr->mrm], instr->len-instr->mrm,
+		instr->p[2], &i, &instr->addr[instr->mrm], instr->len-instr->mrm,
 		&jit_eip,
 		&jit_fragment_scratch,    
 		&jit_fragment_exit_addr
@@ -96,7 +96,7 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 	char *pc = &instr->addr[instr->len],
 	     *jump_addr = pc + imm_at(&instr->addr[instr->imm], instr->len-instr->imm);
 
-	switch (instr->action)
+	switch (jit_action[instr->op])
 	{
 		case JUMP_CONDITIONAL:
 			if ( contains(addr, len+1, jump_addr) )
@@ -146,7 +146,7 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 		default:
 			break;
 	}
-	die("unexpected translated code: %d", instr->action);
+	die("unexpected translated code: %d", jit_action[instr->op]);
 	return -1;
 }
 
@@ -174,10 +174,10 @@ static char *jit_fragment_translate(char *addr, long len, char *entry,
 		if ( &addr[s_off] == entry )
 			jit_entry = &jit_addr[d_off];
 
-		if ( read_op(&addr[s_off], &instr, len-s_off) == CODE_JOIN )
+		if ( read_op(&addr[s_off], &instr, len-s_off) == CUTOFF_OP )
 			die("jit_fragment too large");
 
-		if ( (instr.action & CONTROL_MASK) == CONTROL )
+		if ( (jit_action[instr.op] & CONTROL_MASK) == CONTROL )
 			d_off += jit_fragment_control(&jit_addr[d_off], &instr, addr, len, mapping);
 		else
 		{

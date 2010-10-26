@@ -9,6 +9,163 @@
 #include "taint.h"
 #include "debug.h"
 
+/* op action */
+
+#define C  COPY_INSTRUCTION
+#define U  UNDEFINED_INSTRUCTION
+#define BAD UNDEFINED_INSTRUCTION
+
+#define JR JUMP_RELATIVE
+#define JC JUMP_CONDITIONAL
+#define JF JUMP_FAR
+#define JI JUMP_INDIRECT
+
+#define L  LOOP
+
+#define CR CALL_RELATIVE
+#define CF CALL_FAR
+#define CI CALL_INDIRECT
+
+#define R  RETURN
+#define RC RETURN_CLEANUP
+#define RF RETURN_FAR
+
+#define SE  SYSENTER
+
+#define XXX (C) /* todo */
+#define PRIV (C)
+
+#define TOMR ( TAINT | TAINT_OR    | TAINT_MODRM_TO_REG  )
+#define TORM ( TAINT | TAINT_OR    | TAINT_REG_TO_MODRM  )
+#define TXMR ( TAINT | TAINT_XOR   | TAINT_MODRM_TO_REG  )
+#define TXRM ( TAINT | TAINT_XOR   | TAINT_REG_TO_MODRM  )
+#define TCMR ( TAINT | TAINT_COPY  | TAINT_MODRM_TO_REG  )
+#define TCRM ( TAINT | TAINT_COPY  | TAINT_REG_TO_MODRM  )
+#define TCRP ( TAINT | TAINT_COPY  | TAINT_REG_TO_PUSH   )
+#define TCMP ( TAINT | TAINT_COPY  | TAINT_MODRM_TO_PUSH )
+#define TCPR ( TAINT | TAINT_COPY  | TAINT_POP_TO_REG    )
+#define TCPM ( TAINT | TAINT_COPY  | TAINT_POP_TO_MODRM  )
+#define TCAO ( TAINT | TAINT_COPY  | TAINT_AX_TO_OFFSET  )
+#define TCOA ( TAINT | TAINT_COPY  | TAINT_OFFSET_TO_AX  )
+#define TSRM ( TAINT | TAINT_SWAP  | TAINT_REG_TO_MODRM  )
+#define TSAR ( TAINT | TAINT_SWAP  | TAINT_AX_REG        )
+#define TCSS ( TAINT | TAINT_COPY  | TAINT_STR_TO_STR    )
+#define TPUA ( TAINT | TAINT_PUSHA                       )
+#define TPPA ( TAINT | TAINT_POPA                        )
+#define TLEA ( TAINT | TAINT_LEA                         )
+#define TLVE ( TAINT | TAINT_LEAVE                       )
+#define TER  ( TAINT | TAINT_ERASE | TAINT_REG           )
+#define TEM  ( TAINT | TAINT_ERASE | TAINT_MODRM         )
+#define TEP  ( TAINT | TAINT_ERASE | TAINT_PUSH          )
+#define TEH  ( TAINT | TAINT_ERASE | TAINT_HIGH_REG      )
+#define TED  ( TAINT | TAINT_ERASE | TAINT_DX            )
+#define TEA  ( TAINT | TAINT_ERASE | TAINT_AX            )
+
+#define BORM ( TORM | TAINT_BYTE )
+#define BOMR ( TOMR | TAINT_BYTE )
+#define BXRM ( TXRM | TAINT_BYTE )
+#define BXMR ( TXMR | TAINT_BYTE )
+#define BCRM ( TCRM | TAINT_BYTE )
+#define BCMR ( TCMR | TAINT_BYTE )
+#define BCAO ( TCAO | TAINT_BYTE )
+#define BCOA ( TCOA | TAINT_BYTE )
+#define BCSS ( TCSS | TAINT_BYTE )
+#define BSRM ( TSRM | TAINT_BYTE )
+#define BEA  ( TEA  | TAINT_BYTE )
+#define BER  ( TER  | TAINT_BYTE )
+#define BEM  ( TEM  | TAINT_BYTE )
+
+const unsigned char jit_action[] =
+{
+	[MAIN_OPTABLE] =
+/*        ?0   ?1   ?2   ?3   ?4   ?5   ?6   ?7   ?8   ?9   ?A   ?B   ?C   ?D   ?E   ?F  */
+/* 0? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BORM,TORM,BOMR,TOMR,  C ,  C ,  C , BAD, 
+/* 1? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C , 
+/* 2? */ BORM,TORM,BOMR,TOMR,  C ,  C , BAD,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C , 
+/* 3? */ BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD,  C , 
+/* 4? */   C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* 5? */ TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR, 
+/* 6? */ TPUA,TPPA,  C ,PRIV, BAD, BAD, BAD, BAD, TEP,TCMR, TEP,TCMR,PRIV,PRIV,PRIV,PRIV, 
+/* 7? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , 
+/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, XXX,TLEA, XXX,TCPM, 
+/* 9? */   C ,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR, TEH, TED,  CF,  C , TEP,  C ,  C , BEA, 
+/* A? */ BCOA,TCOA,BCAO,TCAO,BCSS,TCSS,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* B? */  BER, BER, BER, BER, BER, BER, BER, BER, TER, TER, TER, TER, TER, TER, TER, TER, 
+/* C? */  XXX, XXX,  RC,  R , XXX, XXX, BEM, TEM, XXX,TLVE,  RF,  RF,  C , INT,  C ,  C , 
+/* D? */  XXX, XXX, XXX, XXX,  C ,  C ,  C , XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* E? */   L ,  L ,  L ,  L ,PRIV,PRIV,PRIV,PRIV, CR,  JR,  JF , JR ,PRIV,PRIV,PRIV,PRIV, 
+/* F? */  BAD,  U , BAD, BAD,PRIV,  C , BAD, BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD, 
+
+	[ESC_OPTABLE] =
+/*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
+/* 0? */  C , C , C , C , C , U , C , U , C , C , C , U , C , C , C , C ,
+/* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 3? */  C , C , C , C , SE, C , C , C , C , C , C , C , C , C , C , C ,
+/* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 5? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 6? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 7? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 8? */  JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC, JC,
+/* 9? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* A? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* C? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+
+	[G38_OPTABLE] =
+/*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
+/* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 3? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 5? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 6? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 7? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 8? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 9? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* A? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* C? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+
+	[G3A_OPTABLE] =
+/*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
+/* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 3? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 5? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 6? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 7? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 8? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 9? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* A? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* C? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+
+	[GF6_OPTABLE] =
+          C , U , C , C ,XXX,XXX,XXX,XXX,
+
+	[GF7_OPTABLE] =
+          C , U , C , C ,XXX,XXX,XXX,XXX,
+
+	[GFF_OPTABLE] =
+          C , C , CI, U , JI, U ,TCMP, U ,
+
+	[BAD_OP] = U,
+	[CUTOFF_OP] = JOIN,
+};
+
 long imm_at(char *addr, long size)
 {
 	long imm=0;
@@ -207,7 +364,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 		"A3 L"           /* mov %eax, scratch_stack-4 */
 		"? 8B &$",       /* mov ... ( -> %eax )       */
 		&scratch_stack[-1],
-		instr->p2, &i, &instr->addr[instr->mrm], mrm_len
+		instr->p[2], &i, &instr->addr[instr->mrm], mrm_len
 	);
 
 	dest[i] &= 0xC7; /* -> %eax */
@@ -423,12 +580,12 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 	int retaddr_index;
 
 	imm_len=instr->len-instr->imm;
-	if (instr->action == JUMP_FAR)
+	if (jit_action[instr->op] == JUMP_FAR)
 		imm_len -= 2;
 
 	imm = imm_at(&instr->addr[instr->imm], imm_len);
 
-	switch (instr->action)
+	switch (jit_action[instr->op])
 	{
 		case JUMP_CONDITIONAL:
 			generate_jcc(dest, pc+imm, instr->addr[instr->mrm-1]&0x0f,
@@ -476,7 +633,7 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			generate_ill(dest, trans);
 			break;
 		default:
-			die("unimplemented action: %d", instr->action);
+			die("unimplemented action: %d", jit_action[instr->op]);
 	}
 
 	if ( imm_len == 2 )
@@ -486,24 +643,26 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 void translate_op(char *dest, instr_t *instr, trans_t *trans,
                   char *map, unsigned long map_len)
 {
-	if ( (instr->action & CONTROL_MASK) == CONTROL )
+	int action = jit_action[instr->op];
+
+	if ( (action & CONTROL_MASK) == CONTROL )
 		translate_control(dest, instr, trans, map, map_len);
-	else if ( (instr->action & TAINT_MASK) == TAINT )
+	else if ( (action & TAINT_MASK) == TAINT )
 		taint_instr(dest, instr, trans);
-	else if (instr->action == COPY_INSTRUCTION)
+	else if (action == COPY_INSTRUCTION)
 		copy_instr(dest, instr, trans);
-	else if ( (instr->action == UNDEFINED_INSTRUCTION) || (instr->action == JOIN) )
+	else if ( (action == UNDEFINED_INSTRUCTION) || (action == JOIN) )
 		generate_ill(dest, trans);
-	else if (instr->action == INT)
+	else if (action == INT)
 	{
 		if (instr->addr[1] == '\x80')
 			generate_int80(dest, instr, trans);
 		else
 			copy_instr(dest, instr, trans);
 	}
-	else if (instr->action == SYSENTER)
+	else if (action == SYSENTER)
 		generate_linux_sysenter(dest, trans);
 	else
-			die("unimplemented action: %d", instr->action);
+			die("unimplemented action: %d", action);
 }
 
