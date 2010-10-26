@@ -131,6 +131,10 @@ static const unsigned char optable[] =
 
 	[GFF_OPTABLE] =
           M , M , M , I , M , I , M , I ,
+
+	[BAD_OP] = I,
+
+	[CUTOFF_OP] = I,
 };
 
 

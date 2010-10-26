@@ -163,6 +163,7 @@ const unsigned char jit_action[] =
           C , C , CI, U , JI, U ,TCMP, U ,
 
 	[BAD_OP] = U,
+
 	[CUTOFF_OP] = JOIN,
 };
 
