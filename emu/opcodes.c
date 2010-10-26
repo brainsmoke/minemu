@@ -16,8 +16,6 @@
 #define IMMA     0x04
 #define IMMS     0x08
 
-#define BATSHIT  0xFF /* insane exception */
-
 #define P1  (PREFIX|0)
 #define P2  (PREFIX|1)
 #define P3  (PREFIX|2)
@@ -31,6 +29,9 @@
 #define ESC (ESCAPE)
 #define G38 (ESCAPE|1)
 #define G3A (ESCAPE|2)
+#define GF6 (ESCAPE|3)
+#define GF7 (ESCAPE|4)
+#define GFF (ESCAPE|5)
 
 #define OB (OP|IMMB)
 #define OW (OP|IMMW)
@@ -43,10 +44,9 @@
 #define MW (MODRM|IMMW)
 #define ML (MODRM|IMML)
 
-#define BAT (BATSHIT)
-
-static const unsigned char main_optable[] =
+static const unsigned char optable[] =
 {
+	[MAIN_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
 /* 0? */  M , M , M , M , OB, OW, O , O , M , M , M , M , OB, OW, O , ESC,
 /* 1? */  M , M , M , M , OB, OW, O , O , M , M , M , M , OB, OW, O , O ,
@@ -63,11 +63,9 @@ static const unsigned char main_optable[] =
 /* C? */  MB, MB, OS, O , M , M , MB, MW, OT, O , OS, O , O , OB, O , O ,
 /* D? */  M , M , M , M , OB, OB, I , O , FP, FP, FP, FP, FP, FP, FP, FP,
 /* E? */  OB, OB, OB, OB, OB, OB, OB, OB, OW, OW, OL, OB, O , O , O , O ,
-/* F? */  P1, I , P1, P1, O , O , BAT,BAT,O , O , O , O , O , O , M , M ,
-};
+/* F? */  P1, I , P1, P1, O , O , GF6,GF7,O , O , O , O , O , O , M , GFF,
 
-static const unsigned char esc_optable[] =
-{
+	[ESC_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
 /* 0? */  M , M , M , M , I , O , O , O , O , O , I , O , I , O , I , I ,
 /* 1? */  M , M , M , M , M , M , M , M , M , I , I , I , I , I , I , M ,
@@ -85,10 +83,8 @@ static const unsigned char esc_optable[] =
 /* D? */  M , M , M , M , M , M , M , M , M , M , M , M , M , M , M , M ,
 /* E? */  M , M , M , M , M , M , M , M , M , M , M , M , M , M , M , M ,
 /* F? */  M , M , M , M , M , M , M , M , M , M , M , M , M , M , M , I ,
-};
 
-static const unsigned char g38_optable[] =
-{
+	[G38_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
 /* 0? */  M , M , M , M , M , M , M , M , M , M , M , M , I , I , I , I ,
 /* 1? */  M , I , I , I , M , M , I , M , I , I , I , I , M , M , M , I ,
@@ -106,10 +102,8 @@ static const unsigned char g38_optable[] =
 /* D? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* E? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* F? */  M , M , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
-};
 
-static const unsigned char g3A_optable[] =
-{
+	[G3A_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
 /* 0? */  I , I , I , I , I , I , I , I , M , M , M , M , M , M , M , M ,
 /* 1? */  I , I , I , I , M , M , M , M , I , I , I , I , I , I , I , I ,
@@ -127,12 +121,22 @@ static const unsigned char g3A_optable[] =
 /* D? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* E? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* F? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
+
+	[GF6_OPTABLE] =
+          MB, I , M , M , M , M , M , M ,
+
+	[GF7_OPTABLE] =
+          MW, I , M , M , M , M , M , M ,
+
+	[GFF_OPTABLE] =
+          M , M , M , I , M , I , M , I ,
 };
 
 /* op action */
 
 #define C  COPY_INSTRUCTION
 #define U  UNDEFINED_INSTRUCTION
+#define BAD UNDEFINED_INSTRUCTION
 
 #define JR JUMP_RELATIVE
 #define JC JUMP_CONDITIONAL
@@ -149,38 +153,37 @@ static const unsigned char g3A_optable[] =
 #define RC RETURN_CLEANUP
 #define RF RETURN_FAR
 
-#define IA (CONTROL|11)
-
 #define SE  SYSENTER
 
 #define XXX (C) /* todo */
 #define IGN (C) /* todo */
 #define PRIV (C)
 
-
-
-#define TOMR ( TAINT | TAINT_OR    | TAINT_MODRM_TO_REG )
-#define TORM ( TAINT | TAINT_OR    | TAINT_REG_TO_MODRM )
-#define TXMR ( TAINT | TAINT_XOR   | TAINT_MODRM_TO_REG )
-#define TXRM ( TAINT | TAINT_XOR   | TAINT_REG_TO_MODRM )
-#define TCMR ( TAINT | TAINT_COPY  | TAINT_MODRM_TO_REG )
-#define TCRM ( TAINT | TAINT_COPY  | TAINT_REG_TO_MODRM )
-#define TCRP ( TAINT | TAINT_COPY  | TAINT_REG_TO_PUSH  )
-#define TCPR ( TAINT | TAINT_COPY  | TAINT_POP_TO_REG   )
-#define TCAO ( TAINT | TAINT_COPY  | TAINT_AX_TO_OFFSET )
-#define TCOA ( TAINT | TAINT_COPY  | TAINT_OFFSET_TO_AX )
-#define TSRM ( TAINT | TAINT_SWAP  | TAINT_REG_TO_MODRM )
-#define TSAR ( TAINT | TAINT_SWAP  | TAINT_AX_REG       )
-#define TCSS ( TAINT | TAINT_COPY  | TAINT_STR_TO_STR   )
-#define TPUA ( TAINT | TAINT_PUSHA                      )
-#define TPPA ( TAINT | TAINT_POPA                       )
-#define TLEA ( TAINT | TAINT_LEA                        )
-#define TLVE ( TAINT | TAINT_LEAVE                      )
-#define TER  ( TAINT | TAINT_ERASE | TAINT_REG          )
-#define TEP  ( TAINT | TAINT_ERASE | TAINT_PUSH         )
-#define TEH  ( TAINT | TAINT_ERASE | TAINT_HIGH_REG     )
-#define TED  ( TAINT | TAINT_ERASE | TAINT_DX           )
-#define TEA  ( TAINT | TAINT_ERASE | TAINT_AX           )
+#define TOMR ( TAINT | TAINT_OR    | TAINT_MODRM_TO_REG  )
+#define TORM ( TAINT | TAINT_OR    | TAINT_REG_TO_MODRM  )
+#define TXMR ( TAINT | TAINT_XOR   | TAINT_MODRM_TO_REG  )
+#define TXRM ( TAINT | TAINT_XOR   | TAINT_REG_TO_MODRM  )
+#define TCMR ( TAINT | TAINT_COPY  | TAINT_MODRM_TO_REG  )
+#define TCRM ( TAINT | TAINT_COPY  | TAINT_REG_TO_MODRM  )
+#define TCRP ( TAINT | TAINT_COPY  | TAINT_REG_TO_PUSH   )
+#define TCMP ( TAINT | TAINT_COPY  | TAINT_MODRM_TO_PUSH )
+#define TCPR ( TAINT | TAINT_COPY  | TAINT_POP_TO_REG    )
+#define TCPM ( TAINT | TAINT_COPY  | TAINT_POP_TO_MODRM  )
+#define TCAO ( TAINT | TAINT_COPY  | TAINT_AX_TO_OFFSET  )
+#define TCOA ( TAINT | TAINT_COPY  | TAINT_OFFSET_TO_AX  )
+#define TSRM ( TAINT | TAINT_SWAP  | TAINT_REG_TO_MODRM  )
+#define TSAR ( TAINT | TAINT_SWAP  | TAINT_AX_REG        )
+#define TCSS ( TAINT | TAINT_COPY  | TAINT_STR_TO_STR    )
+#define TPUA ( TAINT | TAINT_PUSHA                       )
+#define TPPA ( TAINT | TAINT_POPA                        )
+#define TLEA ( TAINT | TAINT_LEA                         )
+#define TLVE ( TAINT | TAINT_LEAVE                       )
+#define TER  ( TAINT | TAINT_ERASE | TAINT_REG           )
+#define TEM  ( TAINT | TAINT_ERASE | TAINT_MODRM         )
+#define TEP  ( TAINT | TAINT_ERASE | TAINT_PUSH          )
+#define TEH  ( TAINT | TAINT_ERASE | TAINT_HIGH_REG      )
+#define TED  ( TAINT | TAINT_ERASE | TAINT_DX            )
+#define TEA  ( TAINT | TAINT_ERASE | TAINT_AX            )
 
 #define BORM ( TORM | TAINT_BYTE )
 #define BOMR ( TOMR | TAINT_BYTE )
@@ -194,32 +197,32 @@ static const unsigned char g3A_optable[] =
 #define BSRM ( TSRM | TAINT_BYTE )
 #define BEA  ( TEA  | TAINT_BYTE )
 #define BER  ( TER  | TAINT_BYTE )
+#define BEM  ( TEM  | TAINT_BYTE )
 
-static const unsigned char main_action[] =
-
+static const unsigned char action[] =
 {
+	[MAIN_OPTABLE] =
 /*        ?0   ?1   ?2   ?3   ?4   ?5   ?6   ?7   ?8   ?9   ?A   ?B   ?C   ?D   ?E   ?F  */
-/* 0? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C , 
+/* 0? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BORM,TORM,BOMR,TOMR,  C ,  C ,  C , BAD, 
 /* 1? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C , 
-/* 2? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C , 
-/* 3? */ BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* 2? */ BORM,TORM,BOMR,TOMR,  C ,  C , BAD,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C , 
+/* 3? */ BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD,  C , 
 /* 4? */   C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
 /* 5? */ TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR, 
-/* 6? */ TPUA,TPPA,  C ,PRIV,  C ,  C ,  C ,  C , TEP,TCMR, TEP,TCMR,PRIV,PRIV,PRIV,PRIV, 
+/* 6? */ TPUA,TPPA,  C ,PRIV, BAD, BAD, BAD, BAD, TEP,TCMR, TEP,TCMR,PRIV,PRIV,PRIV,PRIV, 
 /* 7? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , 
-/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, IGN,TLEA, IGN, XXX, 
+/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, XXX,TLEA, XXX,TCPM, 
 /* 9? */   C ,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR, TEH, TED,  CF,  C , TEP,  C ,  C , BEA, 
 /* A? */ BCOA,TCOA,BCAO,TCAO,BCSS,TCSS,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
 /* B? */  BER, BER, BER, BER, BER, BER, BER, BER, TER, TER, TER, TER, TER, TER, TER, TER, 
-/* C? */  XXX, XXX,  RC,  R , IGN, IGN, XXX, XXX, IGN,TLVE,  RF,  RF,  C , INT,  C ,  C , 
-/* D? */  XXX, XXX, XXX, XXX,  C ,  C ,  C , IGN,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
+/* C? */  XXX, XXX,  RC,  R , XXX, XXX, BEM, TEM, XXX,TLVE,  RF,  RF,  C , INT,  C ,  C , 
+/* D? */  XXX, XXX, XXX, XXX,  C ,  C ,  C , XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C , 
 /* E? */   L ,  L ,  L ,  L ,PRIV,PRIV,PRIV,PRIV, CR,  JR,  JF , JR ,PRIV,PRIV,PRIV,PRIV, 
-/* F? */   C ,  C ,  C ,  C ,PRIV,  C , XXX, XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C , IA , 
-};
-static const unsigned char esc_action[] =
-{
+/* F? */  BAD,  U , BAD, BAD,PRIV,  C , BAD, BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD, 
+
+	[ESC_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
-/* 0? */  C , C , C , C , C , U , C , U , C , C , C , C , C , C , C , C ,
+/* 0? */  C , C , C , C , C , U , C , U , C , C , C , U , C , C , C , C ,
 /* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* 3? */  C , C , C , C , SE, C , C , C , C , C , C , C , C , C , C , C ,
@@ -235,9 +238,8 @@ static const unsigned char esc_action[] =
 /* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-};
-static const unsigned char g38_action[] =
-{
+
+	[G38_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
 /* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
@@ -255,9 +257,8 @@ static const unsigned char g38_action[] =
 /* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-};
-static const unsigned char g3A_action[] =
-{
+
+	[G3A_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
 /* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
@@ -275,6 +276,15 @@ static const unsigned char g3A_action[] =
 /* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
 /* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+
+	[GF6_OPTABLE] =
+          C , U , C , C ,XXX,XXX,XXX,XXX,
+
+	[GF7_OPTABLE] =
+          C , U , C , C ,XXX,XXX,XXX,XXX,
+
+	[GFF_OPTABLE] =
+          C , C , CI, U , JI, U ,TCMP, U ,
 };
 
 static int read_modrm(const char *addr, instr_t *instr, int max_len)
@@ -330,8 +340,7 @@ static int read_modrm(const char *addr, instr_t *instr, int max_len)
 
 int read_op(char *addr, instr_t *instr, int max_len)
 {
-	const unsigned char *optable = main_optable, *action = main_action;
-	int ret, type, code;
+	int ret, type, code, op_index=MAIN_OPTABLE;
 
 	*instr = (instr_t) { .addr=addr, .len=0 };
 
@@ -344,10 +353,10 @@ int read_op(char *addr, instr_t *instr, int max_len)
 		}
 
 		code = (unsigned char)addr[instr->len];
-		type = optable[code];
+		type = optable[op_index+code];
 		instr->len++;
 
-		switch (type)
+		if (type >= ESC) switch (type)
 		{
 			case P1:
 				if (instr->p1 != 0)
@@ -382,63 +391,36 @@ int read_op(char *addr, instr_t *instr, int max_len)
 				instr->p4 = code;
 				continue;
 			case ESC:
-				optable = esc_optable;
-				action = esc_action;
+				op_index = ESC_OPTABLE;
 				continue;
 			case G38:
-				optable = g38_optable;
-				action = g38_action;
+				op_index = G38_OPTABLE;
 				continue;
 			case G3A:
-				optable = g3A_optable;
-				action = g3A_action;
+				op_index = G3A_OPTABLE;
 				continue;
 
-			case BATSHIT:
+			case GF6:
+			case GF7:
+			case GFF:
 				if (instr->len >= max_len)
 				{
 					instr->action = JOIN;
 					return CODE_JOIN;
 				}
-
-				if ( (addr[instr->len] & 0x38) == 0x00 )
-					type = (code == 0xF6) ? MB : MW;
-				else if ( (addr[instr->len] & 0x38) == 0x01 )
-					type = I;
-				else
-					type = M;
-
+				op_index = (type == GF6) ? GF6_OPTABLE :
+				           (type == GF7) ? GF7_OPTABLE : GFF_OPTABLE;
+				code = ( addr[instr->len] >> 3 ) & 0x7;
+				type = optable[op_index+code];
 			default:
 				break;
 		}
 		break;
 	}
 
-	instr->type = type;
+	code += op_index;
 	instr->mrm = instr->len;
 	instr->action = action[code];
-
-	if (instr->action == IA)
-	{
-		if (instr->len >= max_len)
-		{
-			instr->action = JOIN;
-			return CODE_JOIN;
-		}
-
-		switch (addr[instr->len] & 0x38)
-		{
-			case 0x10: instr->action = CI; break; /* indirect call */
-			case 0x18: instr->action = U;  break; /* indirect far call */
-			case 0x20: instr->action = JI; break; /* indirect jump */
-			case 0x28: instr->action = U;  break; /* indirect far jump */
-			default:
-				instr->action = C;
-		}
-
-		if (instr->p4 == 0x67)
-			instr->action = U;
-	}
 
 	if (type & MODRM)
 	{

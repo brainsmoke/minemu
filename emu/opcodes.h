@@ -5,6 +5,14 @@
 
 #include "lib.h"
 
+#define MAIN_OPTABLE (0x000)
+#define ESC_OPTABLE  (0x100)
+#define G38_OPTABLE  (0x200)
+#define G3A_OPTABLE  (0x300)
+#define GF6_OPTABLE  (0x400)
+#define GF7_OPTABLE  (0x408)
+#define GFF_OPTABLE  (0x410)
+
 #define CODE_JOIN (-1)
 #define CODE_STOP (-2)
 #define CODE_ERR  (-3)
@@ -51,25 +59,27 @@
 #define TAINT_LEA          (0)
 #define TAINT_LEAVE        (0)
 
-#define TAINT_REG_TO_MODRM (0)
-#define TAINT_MODRM_TO_REG (0)
-#define TAINT_REG_TO_PUSH  (0)
-#define TAINT_POP_TO_REG   (0)
-#define TAINT_AX_TO_OFFSET (0)
-#define TAINT_OFFSET_TO_AX (0)
-#define TAINT_AX_REG       (0)
-#define TAINT_ALL_TO_PUSH  (0)
-#define TAINT_STR_TO_STR   (0)
-#define TAINT_REG          (0)
-#define TAINT_PUSH         (0)
-#define TAINT_HIGH_REG     (0)
-#define TAINT_DX           (0)
-#define TAINT_AX           (0)
+#define TAINT_REG_TO_MODRM  (0)
+#define TAINT_MODRM_TO_REG  (0)
+#define TAINT_REG_TO_PUSH   (0)
+#define TAINT_MODRM_TO_PUSH (0)
+#define TAINT_POP_TO_REG    (0)
+#define TAINT_POP_TO_MODRM  (0)
+#define TAINT_AX_TO_OFFSET  (0)
+#define TAINT_OFFSET_TO_AX  (0)
+#define TAINT_AX_REG        (0)
+#define TAINT_STR_TO_STR    (0)
+#define TAINT_REG           (0)
+#define TAINT_MODRM         (0)
+#define TAINT_PUSH          (0)
+#define TAINT_HIGH_REG      (0)
+#define TAINT_DX            (0)
+#define TAINT_AX            (0)
 
 typedef struct
 {
 	char *addr;
-	unsigned char mrm, imm, len, type, action, err, p1, p2, p3, p4;
+	unsigned char mrm, imm, len, action, p1, p2, p3, p4;
 } instr_t;
 
 int read_op(char *addr, instr_t *instr, int max_len);
