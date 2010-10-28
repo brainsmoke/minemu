@@ -13,7 +13,7 @@
 
 #define C  COPY_INSTRUCTION
 #define U  UNDEFINED_INSTRUCTION
-#define BAD UNDEFINED_INSTRUCTION
+#define BAD UNDEFINED_INSTRUCTION /* using these indicates an emulator bug */
 
 #define JR JUMP_RELATIVE
 #define JC JUMP_CONDITIONAL
@@ -645,12 +645,16 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			);
 
 			generate_jump(&dest[off], pc+imm, trans, map, map_len);
-			trans->imm += off; trans->len += off;
+			if (trans->imm)
+				trans->imm += off;
+			trans->len += off;
 			break;
 		case CALL_RELATIVE:
 			off = generate_call_head(dest, instr, trans, &retaddr_index);
 			generate_jump(&dest[off], pc+imm, trans, map, map_len);
-			trans->imm += off; trans->len += off;
+			if (trans->imm)
+				trans->imm += off;
+			trans->len += off;
 			/* XXX FUGLY */
 			imm_to(&dest[retaddr_index], (long)dest+trans->len);
 			break;
