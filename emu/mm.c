@@ -125,7 +125,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 	if ( (addr > USER_END) || (addr+length > USER_END) )
 		return -EFAULT;
 
-	unsigned long ret = sys_mprotect(addr, length, prot);
+	unsigned long ret = sys_mprotect(addr, length, prot&~PROT_EXEC);
 
 	if ( !(ret & PG_MASK) )
 	{
@@ -156,7 +156,7 @@ unsigned long high_user_addr(char **envp)
 static void fill_last_page_hack(void)
 {
 	char buf[0x2000];
-	memset(buf, 0, 0x2000);
+	clear(buf, 0x2000);
 }
 
 void set_protection(mem_map_t *maps)

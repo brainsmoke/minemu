@@ -24,7 +24,7 @@ char *strncpy(char *dest, const char *src, size_t n)
 char *strcpy(char *dest, const char *src)
 {
 	size_t i;
-	for (i=0; dest[i]=src[i]; i++);
+	for (i=0; (dest[i]=src[i]); i++);
 	return dest;
 }
 
@@ -76,6 +76,11 @@ void *memset(void *v, int c, size_t n)
 		s[i]=c;
 
 	return v;
+}
+
+void clear(void *buf, size_t n)
+{
+	memset(buf, 0, n);
 }
 
 /* stdlib-like */

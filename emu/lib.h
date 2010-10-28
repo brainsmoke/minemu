@@ -15,6 +15,8 @@ char *numcat(char *dest, long l);
 
 long memscan(const char *hay, long haylen, const char *needle, long needlelen);
 
+void clear(void *buf, size_t n);
+
 static inline int overlap(char *addr1, unsigned long len1, char *addr2, unsigned long len2)
 {
 	return ((unsigned long)addr1 < (unsigned long)addr2+len2) &&
