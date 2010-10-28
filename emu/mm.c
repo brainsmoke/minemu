@@ -128,7 +128,12 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 	unsigned long ret = sys_mprotect(addr, length, prot);
 
 	if ( !(ret & PG_MASK) )
-		del_code_region((char *)addr, PAGE_NEXT(length));
+	{
+		if (prot & PROT_EXEC)
+			add_code_region((char *)addr, PAGE_NEXT(length));
+		else
+			del_code_region((char *)addr, PAGE_NEXT(length));
+	}
 
 	return ret;
 }
@@ -173,12 +178,6 @@ void unshield(void)
 {
 	set_protection(unshield_maps);
 }
-
-void block_signals(void)
-{
-	
-}
-
 
 void init_temu_mem(char **envp)
 {

@@ -11,8 +11,8 @@ RM=$(SILENT)rm -r
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
 
-CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g # -DEMU_DEBUG
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
+#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -g # -DEMU_DEBUG
+CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -Os
 
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer
@@ -142,6 +142,9 @@ test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o emu/taint.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o emu/taint.o test/emu/debug.o
+	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
+
+test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o

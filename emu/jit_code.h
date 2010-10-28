@@ -31,6 +31,8 @@ int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
 
 #define UNDEFINED_INSTRUCTION  (1)
 
+#define CONDITIONAL_MOVE       (2)
+
 #define CONTROL                (0x20)
 #define CONTROL_MASK         (~(CONTROL-1))
 
@@ -62,6 +64,7 @@ int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
 #define TAINT_OR           (0)
 #define TAINT_XOR          (0)
 #define TAINT_COPY         (0)
+#define TAINT_COPY_ZX      (0)
 #define TAINT_SWAP         (0)
 #define TAINT_ERASE        (0)
 #define TAINT_PUSHA        (0)
@@ -77,7 +80,10 @@ int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
 #define TAINT_POP_TO_MODRM  (0)
 #define TAINT_AX_TO_OFFSET  (0)
 #define TAINT_OFFSET_TO_AX  (0)
-#define TAINT_AX_REG        (0)
+#define TAINT_AX_TO_REG     (0)
+#define TAINT_AX_TO_STR     (0)
+#define TAINT_STR_TO_AX     (0)
+#define TAINT_AX_DX         (0)
 #define TAINT_STR_TO_STR    (0)
 #define TAINT_REG           (0)
 #define TAINT_MODRM         (0)
