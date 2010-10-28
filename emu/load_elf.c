@@ -19,6 +19,9 @@
 #ifndef AT_BASE_PLATFORM
 #define AT_BASE_PLATFORM 24
 #endif
+#ifndef AT_RANDOM
+#define AT_RANDOM 25
+#endif
 
 /* relocate the stack */
 
@@ -109,7 +112,8 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 	char *tmp_argv[argc+1],
 	     *tmp_envp[envc+1],
 	     *platform      = (char *)get_aux(prog->auxv, AT_PLATFORM),
-	     *base_platform = (char *)get_aux(prog->auxv, AT_BASE_PLATFORM);
+	     *base_platform = (char *)get_aux(prog->auxv, AT_BASE_PLATFORM),
+	     *rand_bytes    = (char *)get_aux(prog->auxv, AT_RANDOM);
 
 	char *sp = (char *)(prog->task_size-get_stack_random_shift(prog->envp));
 
@@ -123,6 +127,8 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 		sp = platform      = stack_push_string(sp, platform);
 	if (base_platform)
 		sp = base_platform = stack_push_string(sp, base_platform);
+	if (rand_bytes)
+		sp = rand_bytes    = stack_push_data(sp, rand_bytes, 16);
 
 	sp = (char *)((long)sp&~0xf);
 
@@ -140,6 +146,7 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 	set_aux(prog->auxv, AT_EXECFN, (long)prog->filename);
 	set_aux(prog->auxv, AT_PLATFORM, (long)platform);
 	set_aux(prog->auxv, AT_BASE_PLATFORM, (long)base_platform);
+	set_aux(prog->auxv, AT_RANDOM, (long)rand_bytes);
 	set_aux(prog->auxv, AT_PHDR, (long)prog->bin.phdr);
 	set_aux(prog->auxv, AT_PHNUM, prog->bin.hdr.e_phnum);
 	set_aux(prog->auxv, AT_BASE, prog->bin.base);
