@@ -6,10 +6,10 @@ INCLUDE "emu/mm.ld";
 PHDRS
 {
   text PT_LOAD FILEHDR PHDRS;
-  scratch PT_LOAD;
-  bss PT_LOAD;
-  data PT_LOAD;
-  data PT_GNU_STACK;
+  scratch PT_LOAD FLAGS(6);
+  bss PT_LOAD FLAGS(6);
+  data PT_LOAD FLAGS(6);
+  note PT_GNU_STACK FLAGS(6);
 }
 
 SECTIONS
@@ -29,5 +29,6 @@ SECTIONS
   . = .jit_end;
   jit_code_size = . - jit_code_start;
   jit_data_size = . - runtime_data_start; /* runtime data and jit code combined */
+
 }
 

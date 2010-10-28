@@ -83,27 +83,27 @@ void test_read_write(void)
 								char c[4];
 	char r2[strlen(w2)+1];
 								char d[4];
-	int pipe1[2];
+	int pipe_1[2];
 								char e[4];
-	int pipe2[2];
+	int pipe_2[2];
 								char f[4];
 
 	setbeef(a,b,c,d,e,f);
 
 	r1[strlen(w1)]='\0'; r2[strlen(w2)]='\0';
 
-	pipe(pipe1); pipe(pipe2);
+	pipe(pipe_1); pipe(pipe_2);
 
 	if (fork())
 	{
-		write(pipe1[1], w1, strlen(w1));
-		read(pipe2[0], r2, strlen(w2));
+		write(pipe_1[1], w1, strlen(w1));
+		read(pipe_2[0], r2, strlen(w2));
 		if ( strcmp(r2, w2) != 0 )
 			write(1, "ERROR\n", 6);
 
 		write(1, r2, strlen(w2));
 
-		close(pipe1[0]); close(pipe1[1]); close(pipe2[0]); close(pipe2[1]);
+		close(pipe_1[0]); close(pipe_1[1]); close(pipe_2[0]); close(pipe_2[1]);
 
 		waitpid(-1, &status, 0);
 
@@ -113,8 +113,8 @@ void test_read_write(void)
 	}
 	else
 	{
-		read(pipe1[0], r1, strlen(w1));
-		write(pipe2[1], w2, strlen(w2));
+		read(pipe_1[0], r1, strlen(w1));
+		write(pipe_2[1], w2, strlen(w2));
 		if ( strcmp(r1, w1) != 0 )
 			write(1, "ERROR\n", 6);
 

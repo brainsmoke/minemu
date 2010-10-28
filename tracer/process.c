@@ -32,7 +32,7 @@
 /* why doesn't POSIX define this?
  * subtle behaviour quirk: the PATH used is the path of the new environment
  */
-static int execvpe(char *filename, char *argv[], char *envp[])
+static int my_execvpe(char *filename, char *argv[], char *envp[])
 {
 	char **tmp = environ;
 	environ = envp;
@@ -72,7 +72,7 @@ pid_t run_traceable_env(char *path, char *args[], char *envp[],
 		perror("ptrace");
 	else
 	{
-		execvpe(args[0], args, envp);
+		my_execvpe(args[0], args, envp);
 		perror("exec");
 	}
 	exit(EXIT_FAILURE);
