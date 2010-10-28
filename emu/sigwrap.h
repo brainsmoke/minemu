@@ -27,16 +27,18 @@ struct kernel_ucontext
     kernel_sigset_t uc_sigmask;
 };
 
+typedef void (*kernel_sighandler_t)(int, siginfo_t *, void *);
+
 struct kernel_old_sigaction
 {
-	void (*handler) (int, siginfo_t *, void *);
+	kernel_sighandler_t handler;
 	kernel_sigset_t mask;
 	unsigned long flags;
 	void (*restorer) (void);
 };
 
 struct kernel_sigaction {
-	void (*handler) (int, siginfo_t *, void *);
+	kernel_sighandler_t handler;
 	unsigned long flags;
 	void (*restorer) (void);
 	kernel_sigset_t mask;

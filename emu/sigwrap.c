@@ -386,7 +386,14 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 		*oact = user_sigaction_list[sig];
 
 	if (act)
-		ret = sys_rt_sigaction(sig, &wrap, &user_sigaction_list[sig], sigsetsize);
+	{
+		if ( act->handler == (kernel_sighandler_t)SIG_ERR ||
+		     act->handler == (kernel_sighandler_t)SIG_DFL ||
+		     act->handler == (kernel_sighandler_t)SIG_IGN )
+			user_sigaction_list[sig] = *act;
+		else
+			ret = sys_rt_sigaction(sig, &wrap, &user_sigaction_list[sig], sigsetsize);
+	}
 
 	if (ret)
 		die("user_rt_sigaction: sys_rt_sigaction() failed %d", ret);
