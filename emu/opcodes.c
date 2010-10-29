@@ -79,7 +79,7 @@ static const unsigned char optable[] =
 /* 8? */  OW, OW, OW, OW, OW, OW, OW, OW, OW, OW, OW, OW, OW, OW, OW, OW,
 /* 9? */  M , M , M , M , M , M , M , M , M , M , M , M , M , M , M , M ,
 /* A? */  O , O , O , M , MB, M , I , I , O , O , O , M , MB, M , M , M ,
-/* B? */  M , M , M , M , M , M , M , M , M , I , M , M , M , M , M , M ,
+/* B? */  M , M , M , M , M , M , M , M , M , I , MB, M , M , M , M , M ,
 /* C? */  M , M , M , M , M , M , M , M , O , O , O , O , O , O , O , O ,
 /* D? */  M , M , M , M , M , M , M , M , M , M , M , M , M , M , M , M ,
 /* E? */  M , M , M , M , M , M , M , M , M , M , M , M , M , M , M , M ,
