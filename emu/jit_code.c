@@ -392,7 +392,7 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 	/* XXX FUGLY as a speed optimisation, we insert the return address
 	 * directly into the cache, this makes relocating code more messy.
 	 * proposed fix: scan memory for call instructions upon relocation,
-     * change the address in-place
+	 * change the address in-place
 	 */
 	/* XXX FUGLY translated address is inserted by caller since we don't know
 	 * yet how long the instruction translation will be
@@ -412,13 +412,37 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 {
-	int len, retaddr_index;
-	len = generate_call_head(dest, instr, trans, &retaddr_index);
-	generate_ijump(&dest[len], instr, trans);
-	trans->len += len;
-/* XXX FUGLY */
-	imm_to(&dest[retaddr_index], (long)dest+trans->len);
-	return trans->len;
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	char **cache = alloc_jmp_cache(instr->addr);
+	long mrm_len = instr->len - instr->mrm;
+	int mrm, retaddr_index;
+
+	/* XXX FUGLY as a speed optimisation, we insert the return address
+	 * directly into the cache, this makes relocating code more messy.
+	 * proposed fix: scan memory for call instructions upon relocation,
+	 * change the address in-place
+	 */
+	int len = gen_code(
+		dest,
+
+		"A3 L"                /* mov %eax, scratch_stack-4 */
+		"? 8B &$"             /* mov ... ( -> %eax )       */
+		"68 L"                /* push $retaddr */
+		"C7 05 L L"           /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
+		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_list.jit_addr[HASH_INDEX(addr)] */
+
+		&scratch_stack[-1],
+		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
+		&instr->addr[instr->len],
+		&jmp_list.addr[hash],       &instr->addr[instr->len],
+		&jmp_list.jit_addr[hash],   &retaddr_index
+	);
+
+	dest[mrm] &= 0xC7; /* -> %eax */
+	len += generate_ijump_tail(&dest[len], &cache[0], &cache[1]);
+	imm_to(&dest[retaddr_index], ((long)dest)+len);
+	*trans = (trans_t){ .len = len };
+	return len;
 }
 
 static int generate_ret(char *dest, char *addr, trans_t *trans)
