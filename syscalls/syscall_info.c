@@ -14,7 +14,6 @@
 #include <sys/utsname.h>
 #include <sys/resource.h>
 
-//#include <linux/dirent.h>
 #include <dirent.h>
 #include <linux/unistd.h>
 #include <linux/net.h>

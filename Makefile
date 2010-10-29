@@ -1,6 +1,6 @@
 SILENT=@
 
-SHELL=/bin/bash
+SHELL=bash
 CC=$(SILENT)gcc
 AS=$(SILENT)gcc
 LINK=$(SILENT)gcc
