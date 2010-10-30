@@ -411,7 +411,7 @@ static long mmap_binary(elf_bin_t *elf, int is_interp)
 	return elf->base;
 }
 
-static int try_load_elf(elf_prog_t *prog)
+static int try_load_elf(elf_prog_t *prog, long bailout)
 {
 	int err, has_interp;
 	char i_filename[PATH_MAX]; /* so much easier */
@@ -451,6 +451,8 @@ static int try_load_elf(elf_prog_t *prog)
 	}
 
 	/* point of no return */
+	if (bailout)
+		return 0;
 
 	if ( mmap_binary(bin, 0) & PG_MASK )
 		raise(SIGKILL);
@@ -479,9 +481,9 @@ static int try_load_elf(elf_prog_t *prog)
 	return 0;
 }
 
-int load_elf(elf_prog_t *prog)
+static int load_elf_cleanup(elf_prog_t *prog, long bailout)
 {
-	int err = try_load_elf(prog);
+	int err = try_load_elf(prog, bailout);
 
 	if (prog->bin.fd != -1)
 		sys_close(prog->bin.fd);
@@ -490,5 +492,15 @@ int load_elf(elf_prog_t *prog)
 		sys_close(prog->interp.fd);
 
 	return err;
+}
+
+int can_load_elf(elf_prog_t *prog)
+{
+	return load_elf_cleanup(prog, 1);
+}
+
+int load_elf(elf_prog_t *prog)
+{
+	return load_elf_cleanup(prog, 0);
 }
 

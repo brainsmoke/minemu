@@ -29,7 +29,7 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 	elf_prog_t prog =
 	{
 		.filename = argv[1],
-		.argv = &argv[1],
+		.argv = &argv[2],
 		.envp = envp,
 		.auxv = auxv,
 		.task_size = USER_END,

@@ -8,6 +8,7 @@
 #include "error.h"
 #include "syscalls.h"
 #include "sigwrap.h"
+#include "exec.h"
 
 long syscall_emu(long call, long arg1, long arg2, long arg3,
                             long arg4, long arg5, long arg6)
@@ -31,6 +32,8 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 
 		case __NR_sigreturn:
 		case __NR_rt_sigreturn:
+
+		case __NR_execve:
 			break;
 		default:
 			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
@@ -83,6 +86,9 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_rt_sigreturn:
 			shield();
 			user_rt_sigreturn();
+			break;
+		case __NR_execve:
+			ret = user_execve((char *)arg1, (char **)arg2, (char **)arg3);
 			break;
 		default:
 			die("unimplemented syscall");

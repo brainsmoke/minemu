@@ -110,7 +110,7 @@ extern char runtime_code_start[], runtime_code_size[],
 #define USER_STACK_PAGES (0x8000UL)
 #define USER_STACK_SIZE (USER_STACK_PAGES * PG_SIZE)
 #define VDSO_SIZE  (PG_SIZE)
-#define TEMU_STACK_BOTTOM (0xBFFF7000UL)
+#define TEMU_STACK_BOTTOM (0xBFF70000UL)
 
 void init_temu_mem(char **envp);
 
