@@ -15,147 +15,98 @@ static int out = 2;
 
 const char *sigframe_pre_desc[] =
 {
-	"    [*pretcode] [   sig   ]",
+	"           [*pretcode] [   sig   ]",
 };
 
 const char *sigframe_post_desc[] =
 {
-	"    [extramask] [         retcode        ]",
+	"           [extramask] [        retcode       ]",
 };
 
 const char *rt_sigframe_pre_desc[] =
 {
-	"    [*pretcode] [   sig   ]    [ *pinfo  ] [   *puc   ]",
+	"           [*pretcode] [   sig   ]  [ *pinfo  ] [   *puc   ]",
 };
 
 const char *rt_sigframe_post_desc[] =
 {
-	"    [       retcode       ]",
+	"           [       retcode       ]",
 };
 
 const char *ucontext_pre_desc[] =
 {
-	"    [ uc_flags] [ *uc_link]    [  *ss_sp ] [ ss_flags ]",
-	"    [ ss_size ]"
+	"           [ uc_flags] [ *uc_link]  [  *ss_sp ] [ ss_flags ]",
+	"           [ ss_size ]"
 };
 
 const char *ucontext_post_desc[] =
 {
-	"    [      uc_sigmask     ]"
+	"           [      uc_sigmask     ]"
 };
 
 const char *sigcontext_desc[] =
 {
-	"    [ gs] [gsh] [ fs] [fsh]    [ es] [esh] [ ds] [dsh]",
-	"    [   edi   ] [   esi   ]    [   ebp   ] [   esp   ]",
-	"    [   ebx   ] [   edx   ]    [   ecx   ] [   eax   ]",
-	"    [  trapno ] [   err   ]    [   eip   ] [ cs] [csh]",
-	"    [  eflags ] [ esp@sig ]    [ ss] [ssh] [ *fpstate]",
-	"    [  oldmask] [   cr2   ]",
+	"           [ gs] [gsh] [ fs] [fsh]  [ es] [esh] [ ds] [dsh]",
+	"           [   edi   ] [   esi   ]  [   ebp   ] [   esp   ]",
+	"           [   ebx   ] [   edx   ]  [   ecx   ] [   eax   ]",
+	"           [  trapno ] [   err   ]  [   eip   ] [ cs] [csh]",
+	"           [  eflags ] [ esp@sig ]  [ ss] [ssh] [ *fpstate]",
+	"           [  oldmask] [   cr2   ]",
 };
 
 const char *fpstate_desc[] =
 {
-	"    [    cw   ] [    sw   ]    [   tag   ] [  ipoff  ]",
-	"    [  cssel  ] [ dataoff ]    [ datasel ] [  st[0]   ",
-	"                    ] [            st[1]             ]",
-	"    [            st[2]             ] [         st[3]  ",
-	"              ] [             st[4]            ] [    ",
-	"           st[5]          ]    [             st[6]    ",
-    "        ] [            st[7]             ] [sts] [mgc]",
-    "    [         ] [         ]    [         ] [         ]",
-    "    [         ] [         ]    [  mxcsr  ] [ reserved]",
-    "    [      _fxsr_st[0]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[1]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[2]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[3]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[4]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[5]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[6]         <   exp  >] [ padding ]",
-    "    [      _fxsr_st[7]         <   exp  >] [ padding ]",
-    "    [                    _xmm[0]                     ]",
-    "    [                    _xmm[1]                     ]",
-    "    [                    _xmm[2]                     ]",
-    "    [                    _xmm[3]                     ]",
-    "    [                    _xmm[4]                     ]",
-    "    [                    _xmm[5]                     ]",
-    "    [                    _xmm[6]                     ]",
-    "    [                    _xmm[7]                     ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
-    "    [                                                ]",
+	"           [    cw   ] [    sw   ]  [   tag   ] [  ipoff  ]",
+	"           [  cssel  ] [ dataoff ]  [ datasel ] [  st[0]   ",
+	"                           ] [          st[1]             ]",
+	"           [            st[2]           ] [         st[3]  ",
+	"                     ] [            st[4]           ] [    ",
+	"                  st[5]          ]  [             st[6]    ",
+    "               ] [           st[7]            ] [sts] [mgc]",
+    "           [         ] [         ]  [         ] [         ]",
+    "           [         ] [         ]  [  mxcsr  ] [ reserved]",
+    "           [      _fxsr_st[0]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[1]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[2]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[3]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[4]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[5]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[6]       <   exp  >] [ padding ]",
+    "           [      _fxsr_st[7]       <   exp  >] [ padding ]",
+    "           [                   _xmm[0]                    ]",
+    "           [                   _xmm[1]                    ]",
+    "           [                   _xmm[2]                    ]",
+    "           [                   _xmm[3]                    ]",
+    "           [                   _xmm[4]                    ]",
+    "           [                   _xmm[5]                    ]",
+    "           [                   _xmm[6]                    ]",
+    "           [                   _xmm[7]                    ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
+    "           [                                              ]",
 
 };
-/*
-
-static FILE *out = NULL;
-
-void debug_init(FILE *outfile)
-{
-	out = outfile;
-}
-
-FILE *debug_out(void)
-{
-	return out;
-}
-
-#ifdef __i386__
-
-const char *registers_desc[] =
-{
-	"    [   ebx   ] [   ecx   ]    [   edx   ] [   esi   ]",
-	"    [   edi   ] [   ebp   ]    [   eax   ] [ ds] [_ds]",
-	"    [ es] [_es] [ fs] [_fs]    [ gs] [_gs] [ orig eax]",
-	"    [   eip   ] [ cs] [_cs]    [  eflags ] [   esp   ]",
-	"    [ ss] [_ss]",
-};
-
-#endif
-
-#ifdef __x86_64__
-#error structure has changed, needs to be retested
-
-const char *registers_desc[] =
-{
-	"    [         r15         ]    [         r14         ]",
-	"    [         r13         ]    [         r12         ]",
-	"    [         rbp         ]    [         rbx         ]",
-	"    [         r11         ]    [         r10         ]",
-	"    [         r9          ]    [         r8          ]",
-	"    [         rax         ]    [         rcx         ]",
-	"    [         rsi         ]    [         rdi         ]",
-	"    [       orig_rax      ]    [         rip         ]",
-	"    [          cs         ]    [        eflags       ]",
-	"    [         rsp         ]    [          ss         ]",
-	"    [       fs_base       ]    [        gs_base      ]",
-	"    [          ds         ]    [          es         ]",
-	"    [          fs         ]    [          gs         ]",
-};
-
-#endif
-*/
 
 static inline long min(long a, long b) { return a<b ? a:b; }
 static inline long max(long a, long b) { return a>b ? a:b; }
 
-static const char *hi = "\033[0;34m", *reset = "\033[m";
+static const char *taint_color = "\033[1;31m", *hi = "\033[0;34m", *reset = "\033[m";
 
 /* Prints up to 16 characters in hexdump style with optional colors
  * if `ascii' is non-zero, an additional ascii representation is printed
  */
-static void printhex_line(const void *data, ssize_t len, int ascii,
+static void printhex_line(const void *data, ssize_t len, int offset, int ascii,
                           const int indices[], const char *colors[])
 {
 	int i, cur = -1;
@@ -163,8 +114,15 @@ static void printhex_line(const void *data, ssize_t len, int ascii,
 
 	for (i=0; i<16; i++)
 	{
-		if (i % 8 == 0)
-			fd_printf(out, "   ");
+		if (i == 0)
+		{
+			if (offset)
+				fd_printf(out, "%08x  ", data);
+			else
+				fd_printf(out, "          ");
+		}
+		else if (i % 8 == 0)
+			fd_printf(out, " ");
 
 		if (i < len)
 		{
@@ -183,7 +141,7 @@ static void printhex_line(const void *data, ssize_t len, int ascii,
 	if (ascii && len > 0)
 	{
 		cur = -1;
-		fd_printf(out, "    |");
+		fd_printf(out, "   |");
 
 		for (i=0; i<16; i++)
 		{
@@ -206,7 +164,7 @@ static void printhex_line(const void *data, ssize_t len, int ascii,
 	fd_printf(out, "\n");
 }
 
-static void printhex_descr(const void *data, ssize_t len, int ascii,
+static void printhex_descr(const void *data, ssize_t len, int offset, int ascii,
                            const char *descriptions[])
 {
 	ssize_t row;
@@ -217,13 +175,33 @@ static void printhex_descr(const void *data, ssize_t len, int ascii,
 			fd_printf(out, "%s%s%s\n", hi, descriptions[row], reset);
 
 		printhex_line((char*)data+row*16, min(16, len-row*16),
-		              ascii, NULL, NULL);
+		              offset, ascii, NULL, NULL);
 	}
 }
 
 void printhex(const void *data, int len)
 {
-	printhex_descr(data, len, 1, NULL);
+	printhex_descr(data, len, 0, 1, NULL);
+}
+
+void printhex_off(const void *data, int len)
+{
+	printhex_descr(data, len, 1, 1, NULL);
+}
+
+void printhex_taint(const void *data, int len, const void *taint)
+{
+	size_t row, i;
+	int d[16];
+	const char *color[] = { [0] = "\033[0;37m", [1] = taint_color };
+
+	for (row=0; row*16<len; row++)
+	{
+		for (i=0; i<min(len-row,16); i++)
+			d[i] = ((char *)taint)[row*16+i] ? 1 : 0;
+
+		printhex_line((char*)data+row*16, min(16, len-row*16), 1, 1, d, color);
+	}
 }
 
 static void printhex_diff_descr(const void *data1, ssize_t len1,
@@ -263,9 +241,9 @@ static void printhex_diff_descr(const void *data1, ssize_t len1,
 		}
 
 		printhex_line((char*)data1+row*16, min(16, len1-row*16),
-		              ascii, d, color1);
+		              0, ascii, d, color1);
 		printhex_line((char*)data2+row*16, min(16, len2-row*16),
-		              ascii, d, color2);
+		              0, ascii, d, color2);
 	}
 }
 
@@ -284,7 +262,7 @@ void print_debug_data(void)
 
 void print_sigcontext(struct sigcontext *sc)
 {
-	printhex_descr(sc, sizeof(*sc), 1, sigcontext_desc);
+	printhex_descr(sc, sizeof(*sc), 0, 1, sigcontext_desc);
 }
 
 void print_sigcontext_diff(struct sigcontext *sc1, struct sigcontext *sc2)
@@ -294,7 +272,7 @@ void print_sigcontext_diff(struct sigcontext *sc1, struct sigcontext *sc2)
 
 void print_fpstate(struct _fpstate *fpstate)
 {
-	printhex_descr(fpstate, sizeof(*fpstate), 1, fpstate_desc);
+	printhex_descr(fpstate, sizeof(*fpstate), 0, 1, fpstate_desc);
 }
 
 void print_fpstate_diff(struct _fpstate *fpstate1, struct _fpstate *fpstate2)
@@ -314,9 +292,9 @@ void print_siginfo_diff(siginfo_t *info1, siginfo_t *info2)
 
 void print_ucontext(struct kernel_ucontext *uc)
 {
-	printhex_descr(uc, offsetof(struct kernel_ucontext, uc_mcontext), 1, ucontext_pre_desc);
+	printhex_descr(uc, offsetof(struct kernel_ucontext, uc_mcontext), 0, 1, ucontext_pre_desc);
 	print_sigcontext(&uc->uc_mcontext);
-	printhex_descr(&uc->uc_sigmask, sizeof(uc->uc_sigmask), 1, ucontext_post_desc);
+	printhex_descr(&uc->uc_sigmask, sizeof(uc->uc_sigmask), 0, 1, ucontext_post_desc);
 }
 
 void print_ucontext_diff(struct kernel_ucontext *uc1, struct kernel_ucontext *uc2)
@@ -332,7 +310,7 @@ void print_rt_sigframe(struct kernel_rt_sigframe *frame)
 {
 	debug("start: %x, end: %x, size: %x", frame, &frame[1], sizeof(*frame));
 	debug("@ %x", frame);
-	printhex_descr(frame, 16, 1, rt_sigframe_pre_desc);
+	printhex_descr(frame, 16, 0, 1, rt_sigframe_pre_desc);
 	debug("@ %x", &frame->info);
 	print_siginfo(&frame->info);
 	debug("@ %x", &frame->uc);
@@ -340,7 +318,7 @@ void print_rt_sigframe(struct kernel_rt_sigframe *frame)
 	debug("@ %x", &frame->fpstate);
 	print_fpstate(&frame->fpstate);
 	debug("@ %x", &frame->retcode);
-	printhex_descr(&frame->retcode, 8, 1, rt_sigframe_post_desc);
+	printhex_descr(&frame->retcode, 8, 0, 1, rt_sigframe_post_desc);
 }
 
 void print_rt_sigframe_diff(struct kernel_rt_sigframe *frame1, struct kernel_rt_sigframe *frame2)
@@ -356,13 +334,13 @@ void print_sigframe(struct kernel_sigframe *frame)
 {
 	debug("start: %x, end: %x, size: %x", frame, &frame[1], sizeof(*frame));
 	debug("@ %x", frame);
-	printhex_descr(frame, 8, 1, sigframe_pre_desc);
+	printhex_descr(frame, 8, 0, 1, sigframe_pre_desc);
 	debug("@ %x", &frame->sc);
 	print_sigcontext(&frame->sc);
 	debug("@ %x", &frame->fpstate);
 	print_fpstate(&frame->fpstate);
 	debug("@ %x", &frame->extramask);
-	printhex_descr(&frame->extramask, 12, 1, sigframe_post_desc);
+	printhex_descr(&frame->extramask, 12, 0, 1, sigframe_post_desc);
 }
 
 void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe *frame2)
