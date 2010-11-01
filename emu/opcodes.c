@@ -106,13 +106,13 @@ static const unsigned char optable[] =
 
 	[G3A_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
-/* 0? */  I , I , I , I , I , I , I , I , M , M , M , M , M , M , M , M ,
-/* 1? */  I , I , I , I , M , M , M , M , I , I , I , I , I , I , I , I ,
-/* 2? */  M , M , M , I , I , I , I , I , I , I , I , I , I , I , I , I ,
+/* 0? */  I , I , I , I , I , I , I , I , MB, MB, MB, MB, MB, MB, MB, MB,
+/* 1? */  I , I , I , I , MB, MB, MB, MB, I , I , I , I , I , I , I , I ,
+/* 2? */  MB, MB, MB, I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* 3? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
-/* 4? */  M , M , M , I , I , I , I , I , I , I , I , I , I , I , I , I ,
+/* 4? */  MB, MB, MB, I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* 5? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
-/* 6? */  M , M , M , M , I , I , I , I , I , I , I , I , I , I , I , I ,
+/* 6? */  MB, MB, MB, MB, I , I , I , I , I , I , I , I , I , I , I , I ,
 /* 7? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* 8? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
 /* 9? */  I , I , I , I , I , I , I , I , I , I , I , I , I , I , I , I ,
