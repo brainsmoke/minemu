@@ -669,4 +669,52 @@ int taint_swap_reg16_mem16(char *dest, char *mrm, long offset)
 	return len + scratch_store_mem16(&dest[len], mrm, offset);
 }
 
+static const struct { char pre_shift, post_shift, upper_half, blend_mask; } bytecopy_table[8][8] =
+{
+	/* src\dst       AL               CL               DL               BL               AH               CH               DH               BH        */
+	/* AL */ { {  0,  0, 0, 0}, {  5, -6, 0, 4}, { -8,  7, 0,16}, {-12, 11, 0,64}, {  0,  0, 0, 1}, {  5, -5, 0, 4}, { -8,  8, 0,16}, {-12, 12, 0,64} },
+	/* CL */ { {  4, -9, 0, 1}, {  0,  0, 0, 0}, { -4, -1, 0,16}, { -8,  3, 0,64}, {  4, -8, 0, 1}, {  0, -4, 0, 4}, { -4,  0, 0,16}, { -8,  4, 0,64} },
+	/* DL */ { { -7, -2, 0, 1}, { -3, -6, 0, 4}, {  0,  0, 0, 0}, {  5,  2, 1,64}, {  8,  0, 1, 1}, { -3, -5, 0, 4}, {  0,  8, 1,16}, {  5,  3, 1,64} },
+	/* BL */ { {-11, -2, 0, 1}, { -7, -6, 0, 4}, {  4, -1, 1,16}, {  0,  0, 0, 0}, {-11, -1, 0, 1}, { -7, -5, 0, 4}, {  4,  0, 1,16}, {  0,  4, 1,64} },
+	/* AH */ { {  0, -2, 0, 1}, {  4, -6, 0, 4}, { -7,  5, 0,16}, {-11,  9, 0,64}, {  0,  0, 0, 0}, {  4, -5, 0, 4}, { -7,  6, 0,16}, {-11, 10, 0,64} },
+	/* CH */ { {  5,-11, 0, 1}, {  0, -6, 0, 4}, { -3, -3, 0,16}, { -7,  1, 0,64}, {  5,-10, 0, 1}, {  0,  0, 0, 0}, { -3, -2, 0,16}, { -7,  2, 0,64} },
+	/* DH */ { { -8, -2, 0, 1}, { -4, -6, 0, 4}, {  0,  6, 1,16}, {  4,  2, 1,64}, { -8, -1, 0, 1}, { -4, -5, 0, 4}, {  0,  0, 0, 0}, {  4,  3, 1,64} },
+	/* BH */ { {-12, -2, 0, 1}, { -8, -6, 0, 4}, {  5, -3, 1,16}, {  0,  2, 1,64}, {-12, -1, 0, 1}, { -8, -5, 0, 4}, {  5, -2, 1,16}, {  0,  0, 0, 0} },
+};
+
+static const char *pslldq    = "\x66\x0f\x73\xfd\x00",
+                  *psrldq    = "\x66\x0f\x73\xdd\x00",
+                  *blendw    = "\x66\x0f\x3a\x0e\xf5\x00",
+                  *punpcklbw = "\x66\x0f\x60\xee",
+                  *punpckhbw = "\x66\x0f\x68\xee",
+                  *movapd    = "\x66\x0f\x28\xee";
+
+int shift_xmm5(char *dest, int c)
+{
+	if ( c == 0 )
+		return 0;
+
+	memcpy(dest, c>0 ? pslldq : psrldq, 5);
+	dest[4] = c > 0 ? c : -c;
+	return 5;
+}
+
+int taint_copy_reg8_to_reg8(char *dest, int from_reg, int to_reg)
+{
+	if ( from_reg == to_reg )
+		return 0;
+
+	int len = 4;
+	memcpy(dest, movapd, 4);
+	
+	len += shift_xmm5(&dest[len], bytecopy_table[from_reg][to_reg].pre_shift);
+	memcpy(&dest[len], bytecopy_table[from_reg][to_reg].upper_half ? punpckhbw : punpcklbw, 4);
+	len += 4;
+	len += shift_xmm5(&dest[len], bytecopy_table[from_reg][to_reg].post_shift);
+	memcpy(&dest[len], blendw, 6);
+	len += 6;
+	dest[len-1] = bytecopy_table[from_reg][to_reg].blend_mask;
+	return len;
+}
+
 

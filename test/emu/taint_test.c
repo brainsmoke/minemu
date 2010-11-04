@@ -196,6 +196,20 @@ void ref_copy_reg16_to_reg16(int from_reg, int to_reg)
 	taint_regs[to_reg] = (taint_regs[to_reg]&0xFFFF0000) | (taint_regs[from_reg]&0xFFFF);
 }
 
+char *get_byte_reg(int reg)
+{
+	int m[] = { 0, 4, 8, 12, 1, 5, 9, 13 };
+	return &((char*)taint_regs)[m[reg]];
+}
+
+void ref_copy_reg8_to_reg8(int from_reg, int to_reg)
+{
+	char *f = get_byte_reg(from_reg),
+	     *t = get_byte_reg(to_reg);
+
+	*t = *f;
+}
+
 void ref_combine_reg32_to_reg32(int from_reg, int to_reg)
 {
 	taint_regs[to_reg] |= taint_regs[from_reg];
@@ -580,6 +594,7 @@ void test_reg2(int (*taint_op)(char *, int, int), void (*ref_op)(int, int))
 			codeexec((char *)opcode, oplen, (long *)regs_test);
 			save_fx(fx_test);
 			diff();
+printf("%d %d\n", i, j);
 		}
 }
 
@@ -594,6 +609,7 @@ int main(int argc, char **argv)
 
 	test_reg2(taint_copy_reg32_to_reg32, ref_copy_reg32_to_reg32);
 	test_reg2(taint_copy_reg16_to_reg16, ref_copy_reg16_to_reg16);
+	test_reg2(taint_copy_reg8_to_reg8, ref_copy_reg8_to_reg8);
 
 	test_mem(taint_copy_mem32_to_reg32, ref_copy_mem32_to_reg32);
 	test_mem(taint_copy_mem16_to_reg16, ref_copy_mem16_to_reg16);
