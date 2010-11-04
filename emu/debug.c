@@ -101,7 +101,7 @@ const char *fpstate_desc[] =
 static inline long min(long a, long b) { return a<b ? a:b; }
 static inline long max(long a, long b) { return a>b ? a:b; }
 
-static const char *taint_color = "\033[1;31m", *hi = "\033[0;34m", *reset = "\033[m";
+static const char *hi = "\033[0;34m", *reset = "\033[m";
 
 /* Prints up to 16 characters in hexdump style with optional colors
  * if `ascii' is non-zero, an additional ascii representation is printed
@@ -189,19 +189,33 @@ void printhex_off(const void *data, int len)
 	printhex_descr(data, len, 1, 1, NULL);
 }
 
-void printhex_taint(const void *data, int len, const void *taint)
+void printhex_taint_highlight(const void *data, int len, const void *taint,
+                              const void *highlight, int highlight_len)
 {
 	size_t row, i;
 	int d[16];
-	const char *color[] = { [0] = "\033[0;37m", [1] = taint_color };
+	const char *color[] =
+	{
+		[0] = "\033[0;37m", [1] = "\033[0;31m",
+		[2] = "\033[1;37m", [3] = "\033[1;31m"
+	};
 
 	for (row=0; row*16<len; row++)
 	{
 		for (i=0; i<min(len-row,16); i++)
+		{
 			d[i] = ((char *)taint)[row*16+i] ? 1 : 0;
+			if (contains(highlight, highlight_len, &((const char *)data)[row*16+i]) )
+				d[i] |= 2;
+		}
 
 		printhex_line((char*)data+row*16, min(16, len-row*16), 1, 1, d, color);
 	}
+}
+
+void printhex_taint(const void *data, int len, const void *taint)
+{
+	printhex_taint_highlight(data, len, taint, NULL, 0);
 }
 
 static void printhex_diff_descr(const void *data1, ssize_t len1,

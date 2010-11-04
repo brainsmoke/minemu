@@ -25,9 +25,9 @@ void imm_to(char *dest, long imm)
 	memcpy(dest, &imm, sizeof(long));
 }
 
-void die()
+int die()
 {
-
+	return -1;
 }
 
 unsigned long do_lea(unsigned char *m, int mlen)

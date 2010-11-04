@@ -50,10 +50,10 @@ int main(int argc, char **argv)
 	debug_init(stdout);
 
 	char *mem = get_rwmem(4096),
-	     *stack = get_rwmem(4096),
+	     *mem_old = get_rwmem(4096),
 	     *buf = get_rwmem(4096),
-	     *fx_old = buf,
-	     *fx_new = buf+512;
+	     *fx_new = buf,
+	     *fx_old = buf+512;
 
 	long *regs_old = (long *)(buf + 1024),
 	     *regs_new = (long *)(buf + 1060);
@@ -65,18 +65,19 @@ int main(int argc, char **argv)
 	regs_new[1] = 0xECECECEC;
 	regs_new[2] = 0xEDEDEDED;
 	regs_new[3] = (long)mem;
-	regs_new[4] = (long)stack;
+	regs_new[4] = (long)&mem[4096-sizeof(void*)];
 	regs_new[5] = 0xBBBBBBBB;
 	regs_new[6] = 0x51515151;
 	regs_new[7] = 0xD1D1D1D1;
 	regs_new[8] = 0x00000246;
 	memcpy(regs_old, regs_new, 36);
 	memcpy(fx_old, fx_new, 512);
-
+	memcpy(mem_old, mem, 4096);
 	char *input, input_sz;
 	while ( (input = readline("shellcode>")) )
 	{
 		input_sz = hex2bin(input, input);
+		load_fx(fx_new);
 		codeexec(input, input_sz, regs_new);
 		save_fx(fx_new);
 
@@ -90,6 +91,12 @@ int main(int argc, char **argv)
 		{
 			print_fxsave(fx_old, fx_new);
 			memcpy(fx_old, fx_new, 512);
+		}
+
+		if (strchr(input, 'm'))
+		{
+			printhex_diff(mem_old, 4096, mem, 4096, 1);
+			memcpy(mem_old, mem, 4096);
 		}
 
 		free(input);

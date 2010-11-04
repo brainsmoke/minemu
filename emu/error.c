@@ -17,7 +17,7 @@ void debug(char *fmt, ...)
 	fd_printf(2, "\n");
 }
 
-void die(char *fmt, ...)
+int die(char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
@@ -25,4 +25,5 @@ void die(char *fmt, ...)
 	va_end(ap);
 	fd_printf(2, "\n");
 	raise(SIGKILL);
+	return -1;
 }

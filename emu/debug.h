@@ -6,6 +6,8 @@
 void printhex(const void *data, int len);
 void printhex_off(const void *data, int len);
 void printhex_taint(const void *data, int len, const void *taint);
+void printhex_taint_highlight(const void *data, int len, const void *taint,
+                              const void *highlight, int highlight_len);
 void printhex_diff(const void *data1, ssize_t len1,
                    const void *data2, ssize_t len2, int grane);
 

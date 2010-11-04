@@ -49,16 +49,12 @@
 #define TCPM ( TAINT | TAINT_COPY    | TAINT_POP_TO_MODRM  )
 #define TCAO ( TAINT | TAINT_COPY    | TAINT_AX_TO_OFFSET  )
 #define TCOA ( TAINT | TAINT_COPY    | TAINT_OFFSET_TO_AX  )
-#define TZMR ( TAINT | TAINT_COPY_ZX | TAINT_MODRM_TO_REG  )
 #define TCSS ( TAINT | TAINT_COPY    | TAINT_STR_TO_STR    )
 #define TCAS ( TAINT | TAINT_COPY    | TAINT_AX_TO_STR     )
 #define TCSA ( TAINT | TAINT_COPY    | TAINT_STR_TO_AX     )
+#define TZMR ( TAINT | TAINT_COPY_ZX | TAINT_MODRM_TO_REG  )
 #define TSRM ( TAINT | TAINT_SWAP    | TAINT_REG_TO_MODRM  )
 #define TSAR ( TAINT | TAINT_SWAP    | TAINT_AX_TO_REG     )
-#define TPUA ( TAINT | TAINT_PUSHA                         )
-#define TPPA ( TAINT | TAINT_POPA                          )
-#define TLEA ( TAINT | TAINT_LEA                           )
-#define TLVE ( TAINT | TAINT_LEAVE                         )
 #define TER  ( TAINT | TAINT_ERASE   | TAINT_REG           )
 #define TEM  ( TAINT | TAINT_ERASE   | TAINT_MODRM         )
 #define TEP  ( TAINT | TAINT_ERASE   | TAINT_PUSH          )
@@ -66,6 +62,10 @@
 #define TED  ( TAINT | TAINT_ERASE   | TAINT_DX            )
 #define TEA  ( TAINT | TAINT_ERASE   | TAINT_AX            )
 #define TEAD ( TAINT | TAINT_ERASE   | TAINT_AX_DX         )
+#define TPUA ( TAINT | TAINT_PUSHA                         )
+#define TPPA ( TAINT | TAINT_POPA                          )
+#define TLEA ( TAINT | TAINT_LEA                           )
+#define TLVE ( TAINT | TAINT_LEAVE                         )
 
 #define BORM ( TORM | TAINT_BYTE )
 #define BOMR ( TOMR | TAINT_BYTE )
@@ -83,7 +83,6 @@
 #define BER  ( TER  | TAINT_BYTE )
 #define BEP  ( TEP  | TAINT_BYTE )
 #define BEM  ( TEM  | TAINT_BYTE )
-#define BEAD ( TEAD | TAINT_BYTE )
 #define BZMR ( TZMR | TAINT_BYTE )
 
 const unsigned char jit_action[] =
@@ -104,7 +103,7 @@ const unsigned char jit_action[] =
 /* B? */  BER, BER, BER, BER, BER, BER, BER, BER, TER, TER, TER, TER, TER, TER, TER, TER,
 /* C? */  XXX, XXX,  RC,  R , XXX, XXX, BEM, TEM, XXX,TLVE,  RF,  RF,  C , INT,  C ,  C ,
 /* D? */  XXX, XXX, XXX, XXX,  C ,  C ,  C , XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
-/* E? */   L ,  L ,  L ,  L ,PRIV,PRIV,PRIV,PRIV, CR,  JR,  JF , JR ,PRIV,PRIV,PRIV,PRIV,
+/* E? */   L ,  L ,  L ,  L ,PRIV,PRIV,PRIV,PRIV, CR , JR , JF , JR ,PRIV,PRIV,PRIV,PRIV,
 /* F? */  BAD,  U , BAD, BAD,PRIV,  C , BAD, BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD,
 
 	[ESC_OPTABLE] =
@@ -112,7 +111,7 @@ const unsigned char jit_action[] =
 /* 0? */ PRIV,PRIV,PRIV,PRIV,  C ,  U ,  C ,  U ,  C ,  C ,  C ,  U ,  C ,  C ,  C ,  C ,
 /* 1? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
 /* 2? */ PRIV,PRIV,PRIV,PRIV,  C ,  C ,  C ,  C , XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
-/* 3? */ PRIV,BEAD,BEAD,BEAD, SE ,  C ,  C ,PRIV, BAD,  C , BAD,  C ,  C ,  C ,  C ,  C ,
+/* 3? */ PRIV,TEAD,TEAD,TEAD, SE ,  C ,  C ,PRIV, BAD,  C , BAD,  C ,  C ,  C ,  C ,  C ,
 /* 4? */ CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,
 /* 5? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
 /* 6? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
