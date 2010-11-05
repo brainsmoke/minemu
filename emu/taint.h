@@ -31,42 +31,54 @@ int taint_copy_pop_mem16(char *dest, char *mrm, long offset);
 
 int taint_copy_eax_to_addr32(char *dest, long addr, long offset);
 int taint_copy_ax_to_addr16(char *dest, long addr, long offset);
+int taint_copy_al_to_addr8(char *dest, long addr, long offset);
 
 int taint_copy_addr32_to_eax(char *dest, long addr, long offset);
 int taint_copy_addr16_to_ax(char *dest, long addr, long offset);
+int taint_copy_addr8_to_al(char *dest, long addr, long offset);
 
 int taint_copy_eax_to_str32(char *dest, long offset);
 int taint_copy_ax_to_str16(char *dest, long offset);
+int taint_copy_al_to_str8(char *dest, long offset);
 
 int taint_copy_str32_to_eax(char *dest, long offset);
 int taint_copy_str16_to_ax(char *dest, long offset);
+int taint_copy_str8_to_al(char *dest, long offset);
 
 int taint_copy_str32_to_str32(char *dest, long offset);
 int taint_copy_str16_to_str16(char *dest, long offset);
+int taint_copy_str8_to_str8(char *dest, long offset);
 
 /* TAINT COPYZX */
 
 int taint_copy_reg16_to_reg32(char *dest, int from_reg, int to_reg);
+int taint_copy_reg8_to_reg32(char *dest, int from_reg, int to_reg);
 int taint_copy_reg8_to_reg16(char *dest, int from_reg, int to_reg);
 
 int taint_copy_mem16_to_reg32(char *dest, char *mrm, long offset);
+int taint_copy_mem8_to_reg32(char *dest, char *mrm, long offset);
 int taint_copy_mem8_to_reg16(char *dest, char *mrm, long offset);
 
-/* TAINT COMBINE */
+/* TAINT OR */
 
-int taint_combine_reg32_to_reg32(char *dest, int from_reg, int to_reg);
-int taint_combine_reg32_to_mem32(char *dest, char *mrm, long offset);
-int taint_combine_mem32_to_reg32(char *dest, char *mrm, long offset);
+int taint_or_reg32_to_reg32(char *dest, int from_reg, int to_reg);
+int taint_or_reg16_to_reg16(char *dest, int from_reg, int to_reg);
+
+int taint_or_reg32_to_mem32(char *dest, char *mrm, long offset);
+int taint_or_mem32_to_reg32(char *dest, char *mrm, long offset);
+
+int taint_xor_reg32_to_mem32(char *dest, char *mrm, long offset);
+int taint_xor_mem32_to_reg32(char *dest, char *mrm, long offset);
 
 /* TAINT ERASE */
 
-int taint_clear_mem32(char *dest, char *mrm, long offset);
-int taint_clear_reg32(char *dest, int reg);
-int taint_clear_mem16(char *dest, char *mrm, long offset);
-int taint_clear_reg16(char *dest, int reg);
-int taint_clear_hireg16(char *dest, int reg);
-int taint_clear_push32(char *dest, long offset);
-int taint_clear_push16(char *dest, long offset);
+int taint_erase_mem32(char *dest, char *mrm, long offset);
+int taint_erase_reg32(char *dest, int reg);
+int taint_erase_mem16(char *dest, char *mrm, long offset);
+int taint_erase_reg16(char *dest, int reg);
+int taint_erase_hireg16(char *dest, int reg);
+int taint_erase_push32(char *dest, long offset);
+int taint_erase_push16(char *dest, long offset);
 
 /* TAINT SWAP */
 

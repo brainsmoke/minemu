@@ -131,6 +131,22 @@ static int scratch_store_reg32(char *dest, int src_reg, int dest_reg)
 	return 6;
 }
 
+static int scratch_blend_reg32(char *dest, int reg)
+{
+	memcpy(dest, "\x66\x0f\x3a\x0e", 4); /* pblendw $indexbits,%xmm5,%reg */
+	dest[4] = 0xC0 | ( taint_reg(reg)<<3 ) | scratch_reg();
+	dest[5] = 3<<(taint_index(reg)<<1);
+	return 6;
+}
+
+static int scratch_blend_reg16(char *dest, int reg)
+{
+	memcpy(dest, "\x66\x0f\x3a\x0e", 4); /* pblendw $indexbits,%xmm5,%reg */
+	dest[4] = 0xC0 | ( taint_reg(reg)<<3 ) | scratch_reg();
+	dest[5] = 1<<(taint_index(reg)<<1);
+	return 6;
+}
+
 int scratch_store_mem16(char *dest, char *mrm, long offset)
 {
 	memcpy(dest, "\x66\x0f\x3a\x15", 4); /* pextrw */
@@ -342,12 +358,34 @@ int taint_copy_reg16_to_reg32(char *dest, int from_reg, int to_reg)
 	return len+scratch_store_reg32(&dest[len], from_reg * 2, to_reg);
 }
 
+int taint_copy_reg8_to_reg32(char *dest, int from_reg, int to_reg)
+{
+	if ( taint_index(from_reg) == 0 )
+	{
+		/* pmovzxwd %reg, %xmm5 */
+		memcpy(dest, "\x66\x0f\x38\x31\xe8", 5); 
+		dest[4] |= taint_reg(from_reg);
+		if (taint_index(to_reg))
+			return 5+scratch_store_reg32(&dest[5], from_reg, to_reg);
+		else
+			return 5+scratch_blend_reg32(&dest[5], to_reg);
+	}
+	else
+	{
+		/* palignr $0x8,%reg,%xmm5 ; pmovzxwd %xmm5,%xmm5 */
+		memcpy(dest, "\x66\x0f\x3a\x0f\xe8\x00\x66\x0f\x38\x31\xed", 11);
+		dest[4] |= taint_reg(from_reg);
+		dest[5] = taint_index(from_reg) * 4 - taint_index(to_reg);
+		return 11+scratch_blend_reg32(&dest[11], to_reg);
+	}
+}
+
 int taint_copy_mem16_to_reg32(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) )
 		return taint_copy_reg16_to_reg32(dest, mrm[0]&0x7, (mrm[0]>>3)&0x7);
 
-	int len = taint_clear_reg32(dest,(mrm[0]>>3)&0x7);
+	int len = taint_erase_reg32(dest,(mrm[0]>>3)&0x7);
 	return len + taint_copy_mem16_to_reg16(&dest[len], mrm, offset);
 }
 
@@ -448,7 +486,7 @@ int taint_copy_pop_mem16(char *dest, char *mrm, long offset)
  */
 
 /* INSERTPS XMM <- XMM (with clear) */
-int taint_clear_reg32(char *dest, int reg)
+int taint_erase_reg32(char *dest, int reg)
 {
 	memcpy(dest, insertps, 4);
 	dest[4] = 0xC0 | ( taint_reg(reg)<<3 ) | taint_reg(reg); 
@@ -458,7 +496,7 @@ int taint_clear_reg32(char *dest, int reg)
 	return 6;
 }
 
-int taint_clear_reg16(char *dest, int reg)
+int taint_erase_reg16(char *dest, int reg)
 {
 	/* pxor   %xmm5,%xmm5 ; pblendw $0x1,%reg,%xmm5 */
 	memcpy(dest, "\x66\x0f\xef\xed\x66\x0f\x3a\x0e\xc5", 9);
@@ -467,7 +505,7 @@ int taint_clear_reg16(char *dest, int reg)
 	return 10;
 }
 
-int taint_clear_hireg16(char *dest, int reg)
+int taint_erase_hireg16(char *dest, int reg)
 {
 	/* pxor   %xmm5,%xmm5 ; pblendw $0x1,%reg,%xmm5 */
 	memcpy(dest, "\x66\x0f\xef\xed\x66\x0f\x3a\x0e\xc5", 9);
@@ -477,10 +515,10 @@ int taint_clear_hireg16(char *dest, int reg)
 }
 
 /* MOVL MEM32 <- 0 */
-int taint_clear_mem32(char *dest, char *mrm, long offset)
+int taint_erase_mem32(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) )
-		return taint_clear_reg32(dest, mrm[0]&0x7);
+		return taint_erase_reg32(dest, mrm[0]&0x7);
 
 	dest[0] = '\xC7'; /* movl addr, imm32 */
 	int len = 5+offset_mem(&dest[1], mrm, offset);
@@ -490,10 +528,10 @@ int taint_clear_mem32(char *dest, char *mrm, long offset)
 }
 
 /* MOVW MEM16 <- 0 */
-int taint_clear_mem16(char *dest, char *mrm, long offset)
+int taint_erase_mem16(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) )
-		return taint_clear_reg16(dest, mrm[0]&0x7);
+		return taint_erase_reg16(dest, mrm[0]&0x7);
 
 	dest[0] = '\x66';
 	dest[1] = '\xC7'; /* movw addr, imm32 */
@@ -511,7 +549,7 @@ int taint_clear_mem16(char *dest, char *mrm, long offset)
 /* INSERTPS XMM <- XMM (with clearing)
  * POR XMM <- XMM
  */
-int taint_combine_reg32_to_reg32(char *dest, int from_reg, int to_reg)
+int taint_or_reg32_to_reg32(char *dest, int from_reg, int to_reg)
 {
 	int len = scratch_load_reg32(dest, from_reg, to_reg);
 	memcpy(&dest[len], por, 3);
@@ -519,14 +557,22 @@ int taint_combine_reg32_to_reg32(char *dest, int from_reg, int to_reg)
 	return len+4;
 }
 
+int taint_or_reg16_to_reg16(char *dest, int from_reg, int to_reg)
+{
+	int len = scratch_load_reg32(dest, from_reg, to_reg);
+	memcpy(&dest[len], por, 3);
+	dest[len+3] = 0xC0 | (scratch_reg()<<3) | taint_reg(to_reg);
+	return len+4+scratch_blend_reg16(&dest[len+4], to_reg);
+}
+
 /* INSERTPS XMM <- MEM
  * POR XMM <- XMM
  * PEXTRD MEM <- XMM
  */
-int taint_combine_reg32_to_mem32(char *dest, char *mrm, long offset)
+int taint_or_reg32_to_mem32(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) )
-		return taint_combine_reg32_to_reg32(dest, (mrm[0]>>3)&0x7, mrm[0]&0x7);
+		return taint_or_reg32_to_reg32(dest, (mrm[0]>>3)&0x7, mrm[0]&0x7);
 
 	int len = scratch_load_mem32(dest, mrm, offset);
 	memcpy(&dest[len], por, 3);
@@ -535,13 +581,22 @@ int taint_combine_reg32_to_mem32(char *dest, char *mrm, long offset)
 	return len;
 }
 
+int taint_xor_reg32_to_mem32(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) && ((mrm[0]>>3)&0x7) == (mrm[0]&0x7) )
+		return taint_erase_reg32(dest, mrm[0]&0x7);
+	else
+		return taint_or_reg32_to_mem32(dest, mrm, offset);
+}
+
+
 /* INSERTPS XMM <- MEM (with clearing)
  * POR XMM <- XMM
  */
-int taint_combine_mem32_to_reg32(char *dest, char *mrm, long offset)
+int taint_or_mem32_to_reg32(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) )
-		return taint_combine_reg32_to_reg32(dest, mrm[0]&0x7, (mrm[0]>>3)&0x7);
+		return taint_or_reg32_to_reg32(dest, mrm[0]&0x7, (mrm[0]>>3)&0x7);
 
 	int len = scratch_load_mem32(dest, mrm, offset);
 	memcpy(&dest[len], por, 3);
@@ -549,7 +604,15 @@ int taint_combine_mem32_to_reg32(char *dest, char *mrm, long offset)
 	return len+4;
 }
 
-int taint_clear_push32(char *dest, long offset)
+int taint_xor_mem32_to_reg32(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) && ((mrm[0]>>3)&0x7) == (mrm[0]&0x7) )
+		return taint_erase_reg32(dest, mrm[0]&0x7);
+	else
+		return taint_or_mem32_to_reg32(dest, mrm, offset);
+}
+
+int taint_erase_push32(char *dest, long offset)
 {
 	memcpy(dest, "\xc7\x84\x24", 3);
 	imm_to(&dest[3], offset-sizeof(long));
@@ -557,7 +620,7 @@ int taint_clear_push32(char *dest, long offset)
 	return 11;
 }
 
-int taint_clear_push16(char *dest, long offset)
+int taint_erase_push16(char *dest, long offset)
 {
 	memcpy(dest, "\x66\xc7\x84\x24", 4);
 	imm_to(&dest[4], offset-sizeof(short));
@@ -798,4 +861,67 @@ int taint_copy_mem8_to_reg16(char *dest, char *mrm, long offset)
 	return len+6;
 }
 
+int taint_copy_mem8_to_reg32(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_copy_reg8_to_reg32(dest, mrm[0]&0x7, (mrm[0]>>3)&0x7);
+
+	memcpy(dest, pxor_5, 4);
+	memcpy(&dest[4], pinsrb, 4);
+	int len = 9+offset_mem(&dest[8], mrm, offset);
+	int reg = ( dest[8] & 0x38 ) >> 3;
+	dest[8] = ( dest[8] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = taint_index(reg)<<2;
+	memcpy(&dest[len], "\x66\x0f\x3a\x0e\xc5", 5); /* pblendw $indexbit,%xmm5,%reg */
+	dest[len+4] |= taint_reg(reg)<<3;
+	dest[len+5] = 3<<(taint_index(reg)<<1);
+	return len+6;
+}
+
+
+int taint_copy_al_to_addr8(char *dest, long addr, long offset)
+{
+	memcpy(dest,"\x66\x0f\x3a\x14\x35", 5); /* pextrb $0x0, %xmm6, addr+offset   */
+	imm_to(&dest[5], addr+offset);
+	dest[9] = '\x00';
+	return 10;
+}
+
+int taint_copy_addr8_to_al(char *dest, long addr, long offset)
+{
+	memcpy(dest,"\x66\x0f\x3a\x20\x35", 5); /* pinsrb $0x0, addr+offset, %xmm6 */
+	imm_to(&dest[5], addr+offset);
+	dest[9] = '\x00';
+	return 10;
+}
+
+int taint_copy_al_to_str8(char *dest, long offset)
+{
+	memcpy(dest, "\x66\x0f\x3a\x14\xb7", 5); /* pextrb $0x0,%xmm6, offset(%edi)  */
+	imm_to(&dest[5], offset);
+	dest[9] = '\x00';
+	return 10;
+}
+
+int taint_copy_str8_to_al(char *dest, long offset)
+{
+	memcpy(dest, "\x66\x0f\x3a\x20\xb6", 5); /* pinsrb $0x0,offset(%esi),%xmm6 */
+	imm_to(&dest[5], offset);
+	dest[9] = '\x00';
+	return 10;
+}
+
+int taint_copy_str8_to_str8(char *dest, long offset)
+{
+	/*
+	 * pinsrb $0x0, offset(%esi), %xmm5
+	 * pextrb $0x0, %xmm5, offset(%edi)
+	 */
+	memcpy(&dest[0], "\x66\x0f\x3a\x20\xae", 5);
+	imm_to(&dest[5], offset);
+	memcpy(&dest[9], "\x00\x66\x0f\x3a\x14\xaf", 6);
+	imm_to(&dest[15], offset);
+	dest[19] = '\x00';
+	return 20;
+}
 
