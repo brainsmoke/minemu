@@ -11,9 +11,11 @@ int taint_copy_reg8_to_reg8(char *dest, int from_reg, int to_reg);
 
 int taint_copy_mem32_to_reg32(char *dest, char *mrm, long offset);
 int taint_copy_mem16_to_reg16(char *dest, char *mrm, long offset);
+int taint_copy_mem8_to_reg8(char *dest, char *mrm, long offset);
 
 int taint_copy_reg32_to_mem32(char *dest, char *mrm, long offset);
 int taint_copy_reg16_to_mem16(char *dest, char *mrm, long offset);
+int taint_copy_reg8_to_mem8(char *dest, char *mrm, long offset);
 
 int taint_copy_push_reg32(char *dest, int reg, long offset);
 int taint_copy_push_reg16(char *dest, int reg, long offset);

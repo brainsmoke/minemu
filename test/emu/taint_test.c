@@ -274,6 +274,16 @@ void ref_copy_mem16_to_reg16(char *mrm, long off)
 	taint_regs[reg] = (taint_regs[reg]&0xFFFF0000) | (*(long *)(addr+off)&0xFFFF);
 }
 
+void ref_copy_mem8_to_reg8(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_copy_reg8_to_reg8(mrm[0]&0x7, reg); return; }
+	char *addr = do_lea(mrm);
+	char *t = get_byte_reg(reg);
+
+	*t = *(char *)(addr+off);
+}
+
 void ref_copy_reg32_to_mem32(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
@@ -290,6 +300,16 @@ void ref_copy_reg16_to_mem16(char *mrm, long off)
 	char *addr = do_lea(mrm);
 
 	*(long *)(addr+off) = (*(long *)(addr+off)&0xFFFF0000) | (taint_regs[reg]&0xFFFF);
+}
+
+void ref_copy_reg8_to_mem8(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_copy_reg8_to_reg8(reg, mrm[0]&0x7); return; }
+	char *addr = do_lea(mrm);
+	char *f = get_byte_reg(reg);
+
+	*(char *)(addr+off) = *f;
 }
 
 void ref_copy_push_reg32(int reg, long off)
@@ -451,7 +471,8 @@ void ref_copy_reg16_to_reg32(int from_reg, int to_reg)
 
 void ref_copy_reg8_to_reg16(int from_reg, int to_reg)
 {
-	taint_regs[to_reg] = taint_regs[from_reg]&0xFFFF00FF;
+	char *f=get_byte_reg(from_reg);
+	taint_regs[to_reg] = (taint_regs[to_reg]&0xFFFF0000) | (unsigned char)(*f);
 }
 
 void ref_copy_mem16_to_reg32(char *mrm, long off)
@@ -466,7 +487,7 @@ void ref_copy_mem16_to_reg32(char *mrm, long off)
 void ref_copy_mem8_to_reg16(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
-	if (!is_memop(mrm)) { ref_copy_reg16_to_reg32(mrm[0]&0x7, reg); return; }
+	if (!is_memop(mrm)) { ref_copy_reg8_to_reg16(mrm[0]&0x7, reg); return; }
 	char *addr = do_lea(mrm);
 
 	taint_regs[reg] = (taint_regs[reg]&0xFFFF0000) | *(unsigned char*)(addr+off);
@@ -594,7 +615,6 @@ void test_reg2(int (*taint_op)(char *, int, int), void (*ref_op)(int, int))
 			codeexec((char *)opcode, oplen, (long *)regs_test);
 			save_fx(fx_test);
 			diff();
-printf("%d %d\n", i, j);
 		}
 }
 
@@ -613,9 +633,11 @@ int main(int argc, char **argv)
 
 	test_mem(taint_copy_mem32_to_reg32, ref_copy_mem32_to_reg32);
 	test_mem(taint_copy_mem16_to_reg16, ref_copy_mem16_to_reg16);
+	test_mem(taint_copy_mem8_to_reg8, ref_copy_mem8_to_reg8);
 
 	test_mem(taint_copy_reg32_to_mem32, ref_copy_reg32_to_mem32);
 	test_mem(taint_copy_reg16_to_mem16, ref_copy_reg16_to_mem16);
+	test_mem(taint_copy_reg8_to_mem8, ref_copy_reg8_to_mem8);
 
 	test_stackop(taint_copy_push_reg32, ref_copy_push_reg32);
 	test_stackop(taint_copy_push_reg16, ref_copy_push_reg16);
@@ -666,10 +688,10 @@ int main(int argc, char **argv)
 	test_mem(taint_swap_reg16_mem16, ref_swap_reg16_mem16);
 
 	test_reg2(taint_copy_reg16_to_reg32, ref_copy_reg16_to_reg32);
-//	test_reg2(taint_copy_reg8_to_reg16, ref_copy_reg8_to_reg16);
+	test_reg2(taint_copy_reg8_to_reg16, ref_copy_reg8_to_reg16);
 
 	test_mem(taint_copy_mem16_to_reg32, ref_copy_mem16_to_reg32);
-//	test_mem(taint_copy_mem8_to_reg16, ref_copy_mem8_to_reg16);
+	test_mem(taint_copy_mem8_to_reg16, ref_copy_mem8_to_reg16);
 
 	exit(err);
 }

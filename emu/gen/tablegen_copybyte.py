@@ -36,9 +36,9 @@ p_ops = [ ('punpcklbw', punpcklbw), ('punpckhbw', punpckhbw) ]
 s_ops = [ ('pslldq', pslldq), ('psrldq', psrldq) ]
 smul = { 'pslldq': 1, 'psrldq':-1 }
 
-print """static const struct { char pre_shift, post_shift, upper_half, blend_mask; } bytecopy_table[8][8] =
+print """static const struct { char pre_shift, post_shift, upper_half; } bytecopy_table[8][8] =
 {
-	/* src\\dst""" + ''.join("       "+regs[m[i]]+"        " for i in range(8)) +  "*/"
+/* src\\dst""" + ''.join("     "+regs[m[i]]+"     " for i in range(8)) +  "*/"
 
 for i in range(len(m)):
 	l = []
@@ -68,8 +68,8 @@ for i in range(len(m)):
 										solution = [ shiftname1, x, packname, shiftname2, y, xmm5, b ]
 
 		s1, s1i8, p, s2, s2i8, _, bi8 = solution
-		l += [ "{%3d,%3d,%2d,%2d}" % (s1i8*smul[s1], s2i8*smul[s2], p=='punpckhbw', bi8) ]
-	print '\t/* %s */ { ' % regs[m[i]] + ', '.join(l) + ' },'
+		l += [ "{%3d,%3d,%1d}" % (s1i8*smul[s1], s2i8*smul[s2], p=='punpckhbw') ]
+	print '/* %s */  {' % regs[m[i]] + ','.join(l) + '},'
 #		if (bi8):
 #			if (s1i8):
 #				print s1, s1i8,
