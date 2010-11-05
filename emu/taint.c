@@ -90,14 +90,18 @@ int offset_mem(char *dst_mrm, char *src_mrm, long offset)
 	return imm_index+sizeof(long);
 }
 
-static const char *insertps =
-	"\x66\x0f\x3a\x21";    /* insertps  */
-
-static const char *pextrd =
-	"\x66\x0f\x3a\x16";    /* pextrd    */
-
-static const char *por =
-	"\x66\x0f\xeb";        /* por       */
+static const char *pslldq_5         = "\x66\x0f\x73\xfd\x00",
+                  *psrldq_5         = "\x66\x0f\x73\xdd\x00",
+                  *blendw_5_to_6    = "\x66\x0f\x3a\x0e\xf5\x00",
+                  *punpcklbw_6_to_5 = "\x66\x0f\x60\xee",
+                  *punpckhbw_6_to_5 = "\x66\x0f\x68\xee",
+                  *movapd_6_to_5    = "\x66\x0f\x28\xee",
+                  *pinsrb           = "\x66\x0f\x3a\x20",
+                  *pextrb           = "\x66\x0f\x3a\x14",
+                  *pxor_5           = "\x66\x0f\xef\xed",
+                  *insertps         = "\x66\x0f\x3a\x21",    /* insertps  */
+                  *pextrd           = "\x66\x0f\x3a\x16",    /* pextrd    */
+                  *por              = "\x66\x0f\xeb";        /* por       */
 
 /* in the same column as REG */
 static int scratch_load_mem32(char *dest, char *mrm, long offset)
@@ -107,6 +111,17 @@ static int scratch_load_mem32(char *dest, char *mrm, long offset)
 	int reg = ( dest[4] & 0x38 ) >> 3;
 	dest[4] = ( dest[4] &~0x38 ) | ( scratch_reg()<<3 ); 
 	dest[len-1] = (taint_index(reg)<<4) | ( (1<<taint_index(reg)) ^ 0xf );
+	return len;
+}
+
+/* in the same column as REG */
+int scratch_load_mem16(char *dest, char *mrm, long offset)
+{
+	memcpy(dest, "\x66\x0f\xc4", 3); /* pinsrw */
+	int len = 4+offset_mem(&dest[3], mrm, offset);
+	int reg = ( dest[3] & 0x38 ) >> 3;
+	dest[3] = ( dest[3] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = taint_index(reg)<<1;
 	return len;
 }
 
@@ -581,12 +596,32 @@ int taint_or_reg32_to_mem32(char *dest, char *mrm, long offset)
 	return len;
 }
 
+int taint_or_reg16_to_mem16(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_or_reg16_to_reg16(dest, (mrm[0]>>3)&0x7, mrm[0]&0x7);
+
+	int len = scratch_load_mem32(dest, mrm, offset);
+	memcpy(&dest[len], por, 3);
+	dest[len+3] = 0xC0 | (scratch_reg()<<3) | taint_reg((mrm[0]&0x38)>>3);
+	len += 4 + scratch_store_mem16(&dest[len+4], mrm, offset);
+	return len;
+}
+
 int taint_xor_reg32_to_mem32(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) && ((mrm[0]>>3)&0x7) == (mrm[0]&0x7) )
 		return taint_erase_reg32(dest, mrm[0]&0x7);
 	else
 		return taint_or_reg32_to_mem32(dest, mrm, offset);
+}
+
+int taint_xor_reg16_to_mem16(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) && ((mrm[0]>>3)&0x7) == (mrm[0]&0x7) )
+		return taint_erase_reg16(dest, mrm[0]&0x7);
+	else
+		return taint_or_reg16_to_mem16(dest, mrm, offset);
 }
 
 
@@ -604,12 +639,32 @@ int taint_or_mem32_to_reg32(char *dest, char *mrm, long offset)
 	return len+4;
 }
 
+int taint_or_mem16_to_reg16(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_or_reg16_to_reg16(dest, mrm[0]&0x7, (mrm[0]>>3)&0x7);
+
+	memcpy(dest, pxor_5, 4);
+	int len = 4+scratch_load_mem16(&dest[4], mrm, offset);
+	memcpy(&dest[len], por, 3);
+	dest[len+3] = 0xC0 | (taint_reg((mrm[0]&0x38)>>3)<<3) | scratch_reg();
+	return len+4;
+}
+
 int taint_xor_mem32_to_reg32(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) && ((mrm[0]>>3)&0x7) == (mrm[0]&0x7) )
 		return taint_erase_reg32(dest, mrm[0]&0x7);
 	else
 		return taint_or_mem32_to_reg32(dest, mrm, offset);
+}
+
+int taint_xor_mem16_to_reg16(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) && ((mrm[0]>>3)&0x7) == (mrm[0]&0x7) )
+		return taint_erase_reg16(dest, mrm[0]&0x7);
+	else
+		return taint_or_mem16_to_reg16(dest, mrm, offset);
 }
 
 int taint_erase_push32(char *dest, long offset)
@@ -747,16 +802,6 @@ static const struct { char pre_shift, post_shift, upper_half; } bytecopy_table[8
 /* DH */  {{ -8, -2,0},{ -4, -6,0},{  0,  6,1},{  4,  2,1},{ -8, -1,0},{ -4, -5,0},{  0,  0,0},{  4,  3,1}},
 /* BH */  {{-12, -2,0},{ -8, -6,0},{  5, -3,1},{  0,  2,1},{-12, -1,0},{ -8, -5,0},{  5, -2,1},{  0,  0,0}},
 };
-
-static const char *pslldq_5         = "\x66\x0f\x73\xfd\x00",
-                  *psrldq_5         = "\x66\x0f\x73\xdd\x00",
-                  *blendw_5_to_6    = "\x66\x0f\x3a\x0e\xf5\x00",
-                  *punpcklbw_6_to_5 = "\x66\x0f\x60\xee",
-                  *punpckhbw_6_to_5 = "\x66\x0f\x68\xee",
-                  *movapd_6_to_5    = "\x66\x0f\x28\xee",
-                  *pinsrb           = "\x66\x0f\x3a\x20",
-                  *pextrb           = "\x66\x0f\x3a\x14",
-                  *pxor_5           = "\x66\x0f\xef\xed";
 
 static int reg8_index[] = { 0, 4, 8, 12, 1, 5, 9, 13 };
 

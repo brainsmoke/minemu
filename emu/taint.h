@@ -65,10 +65,16 @@ int taint_or_reg32_to_reg32(char *dest, int from_reg, int to_reg);
 int taint_or_reg16_to_reg16(char *dest, int from_reg, int to_reg);
 
 int taint_or_reg32_to_mem32(char *dest, char *mrm, long offset);
+int taint_or_reg16_to_mem16(char *dest, char *mrm, long offset);
+
 int taint_or_mem32_to_reg32(char *dest, char *mrm, long offset);
+int taint_or_mem16_to_reg16(char *dest, char *mrm, long offset);
 
 int taint_xor_reg32_to_mem32(char *dest, char *mrm, long offset);
+int taint_xor_reg16_to_mem16(char *dest, char *mrm, long offset);
+
 int taint_xor_mem32_to_reg32(char *dest, char *mrm, long offset);
+int taint_xor_mem16_to_reg16(char *dest, char *mrm, long offset);
 
 /* TAINT ERASE */
 

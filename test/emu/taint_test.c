@@ -448,11 +448,27 @@ void ref_or_mem32_to_reg32(char *mrm, long off)
 	taint_regs[reg] |= *(long *)(addr+off);
 }
 
+void ref_or_mem16_to_reg16(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_or_reg16_to_reg16(mrm[0]&0x7, reg); return; }
+	char *addr = do_lea(mrm);
+
+	taint_regs[reg] |= *(unsigned short *)(addr+off);
+}
+
 void ref_xor_mem32_to_reg32(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
 	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg32(reg); return; }
 	ref_or_mem32_to_reg32(mrm, off);
+}
+
+void ref_xor_mem16_to_reg16(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg16(reg); return; }
+	ref_or_mem16_to_reg16(mrm, off);
 }
 
 void ref_or_reg32_to_mem32(char *mrm, long off)
@@ -464,11 +480,27 @@ void ref_or_reg32_to_mem32(char *mrm, long off)
 	*(long *)(addr+off) |= taint_regs[reg];
 }
 
+void ref_or_reg16_to_mem16(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_or_reg16_to_reg16(reg, mrm[0]&0x7); return; }
+	char *addr = do_lea(mrm);
+
+	*(short *)(addr+off) |= taint_regs[reg];
+}
+
 void ref_xor_reg32_to_mem32(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
 	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg32(reg); return; }
 	ref_or_reg32_to_mem32(mrm, off);
+}
+
+void ref_xor_reg16_to_mem16(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg16(reg); return; }
+	ref_or_reg16_to_mem16(mrm, off);
 }
 
 
@@ -742,10 +774,18 @@ int main(int argc, char **argv)
 
 	test_reg2(taint_or_reg32_to_reg32, ref_or_reg32_to_reg32);
 	test_reg2(taint_or_reg16_to_reg16, ref_or_reg16_to_reg16);
+
 	test_mem(taint_or_reg32_to_mem32, ref_or_reg32_to_mem32);
+	test_mem(taint_or_reg16_to_mem16, ref_or_reg16_to_mem16);
+
 	test_mem(taint_or_mem32_to_reg32, ref_or_mem32_to_reg32);
+	test_mem(taint_or_mem16_to_reg16, ref_or_mem16_to_reg16);
+
 	test_mem(taint_xor_reg32_to_mem32, ref_xor_reg32_to_mem32);
+	test_mem(taint_xor_reg16_to_mem16, ref_xor_reg16_to_mem16);
+
 	test_mem(taint_xor_mem32_to_reg32, ref_xor_mem32_to_reg32);
+	test_mem(taint_xor_mem16_to_reg16, ref_xor_mem16_to_reg16);
 
 	test_reg2(taint_swap_reg32_reg32, ref_swap_reg32_reg32);
 	test_reg2(taint_swap_reg16_reg16, ref_swap_reg16_reg16);
