@@ -39,6 +39,10 @@
 .global scratch_xmm7
 .lcomm scratch_xmm7, 16
 
+.global taint_tmp
+.lcomm taint_tmp, 4
+
+
 .lcomm jmp_list_size, 4
 .global jmp_list_size
 

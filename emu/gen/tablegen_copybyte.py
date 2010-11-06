@@ -62,7 +62,7 @@ for i in range(len(m)):
 								xmm6 = blendw(xmm6, xmm5, b)
 
 								if xmm6 == ref:
-									score = (x==0) + (y==0) + (b==0)
+									score = (x==0)*2 + (x<0)*1 + (y==0)*2 + (b==0)*100
 									if score > best:
 										best = score
 										solution = [ shiftname1, x, packname, shiftname2, y, xmm5, b ]

@@ -10,6 +10,8 @@
 #include "taint.h"
 #include "opcodes.h"
 
+long taint_tmp[1];
+
 long imm_at(char *addr, long size)
 {
 	long imm=0;
@@ -230,6 +232,11 @@ void ref_erase_reg16(int reg)
 	taint_regs[reg] &= 0xFFFF0000;
 }
 
+void ref_erase_reg8(int reg)
+{
+	*get_byte_reg(reg) = 0;
+}
+
 void ref_erase_hireg16(int reg)
 {
 	taint_regs[reg] &= 0xFFFF;
@@ -249,6 +256,14 @@ void ref_erase_mem16(char *mrm, long off)
 	char *addr = do_lea(mrm);
 
 	*(long *)(addr+off) &= 0xFFFF0000;
+}
+
+void ref_erase_mem8(char *mrm, long off)
+{
+	if (!is_memop(mrm)) { ref_erase_reg8(mrm[0]&0x7); return; }
+	char *addr = do_lea(mrm);
+
+	*(char *)(addr+off) = 0;
 }
 
 void ref_erase_push32(long off)
@@ -518,6 +533,13 @@ void ref_swap_reg16_reg16(int reg1, int reg2)
 	taint_regs[reg2] = (taint_regs[reg2]&0xFFFF0000) | tmp;
 }
 
+void ref_swap_reg8_reg8(int reg1, int reg2)
+{
+	char *r1 = get_byte_reg(reg1);
+	char *r2 = get_byte_reg(reg2);
+	char tmp = *r1; *r1=*r2; *r2=tmp;
+}
+
 void ref_swap_reg32_mem32(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
@@ -538,6 +560,19 @@ void ref_swap_reg16_mem16(char *mrm, long off)
 	unsigned short tmp = *(unsigned short*)(addr+off);
 	*(unsigned short*)(addr+off) = taint_regs[reg]&0xFFFF;
 	taint_regs[reg] = (taint_regs[reg]&0xFFFF0000) | tmp;
+}
+
+void ref_swap_reg8_mem8(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_swap_reg8_reg8(reg, mrm[0]&0x7); return; }
+	char *addr = do_lea(mrm);
+
+	char *r = get_byte_reg(reg);
+
+	char tmp = *(char*)(addr+off);
+	*(char*)(addr+off) = *r;
+	*r = tmp;
 }
 
 void ref_copy_reg16_to_reg32(int from_reg, int to_reg)
@@ -763,9 +798,11 @@ int main(int argc, char **argv)
 
 	test_reg(taint_erase_reg32, ref_erase_reg32);
 	test_reg(taint_erase_reg16, ref_erase_reg16);
+	test_reg(taint_erase_reg8, ref_erase_reg8);
 
 	test_mem(taint_erase_mem32, ref_erase_mem32);
 	test_mem(taint_erase_mem16, ref_erase_mem16);
+	test_mem(taint_erase_mem8, ref_erase_mem8);
 
 	test_reg(taint_erase_hireg16, ref_erase_hireg16);
 
@@ -789,9 +826,11 @@ int main(int argc, char **argv)
 
 	test_reg2(taint_swap_reg32_reg32, ref_swap_reg32_reg32);
 	test_reg2(taint_swap_reg16_reg16, ref_swap_reg16_reg16);
+	test_reg2(taint_swap_reg8_reg8, ref_swap_reg8_reg8);
 
 	test_mem(taint_swap_reg32_mem32, ref_swap_reg32_mem32);
 	test_mem(taint_swap_reg16_mem16, ref_swap_reg16_mem16);
+	test_mem(taint_swap_reg8_mem8, ref_swap_reg8_mem8);
 
 	test_reg2(taint_copy_reg16_to_reg32, ref_copy_reg16_to_reg32);
 	test_reg2(taint_copy_reg8_to_reg32, ref_copy_reg8_to_reg32);

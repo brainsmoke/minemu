@@ -79,10 +79,15 @@ int taint_xor_mem16_to_reg16(char *dest, char *mrm, long offset);
 /* TAINT ERASE */
 
 int taint_erase_mem32(char *dest, char *mrm, long offset);
-int taint_erase_reg32(char *dest, int reg);
 int taint_erase_mem16(char *dest, char *mrm, long offset);
+int taint_erase_mem8(char *dest, char *mrm, long offset);
+
+int taint_erase_reg32(char *dest, int reg);
 int taint_erase_reg16(char *dest, int reg);
+int taint_erase_reg8(char *dest, int reg);
+
 int taint_erase_hireg16(char *dest, int reg);
+
 int taint_erase_push32(char *dest, long offset);
 int taint_erase_push16(char *dest, long offset);
 
@@ -90,9 +95,11 @@ int taint_erase_push16(char *dest, long offset);
 
 int taint_swap_reg32_reg32(char *dest, int reg1, int reg2);
 int taint_swap_reg16_reg16(char *dest, int reg1, int reg2);
+int taint_swap_reg8_reg8(char *dest, int reg1, int reg2);
 
 int taint_swap_reg32_mem32(char *dest, char *mrm, long offset);
 int taint_swap_reg16_mem16(char *dest, char *mrm, long offset);
+int taint_swap_reg8_mem8(char *dest, char *mrm, long offset);
 
 
 #endif /* TAINT_H */

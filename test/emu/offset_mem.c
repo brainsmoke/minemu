@@ -10,6 +10,8 @@
 #include "opcodes.h"
 #include "taint.h"
 
+long taint_tmp[1];
+
 long imm_at(char *addr, long size)
 {
 	long imm=0;

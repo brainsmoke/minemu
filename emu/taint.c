@@ -7,6 +7,8 @@
 //#include "opcodes.h"
 #include "jit_code.h"
 
+extern unsigned long taint_tmp[1];
+
 /*       .____.____.____.____.
  * xmm5  |    scratch reg    |
  *       |____.____.____.____|
@@ -101,7 +103,8 @@ static const char *pslldq_5         = "\x66\x0f\x73\xfd\x00",
                   *pxor_5           = "\x66\x0f\xef\xed",
                   *insertps         = "\x66\x0f\x3a\x21",    /* insertps  */
                   *pextrd           = "\x66\x0f\x3a\x16",    /* pextrd    */
-                  *por              = "\x66\x0f\xeb";        /* por       */
+                  *por              = "\x66\x0f\xeb",        /* por       */
+                  *pmovzxbw_6_to_5  = "\x66\x0f\x38\x30\xee";
 
 /* in the same column as REG */
 static int scratch_load_mem32(char *dest, char *mrm, long offset)
@@ -815,15 +818,28 @@ int shift_xmm5(char *dest, int c)
 	return 5;
 }
 
+int shift_xmm6_to_xmm5(char *dest, int c)
+{
+	if ( c < 0 )
+	{
+		/* palignr, save one op (yay!) */
+		memcpy(dest, "\x66\x0f\x3a\x0f\xee", 6);
+		dest[5] = -c;
+		return 6;
+	}
+	else
+	{
+		memcpy(dest, movapd_6_to_5, 4);
+		return 4+shift_xmm5(&dest[4], c);
+	}
+}
+
 int taint_copy_reg8_to_reg8(char *dest, int from_reg, int to_reg)
 {
 	if ( from_reg == to_reg )
 		return 0;
 
-	int len = 4;
-	memcpy(dest, movapd_6_to_5, 4);
-	
-	len += shift_xmm5(&dest[len], bytecopy_table[from_reg][to_reg].pre_shift);
+	int len = shift_xmm6_to_xmm5(dest, bytecopy_table[from_reg][to_reg].pre_shift);
 	memcpy(&dest[len], bytecopy_table[from_reg][to_reg].upper_half ? punpckhbw_6_to_5 :
 	                                                                 punpcklbw_6_to_5, 4);
 	len += 4;
@@ -847,6 +863,16 @@ int taint_copy_reg8_to_mem8(char *dest, char *mrm, long offset)
 	return len;
 }
 
+int scratch_store_mem8(char *dest, char *mrm, long offset)
+{
+	memcpy(dest, pextrb, 4);
+	int len = 5+offset_mem(&dest[4], mrm, offset);
+	int reg = ( dest[4] & 0x38 ) >> 3;
+	dest[4] = ( dest[4] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = reg8_index[reg];
+	return len;
+}
+
 int taint_copy_mem8_to_reg8(char *dest, char *mrm, long offset)
 {
 	if ( !is_memop(mrm) )
@@ -858,6 +884,72 @@ int taint_copy_mem8_to_reg8(char *dest, char *mrm, long offset)
 	dest[4] = ( dest[4] &~0x38 ) | ( taint_reg(0)<<3 ); 
 	dest[len-1] = reg8_index[reg];
 	return len;
+}
+
+static const struct { char shift, upper_half; } byteerase_table[8] =
+{
+	/*  AL         CL         DL         BL         AH         CH         DH         BH  */
+	{ -1, 0 }, { -5, 0 }, {  6, 1 }, {  2, 1 }, {  0, 0 }, { -4, 0 }, {  7, 1 }, {  3, 1 },
+};
+
+int taint_erase_reg8(char *dest, int reg)
+{
+	int len;
+	if (byteerase_table[reg].upper_half)
+	{
+		memcpy(dest, pxor_5, 4);
+		memcpy(&dest[4], punpckhbw_6_to_5, 4);
+		len = 8;
+	}
+	else
+		memcpy(dest, pmovzxbw_6_to_5, len=5);
+
+	len += shift_xmm5(&dest[len], byteerase_table[reg].shift);
+	memcpy(&dest[len], blendw_5_to_6, 6);
+	len += 6;
+	dest[len-1] = 1<<(reg8_index[reg]/2);
+	return len;
+}
+
+
+int taint_erase_mem8(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_erase_reg8(dest, mrm[0]&0x7);
+
+	dest[0] = '\xC6'; /* movb addr, imm32 */
+	int len = 2+offset_mem(&dest[1], mrm, offset);
+	dest[1] &=~ 0x38;
+	dest[len-1] = 0;
+	return len;
+}
+
+/* blegh */
+int taint_swap_reg8_reg8(char *dest, int reg1, int reg2)
+{
+	memcpy(dest, "\x66\x0f\x3a\x14\x35????\x00"
+	             "\x66\x0f\x3a\x14\x35????\x00"
+	             "\x66\x0f\x3a\x20\x35????\x00"
+	             "\x66\x0f\x3a\x20\x35????\x00", 40);
+
+	dest[ 9] = dest[29] = reg8_index[reg1];
+	dest[19] = dest[39] = reg8_index[reg2];
+
+	imm_to(&dest[ 5],   (long)taint_tmp);
+	imm_to(&dest[15], 1+(long)taint_tmp);
+	imm_to(&dest[25], 1+(long)taint_tmp);
+	imm_to(&dest[35],   (long)taint_tmp);
+	return 40;
+}
+
+int taint_swap_reg8_mem8(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_swap_reg8_reg8(dest, (mrm[0]>>3)&0x7, mrm[0]&0x7);
+
+	memcpy(dest, movapd_6_to_5, 4);
+	int len = 4+taint_copy_mem8_to_reg8(&dest[4], mrm, offset);
+	return len+scratch_store_mem8(&dest[len], mrm, offset);
 }
 
 static const char byte2word_copy_table[8][4] =
@@ -922,7 +1014,6 @@ int taint_copy_mem8_to_reg32(char *dest, char *mrm, long offset)
 	dest[len+5] = 3<<(taint_index(reg)<<1);
 	return len+6;
 }
-
 
 int taint_copy_al_to_addr8(char *dest, long addr, long offset)
 {
