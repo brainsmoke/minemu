@@ -560,6 +560,132 @@ int taint_erase_mem16(char *dest, char *mrm, long offset)
 	return len;
 }
 
+int taint_erase_eax(char *dest)
+{
+	return taint_erase_reg32(dest, 0);
+}
+
+int taint_erase_ax(char *dest)
+{
+	return taint_erase_reg16(dest, 0);
+}
+
+int taint_erase_al(char *dest)
+{
+	return taint_erase_reg8(dest, 0);
+}
+
+int taint_erase_eax_edx(char *dest)
+{
+	memcpy(dest, "\x66\x0f\x3a\x21\xf6\x05", 6);
+	return 6;
+}
+
+int taint_erase_ax_dx(char *dest)
+{
+	/* pxor   %xmm5,%xmm5 ; pblendw $0x11,%xmm5,%xmm6 */
+	memcpy(dest, "\x66\x0f\xef\xed\x66\x0f\x3a\x0e\xf5\x11", 10);
+	return 10;
+}
+
+int taint_copy_popa32(char *dest, long offset)
+{
+	/* movdqu offset + 0(%esp),%xmm5
+	 * movdqu offset +16(%esp),%xmm6
+	 * pshufd      $0x1b,%xmm5,%xmm5
+	 * pshufd      $0x1b,%xmm6,%xmm6
+	 * pblendw     $0xfc,%xmm5,%xmm7
+	 */
+	memcpy(dest, "\xf3\x0f\x6f\xac\x24...."
+	             "\xf3\x0f\x6f\xb4\x24...."
+	             "\x66\x0f\x70\xed\x1b"
+	             "\x66\x0f\x70\xf6\x1b"
+	             "\x66\x0f\x3a\x0e\xfd\xfc", 34);
+
+	imm_to(&dest[ 5], offset     );
+	imm_to(&dest[14], offset+0x10);
+
+	return 34;
+}
+
+int taint_copy_pusha32(char *dest, long offset)
+{
+	/* pshufd $0x1b,%xmm6,%xmm5
+	 * movdqu %xmm5,0x10000000(%esp)
+	 * pshufd $0x1b,%xmm7,%xmm5
+	 * movdqu %xmm5,0x10000016(%esp)
+	 */
+	memcpy(dest, "\x66\x0f\x70\xee\x1b"
+	             "\xf3\x0f\x7f\xac\x24...."
+	             "\x66\x0f\x70\xef\x1b"
+	             "\xf3\x0f\x7f\xac\x24....", 28);
+
+	imm_to(&dest[10], offset-0x10);
+	imm_to(&dest[24], offset-0x20);
+
+	return 28;
+}
+
+static const char shuffle3[16] = { 6,7,14,15,4,5,12,13,2,3,10,11,0,1,8,9 };
+
+int taint_copy_pusha16(char *dest, long offset)
+{
+	/* movdqu 0x10000000,%xmm5
+	 * pshufb %xmm5,%xmm6
+	 * pshufb %xmm5,%xmm7
+	 * movq   %xmm6,0x10000000(%esp)
+	 * movq   %xmm7,0x10000008(%esp)
+	 * pshufb %xmm5,%xmm6
+	 * pshufb %xmm5,%xmm7
+	 * pshufb %xmm5,%xmm6
+	 * pshufb %xmm5,%xmm7
+	 */
+	memcpy(dest, "\xf3\x0f\x6f\x2d...."
+	             "\x66\x0f\x38\x00\xf5"
+	             "\x66\x0f\x38\x00\xfd"
+	             "\x66\x0f\x38\x00\xf5"
+	             "\x66\x0f\x38\x00\xfd"
+	             "\x66\x0f\xd6\xb4\x24...."
+	             "\x66\x0f\xd6\xbc\x24...."
+	             "\x66\x0f\x38\x00\xf5"
+	             "\x66\x0f\x38\x00\xfd", 56);
+
+	imm_to(&dest[ 4], (long)shuffle3);
+	imm_to(&dest[33], offset-0x08);
+	imm_to(&dest[42], offset-0x10);
+
+	return 56;
+}
+
+int taint_copy_popa16(char *dest, long offset)
+{
+	/* movdqu 0x10000000,%xmm5
+	 * pshufb %xmm5,%xmm6
+	 * pshufb %xmm5,%xmm7
+	 * pshufb %xmm5,%xmm6
+	 * pshufb %xmm5,%xmm7
+	 * movlpd 0x10000000(%esp),%xmm6
+	 * movlpd 0x10000008(%esp),%xmm7
+	 * pshufb %xmm5,%xmm6
+	 * pshufb %xmm5,%xmm7
+	 */
+	memcpy(dest, "\xf3\x0f\x6f\x2d...."
+	             "\x66\x0f\x38\x00\xf5"
+	             "\x66\x0f\x38\x00\xfd"
+	             "\x66\x0f\x38\x00\xf5"
+	             "\x66\x0f\x38\x00\xfd"
+	             "\x66\x0f\x12\xb4\x24...."
+	             "\x66\x0f\x12\xbc\x24...."
+	             "\x66\x0f\x38\x00\xf5"
+	             "\x66\x0f\x38\x00\xfd", 56);
+
+	imm_to(&dest[ 4], (long)shuffle3);
+	imm_to(&dest[33], offset+0x08);
+	imm_to(&dest[42], offset);
+
+	return 56;
+}
+
 /* TAINT_COMBINE
  *
  */

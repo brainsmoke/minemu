@@ -618,6 +618,88 @@ void ref_copy_mem8_to_reg16(char *mrm, long off)
 	taint_regs[reg] = (taint_regs[reg]&0xFFFF0000) | *(unsigned char*)(addr+off);
 }
 
+void ref_erase_eax_edx(void)
+{
+	taint_regs[0] = taint_regs[2] = 0;
+}
+
+void ref_erase_ax_dx(void)
+{
+	taint_regs[0] &= 0xFFFF0000;
+	taint_regs[2] &= 0xFFFF0000;
+}
+
+void ref_erase_eax(void)
+{
+	taint_regs[0] = 0;
+}
+
+void ref_erase_ax(void)
+{
+	taint_regs[0] &= 0xFFFF0000;
+}
+
+void ref_erase_al(void)
+{
+	taint_regs[0] &= 0xFFFFFF00;
+}
+
+void ref_copy_popa32(long off)
+{
+	long tmp=regs_test[4];
+	ref_copy_pop_reg32(7, off); regs_test[4]+=4;
+	ref_copy_pop_reg32(6, off); regs_test[4]+=4;
+	ref_copy_pop_reg32(5, off); regs_test[4]+=4;
+	                            regs_test[4]+=4;
+	ref_copy_pop_reg32(3, off); regs_test[4]+=4;
+	ref_copy_pop_reg32(2, off); regs_test[4]+=4;
+	ref_copy_pop_reg32(1, off); regs_test[4]+=4;
+	ref_copy_pop_reg32(0, off); regs_test[4]+=4;
+	regs_test[4]=tmp;
+}
+
+void ref_copy_popa16(long off)
+{
+	long tmp=regs_test[4];
+	ref_copy_pop_reg16(7, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(6, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(5, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(4, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(3, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(2, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(1, off); regs_test[4]+=2;
+	ref_copy_pop_reg16(0, off); regs_test[4]+=2;
+	regs_test[4]=tmp;
+}
+
+void ref_copy_pusha32(long off)
+{
+	long tmp=regs_test[4];
+	ref_copy_push_reg32(0, off); regs_test[4]-=4;
+	ref_copy_push_reg32(1, off); regs_test[4]-=4;
+	ref_copy_push_reg32(2, off); regs_test[4]-=4;
+	ref_copy_push_reg32(3, off); regs_test[4]-=4;
+	ref_copy_push_reg32(4, off); regs_test[4]-=4;
+	ref_copy_push_reg32(5, off); regs_test[4]-=4;
+	ref_copy_push_reg32(6, off); regs_test[4]-=4;
+	ref_copy_push_reg32(7, off); regs_test[4]-=4;
+	regs_test[4]=tmp;
+}
+
+void ref_copy_pusha16(long off)
+{
+	long tmp=regs_test[4];
+	ref_copy_push_reg16(0, off); regs_test[4]-=2;
+	ref_copy_push_reg16(1, off); regs_test[4]-=2;
+	ref_copy_push_reg16(2, off); regs_test[4]-=2;
+	ref_copy_push_reg16(3, off); regs_test[4]-=2;
+	ref_copy_push_reg16(4, off); regs_test[4]-=2;
+	ref_copy_push_reg16(5, off); regs_test[4]-=2;
+	ref_copy_push_reg16(6, off); regs_test[4]-=2;
+	ref_copy_push_reg16(7, off); regs_test[4]-=2;
+	regs_test[4]=tmp;
+}
+
 void test_mem(int (*taint_op)(char *, char *, long), void (*ref_op)(char *, long))
 {
 	int i, j;
@@ -721,6 +803,35 @@ void test_impl(int (*taint_op)(char *, long), void (*ref_op)(long))
 	load_fx(fx_test);
 	oplen = taint_op(opcode, offset);
 	codeexec((char *)opcode, oplen, (long *)regs_test);
+	save_fx(fx_test);
+	diff();
+}
+
+void test_impl2(int (*taint_op)(char *), void (*ref_op)(void))
+{
+	setup();
+	ref_op();
+	backup();
+	load_fx(fx_test);
+	oplen = taint_op(opcode);
+	codeexec((char *)opcode, oplen, (long *)regs_test);
+	save_fx(fx_test);
+	diff();
+}
+
+void test_pushpop(int (*taint_op)(char *, long), void (*ref_op)(long), long sp)
+{
+	setup();
+	regs_test[4] = sp;
+	ref_op(offset);
+	backup();
+	regs_test[4] = sp;
+	load_fx(fx_test);
+	oplen = taint_op(opcode, offset);
+printhex(opcode, oplen);
+printf("%lx, %lx\n", regs_test[4], mem_test);
+	codeexec((char *)opcode, oplen, (long *)regs_test);
+printhex(opcode, oplen);
 	save_fx(fx_test);
 	diff();
 }
@@ -839,6 +950,18 @@ int main(int argc, char **argv)
 	test_mem(taint_copy_mem16_to_reg32, ref_copy_mem16_to_reg32);
 	test_mem(taint_copy_mem8_to_reg32, ref_copy_mem8_to_reg32);
 	test_mem(taint_copy_mem8_to_reg16, ref_copy_mem8_to_reg16);
+
+	test_impl2(taint_erase_eax_edx, ref_erase_eax_edx);
+	test_impl2(taint_erase_ax_dx, ref_erase_ax_dx);
+	test_impl2(taint_erase_eax, ref_erase_eax);
+	test_impl2(taint_erase_ax, ref_erase_ax);
+	test_impl2(taint_erase_al, ref_erase_al);
+
+	test_pushpop(taint_copy_popa32, ref_copy_popa32, (long)mem_test);
+	test_pushpop(taint_copy_popa16, ref_copy_popa16, (long)mem_test);
+
+	test_pushpop(taint_copy_pusha32, ref_copy_pusha32, 32+(long)mem_test);
+	test_pushpop(taint_copy_pusha16, ref_copy_pusha16, 32+(long)mem_test);
 
 	exit(err);
 }

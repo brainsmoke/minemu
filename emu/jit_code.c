@@ -81,7 +81,6 @@
 #define BSRM ( TSRM | TAINT_BYTE )
 #define BEA  ( TEA  | TAINT_BYTE )
 #define BER  ( TER  | TAINT_BYTE )
-#define BEP  ( TEP  | TAINT_BYTE )
 #define BEM  ( TEM  | TAINT_BYTE )
 #define BZMR ( TZMR | TAINT_BYTE )
 
@@ -118,7 +117,7 @@ const unsigned char jit_action[] =
 /* 7? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX,  C ,PRIV,PRIV,  C ,  C , XXX, XXX, XXX, XXX,
 /* 8? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC ,
 /* 9? */  BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM,
-/* A? */  BEP, BER, XXX,  C , XXX, XXX,  C ,  C , BEP, BEM,PRIV,  C , XXX, XXX, XXX,TOMR,
+/* A? */  TEP,  C , XXX,  C , XXX, XXX,  C ,  C , TEP,  C ,PRIV,  C , XXX, XXX, XXX,TOMR,
 /* B? */  XXX, XXX,  C ,  C ,  C ,  C ,BZMR,TZMR, XXX,  C ,  C ,  C ,  C ,  C ,BZMR,TZMR,
 /* C? */ BORM,TORM,  C ,TCRM,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
 /* D? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
