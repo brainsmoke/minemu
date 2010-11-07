@@ -1310,3 +1310,43 @@ int taint_leave16(char *dest, long offset)
 	return len+taint_copy_mem16_to_reg16(&dest[len], mrm, offset);
 }
 
+int taint_lea(char *dest, char *mrm)
+{
+	if ( !is_memop(mrm) )
+		return 0; /* bad op */
+
+	int dest_reg = (mrm[0]>>3)&7;
+
+	if ( (mrm[0]&~0x38) == 5 ) /* disp32 only */
+		return taint_erase_reg32(dest, dest_reg);
+
+	int sib = (mrm[0]&0x7) == 4 ? 1:0;
+	int base_reg = mrm[sib]&0x7;
+	int index_reg = sib ? (mrm[1]>>3)&7 : -1;
+
+	if ( (mrm[0]&~0x38) == 4 && (mrm[1]&7) == 5 )
+		base_reg = -1;
+
+	if (index_reg == 4)
+		index_reg = -1;
+
+	if ( (index_reg == -1) || (base_reg == dest_reg) )
+	{
+		int tmp = index_reg;
+		index_reg = base_reg;
+		base_reg = tmp;
+	}
+
+	if (index_reg == -1)
+		return taint_erase_reg32(dest, dest_reg);
+
+	int len = 0;
+	if (index_reg != dest_reg)
+		len += taint_copy_reg32_to_reg32(dest, index_reg, dest_reg);
+
+	if ( (base_reg != index_reg) && (base_reg != -1) )
+		len += taint_or_reg32_to_reg32(&dest[len], base_reg, dest_reg);
+
+	return len;
+}
+

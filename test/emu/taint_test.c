@@ -56,7 +56,7 @@ long regs_orig[] =
 	(long)mem_test+20,
 	(long)mem_test+24,
 	(long)mem_test+28,
-	0x09000246, /* flags */
+	0x00000246, /* flags */
 };
 
 long scratch_orig[] =
@@ -185,7 +185,9 @@ void diff(void)
 		e=err = EXIT_FAILURE;
 	}
 	if (e)
+{
 		printhex(opcode, oplen);
+exit(1);}
 }
 
 void ref_copy_reg32_to_reg32(int from_reg, int to_reg)
@@ -904,6 +906,111 @@ void test_reg2(int (*taint_op)(char *, int, int), void (*ref_op)(int, int))
 		}
 }
 
+
+static const long regs_lea[9] =
+{
+	0x00000001,
+	0x00000010,
+	0x00000100,
+	0x00001000,
+	0x00010000,
+	0x00100000,
+	0x01000000,
+	0x10000000,
+	0x00000246, /* flags */
+};
+
+static const long taint_regs_lea[8] =
+{
+	0x0000000f,
+	0x000000f0,
+	0x00000f00,
+	0x0000f000,
+	0x000f0000,
+	0x00f00000,
+	0x0f000000,
+	0xf0000000,
+};
+
+typedef void (*mrm_test_t)(char *, int);
+
+void test_lea(char *mrm, int mem_len)
+{
+	setup();
+	memcpy(regs_test, regs_lea, 36);
+	memcpy(taint_regs, taint_regs_lea, 32);
+	unsigned long ref = (unsigned long)do_lea(mrm);
+	int dest = (mrm[0]>>3)&7;
+	int i;
+	taint_regs[dest] = 0;
+	for (i=0; i<32; i+=4)
+		if (ref & (0xf<<i))
+			taint_regs[dest] |= (0xf<<i);
+
+	memcpy(regs_test, regs_lea, 36);
+	backup();
+	memcpy(regs_test, regs_lea, 36);
+	memcpy(taint_regs, taint_regs_lea, 32);
+	load_fx(fx_test);
+	oplen = taint_lea(opcode, mrm);
+	codeexec((char *)opcode, oplen, (long *)regs_test);
+	save_fx(fx_test);
+	diff();
+}
+
+void mrm_generator(mrm_test_t cb)
+{
+	unsigned char m[16];
+	int mrm, sib;
+
+	long disp32 = 0x00000000;
+	char disp8  = 0x00;
+
+	for (mrm=0; mrm<0x100; mrm++)
+	{
+		if ( (mrm & 0xC0) == 0xC0 ) /* RM is a register */
+			continue;
+
+		m[0] = mrm;
+
+		if ( (mrm & 0x7) == 0x04 )
+			for (sib=0; sib<0x100; sib++)
+			{
+				m[1] = sib;
+				if ( (mrm & 0xC0) == 0x40 )
+				{
+					m[2] = disp8;
+					cb((char*)m, 3);
+				}
+				else if ( ( (mrm & 0xC0) == 0x80 ) ||
+				          ( (sib & 0x07) == 0x05 ) )
+				{
+					imm_to((char*)&m[2], disp32);
+					cb((char*)m, 6);
+				}
+				else
+					cb((char*)m, 2);
+			}
+		else
+		{
+			if ( (mrm & 0xC0) == 0x40 )
+			{
+				m[1] = disp8;
+				cb((char*)m, 2);
+			}
+			else if ( ( (mrm & 0xC0) == 0x80 ) ||
+			          ( (mrm & 0xC7) == 0x05 ) )
+			{
+				imm_to((char *)&m[1], disp32);
+				cb((char*)m, 5);
+			}
+			else
+				cb((char*)m, 1);
+
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	debug_init(stdout);
@@ -1020,6 +1127,8 @@ int main(int argc, char **argv)
 
 	test_impl(taint_leave32, ref_leave32);
 	test_impl(taint_leave16, ref_leave16);
+
+	mrm_generator(test_lea);
 
 	exit(err);
 }
