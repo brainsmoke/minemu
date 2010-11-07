@@ -212,6 +212,14 @@ void ref_copy_reg8_to_reg8(int from_reg, int to_reg)
 	*t = *f;
 }
 
+void ref_or_reg8_to_reg8(int from_reg, int to_reg)
+{
+	char *f = get_byte_reg(from_reg),
+	     *t = get_byte_reg(to_reg);
+
+	*t |= *f;
+}
+
 void ref_or_reg32_to_reg32(int from_reg, int to_reg)
 {
 	taint_regs[to_reg] |= taint_regs[from_reg];
@@ -304,6 +312,16 @@ void ref_copy_mem8_to_reg8(char *mrm, long off)
 	*t = *(char *)(addr+off);
 }
 
+void ref_or_mem8_to_reg8(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_or_reg8_to_reg8(mrm[0]&0x7, reg); return; }
+	char *addr = do_lea(mrm);
+	char *t = get_byte_reg(reg);
+
+	*t |= *(char *)(addr+off);
+}
+
 void ref_copy_reg32_to_mem32(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
@@ -311,6 +329,15 @@ void ref_copy_reg32_to_mem32(char *mrm, long off)
 	char *addr = do_lea(mrm);
 
 	*(long *)(addr+off) = taint_regs[reg];
+}
+
+void ref_or_reg32_to_mem32(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_or_reg32_to_reg32(reg, mrm[0]&0x7); return; }
+	char *addr = do_lea(mrm);
+
+	*(long *)(addr+off) |= taint_regs[reg];
 }
 
 void ref_copy_reg16_to_mem16(char *mrm, long off)
@@ -486,13 +513,20 @@ void ref_xor_mem16_to_reg16(char *mrm, long off)
 	ref_or_mem16_to_reg16(mrm, off);
 }
 
-void ref_or_reg32_to_mem32(char *mrm, long off)
+void ref_xor_mem8_to_reg8(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
-	if (!is_memop(mrm)) { ref_or_reg32_to_reg32(reg, mrm[0]&0x7); return; }
+	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg8(reg); return; }
+	ref_or_mem8_to_reg8(mrm, off);
+}
+
+void ref_or_reg8_to_mem8(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_or_reg8_to_reg8(reg, mrm[0]&0x7); return; }
 	char *addr = do_lea(mrm);
 
-	*(long *)(addr+off) |= taint_regs[reg];
+	*(char *)(addr+off) |= *get_byte_reg(reg);
 }
 
 void ref_or_reg16_to_mem16(char *mrm, long off)
@@ -516,6 +550,13 @@ void ref_xor_reg16_to_mem16(char *mrm, long off)
 	int reg = (mrm[0]>>3)&0x7;
 	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg16(reg); return; }
 	ref_or_reg16_to_mem16(mrm, off);
+}
+
+void ref_xor_reg8_to_mem8(char *mrm, long off)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm) && reg == (mrm[0]&0x7)) { ref_erase_reg8(reg); return; }
+	ref_or_reg8_to_mem8(mrm, off);
 }
 
 
@@ -828,10 +869,7 @@ void test_pushpop(int (*taint_op)(char *, long), void (*ref_op)(long), long sp)
 	regs_test[4] = sp;
 	load_fx(fx_test);
 	oplen = taint_op(opcode, offset);
-printhex(opcode, oplen);
-printf("%lx, %lx\n", regs_test[4], mem_test);
 	codeexec((char *)opcode, oplen, (long *)regs_test);
-printhex(opcode, oplen);
 	save_fx(fx_test);
 	diff();
 }
@@ -922,18 +960,23 @@ int main(int argc, char **argv)
 
 	test_reg2(taint_or_reg32_to_reg32, ref_or_reg32_to_reg32);
 	test_reg2(taint_or_reg16_to_reg16, ref_or_reg16_to_reg16);
+	test_reg2(taint_or_reg8_to_reg8, ref_or_reg8_to_reg8);
 
 	test_mem(taint_or_reg32_to_mem32, ref_or_reg32_to_mem32);
 	test_mem(taint_or_reg16_to_mem16, ref_or_reg16_to_mem16);
+	test_mem(taint_or_reg8_to_mem8, ref_or_reg8_to_mem8);
 
 	test_mem(taint_or_mem32_to_reg32, ref_or_mem32_to_reg32);
 	test_mem(taint_or_mem16_to_reg16, ref_or_mem16_to_reg16);
+	test_mem(taint_or_mem8_to_reg8, ref_or_mem8_to_reg8);
 
 	test_mem(taint_xor_reg32_to_mem32, ref_xor_reg32_to_mem32);
 	test_mem(taint_xor_reg16_to_mem16, ref_xor_reg16_to_mem16);
+	test_mem(taint_xor_reg8_to_mem8, ref_xor_reg8_to_mem8);
 
 	test_mem(taint_xor_mem32_to_reg32, ref_xor_mem32_to_reg32);
 	test_mem(taint_xor_mem16_to_reg16, ref_xor_mem16_to_reg16);
+	test_mem(taint_xor_mem8_to_reg8, ref_xor_mem8_to_reg8);
 
 	test_reg2(taint_swap_reg32_reg32, ref_swap_reg32_reg32);
 	test_reg2(taint_swap_reg16_reg16, ref_swap_reg16_reg16);

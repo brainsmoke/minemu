@@ -104,7 +104,12 @@ static const char *pslldq_5         = "\x66\x0f\x73\xfd\x00",
                   *insertps         = "\x66\x0f\x3a\x21",    /* insertps  */
                   *pextrd           = "\x66\x0f\x3a\x16",    /* pextrd    */
                   *por              = "\x66\x0f\xeb",        /* por       */
-                  *pmovzxbw_6_to_5  = "\x66\x0f\x38\x30\xee";
+                  *palignr_6_to_5   = "\x66\x0f\x3a\x0f\xee",
+                  *pmovzxbw_6_to_5  = "\x66\x0f\x38\x30\xee",
+                  *pmovzxbd_6_to_5  = "\x66\x0f\x38\x31\xee",
+                  *pmovzxbq_6_to_5  = "\x66\x0f\x38\x32\xee",
+                  *pxorpunpckhbw_6_to_5 = "\x66\x0f\xef\xed\x66\x0f\x68\xee",
+                  *por_6_to_5       = "\x66\x0f\xeb\xee";
 
 /* in the same column as REG */
 static int scratch_load_mem32(char *dest, char *mrm, long offset)
@@ -118,7 +123,7 @@ static int scratch_load_mem32(char *dest, char *mrm, long offset)
 }
 
 /* in the same column as REG */
-int scratch_load_mem16(char *dest, char *mrm, long offset)
+static int scratch_load_mem16(char *dest, char *mrm, long offset)
 {
 	memcpy(dest, "\x66\x0f\xc4", 3); /* pinsrw */
 	int len = 4+offset_mem(&dest[3], mrm, offset);
@@ -165,7 +170,7 @@ static int scratch_blend_reg16(char *dest, int reg)
 	return 6;
 }
 
-int scratch_store_mem16(char *dest, char *mrm, long offset)
+static int scratch_store_mem16(char *dest, char *mrm, long offset)
 {
 	memcpy(dest, "\x66\x0f\x3a\x15", 4); /* pextrw */
 	int len = 5+offset_mem(&dest[4], mrm, offset);
@@ -730,7 +735,7 @@ int taint_or_reg16_to_mem16(char *dest, char *mrm, long offset)
 	if ( !is_memop(mrm) )
 		return taint_or_reg16_to_reg16(dest, (mrm[0]>>3)&0x7, mrm[0]&0x7);
 
-	int len = scratch_load_mem32(dest, mrm, offset);
+	int len = scratch_load_mem16(dest, mrm, offset);
 	memcpy(&dest[len], por, 3);
 	dest[len+3] = 0xC0 | (scratch_reg()<<3) | taint_reg((mrm[0]&0x38)>>3);
 	len += 4 + scratch_store_mem16(&dest[len+4], mrm, offset);
@@ -1011,6 +1016,110 @@ int taint_copy_mem8_to_reg8(char *dest, char *mrm, long offset)
 	dest[len-1] = reg8_index[reg];
 	return len;
 }
+
+static const struct { char strategy, pre_shift, post_shift; } byteor_table[8][8] =
+{
+/* src\dst       AL          CL          DL          BL          AH          CH          DH          BH   */
+/*  AL  */ { {0, 0,  0}, {1, 0,  4}, {1, 0,  8}, {1, 0, 12}, {1, 0,  1}, {1, 0,  5}, {1, 0,  9}, {1, 0, 13} },
+/*  CL  */ { {1, 0, -8}, {0, 0,  0}, {1, 0,  0}, {1, 0,  4}, {1, 0, -7}, {1, 0, -3}, {1, 0,  1}, {1, 0,  5} },
+/*  DL  */ { {5, 0, -1}, {5, 0,  3}, {0, 0,  0}, {5, 0, 11}, {4, 8,  1}, {4, 8,  5}, {4, 8,  9}, {4, 8, 13} },
+/*  BL  */ { {5, 0, -9}, {5, 0, -5}, {5, 0, -1}, {0, 0,  0}, {4,12,  1}, {4,12,  5}, {4,12,  9}, {4,12, 13} },
+/*  AH  */ { {1, 0, -2}, {2, 0,  0}, {3, 0,  0}, {1, 0, 10}, {0, 0,  0}, {1, 0,  3}, {1, 0,  7}, {1, 0, 11} },
+/*  CH  */ { {1, 0,-10}, {1, 0, -6}, {1, 0, -2}, {1, 0,  2}, {1, 0, -9}, {0, 0,  0}, {1, 0, -1}, {1, 0,  3} },
+/*  DH  */ { {5, 0, -3}, {5, 0,  1}, {5, 0,  5}, {5, 0,  9}, {4, 9,  1}, {4, 9,  5}, {0, 0,  0}, {4, 9, 13} },
+/*  BH  */ { {5, 0,-11}, {5, 0, -7}, {5, 0, -3}, {5, 0,  1}, {4,13,  1}, {4,13,  5}, {4,13,  9}, {0, 0,  0} },
+};
+
+int taint_or_reg8_to_reg8(char *dest, int from_reg, int to_reg)
+{
+	int len;
+
+	switch ( byteor_table[from_reg][to_reg].strategy )
+	{
+		case 0:
+			return 0;
+		case 1:
+			memcpy(dest, pmovzxbw_6_to_5, len=5);
+			break;
+		case 2:
+			memcpy(dest, pmovzxbd_6_to_5, len=5);
+			break;
+		case 3:
+			memcpy(dest, pmovzxbq_6_to_5, len=5);
+			break;
+		case 4:
+			memcpy(dest, palignr_6_to_5, 5);
+			dest[5] = byteor_table[from_reg][to_reg].pre_shift;
+			len = 6;
+			break;
+		case 5:
+			memcpy(dest, pxorpunpckhbw_6_to_5, len=8);
+			break;
+		default:
+			return die("bad data in taint_or_reg8_to_reg8()");
+	}
+
+	len += shift_xmm5(&dest[len], byteor_table[from_reg][to_reg].post_shift);
+
+	memcpy(&dest[len], por_6_to_5, 4);
+	len += 4;
+	memcpy(&dest[len], blendw_5_to_6, 6);
+	len += 6;
+	dest[len-1] = 1<<(reg8_index[to_reg]/2);
+	return len;
+}
+
+static int scratch_load_mem8(char *dest, char *mrm, long offset)
+{
+	memcpy(dest, pinsrb, 4);
+	int len = 5+offset_mem(&dest[4], mrm, offset);
+	int reg = ( dest[4] & 0x38 ) >> 3;
+	dest[4] = ( dest[4] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = reg8_index[reg];
+	return len;
+}
+ 
+int taint_or_reg8_to_mem8(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_or_reg8_to_reg8(dest, (mrm[0]>>3)&0x7, mrm[0]&0x7);
+
+	int len = scratch_load_mem8(dest, mrm, offset);
+	memcpy(&dest[len], por_6_to_5, 4);
+	len += 4 + scratch_store_mem8(&dest[len+4], mrm, offset);
+	return len;
+}
+
+int taint_xor_reg8_to_mem8(char *dest, char *mrm, long offset)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if ( !is_memop(mrm) && reg == (mrm[0]&0x7) )
+		return taint_erase_reg8(dest, reg);
+	else
+		return taint_or_reg8_to_mem8(dest, mrm, offset);
+}
+
+int taint_or_mem8_to_reg8(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_or_reg8_to_reg8(dest, mrm[0]&0x7, (mrm[0]>>3)&0x7);
+
+	memcpy(dest, pxor_5, 4);
+	int len = 4+scratch_load_mem8(&dest[4], mrm, offset);
+	memcpy(&dest[len], por, 3);
+	dest[len+3] = 0xC0 | (taint_reg(0)<<3) | scratch_reg();
+	return len+4;
+}
+
+int taint_xor_mem8_to_reg8(char *dest, char *mrm, long offset)
+{
+	int reg = (mrm[0]>>3)&0x7;
+	if ( !is_memop(mrm) && reg == (mrm[0]&0x7) )
+		return taint_erase_reg8(dest, reg);
+	else
+		return taint_or_mem8_to_reg8(dest, mrm, offset);
+}
+
 
 static const struct { char shift, upper_half; } byteerase_table[8] =
 {
