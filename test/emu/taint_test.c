@@ -685,6 +685,18 @@ void ref_erase_al(void)
 	taint_regs[0] &= 0xFFFFFF00;
 }
 
+void ref_leave32(long off)
+{
+	taint_regs[4] = taint_regs[5];
+	taint_regs[5] = *(long*)(regs_test[5]+off);
+}
+
+void ref_leave16(long off)
+{
+	taint_regs[4] = (taint_regs[4]&0xffff0000) | (taint_regs[5]&0xffff);
+	taint_regs[5] = (taint_regs[5]&0xffff0000) | *(short*)(regs_test[5]+off);
+}
+
 void ref_copy_popa32(long off)
 {
 	long tmp=regs_test[4];
@@ -1005,6 +1017,9 @@ int main(int argc, char **argv)
 
 	test_pushpop(taint_copy_pusha32, ref_copy_pusha32, 32+(long)mem_test);
 	test_pushpop(taint_copy_pusha16, ref_copy_pusha16, 32+(long)mem_test);
+
+	test_impl(taint_leave32, ref_leave32);
+	test_impl(taint_leave16, ref_leave16);
 
 	exit(err);
 }

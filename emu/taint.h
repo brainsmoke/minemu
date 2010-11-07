@@ -120,5 +120,10 @@ int taint_swap_reg32_mem32(char *dest, char *mrm, long offset);
 int taint_swap_reg16_mem16(char *dest, char *mrm, long offset);
 int taint_swap_reg8_mem8(char *dest, char *mrm, long offset);
 
+/* TAINT MISC */
+
+int taint_leave32(char *dest, long offset);
+int taint_leave16(char *dest, long offset); /* probablt erroneous */
+
 #endif /* TAINT_H */
 

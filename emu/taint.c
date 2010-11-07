@@ -1296,3 +1296,17 @@ int taint_copy_str8_to_str8(char *dest, long offset)
 	return 20;
 }
 
+int taint_leave32(char *dest, long offset)
+{
+	int len = taint_copy_reg32_to_reg32(dest, 5, 4);
+	char *mrm = "\x6d\x00";
+	return len+taint_copy_mem32_to_reg32(&dest[len], mrm, offset);
+}
+
+int taint_leave16(char *dest, long offset)
+{
+	int len = taint_copy_reg16_to_reg16(dest, 5, 4);
+	char *mrm = "\x6d\x00";
+	return len+taint_copy_mem16_to_reg16(&dest[len], mrm, offset);
+}
+
