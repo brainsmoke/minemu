@@ -952,7 +952,7 @@ void test_lea(char *mrm, int mem_len)
 	memcpy(regs_test, regs_lea, 36);
 	memcpy(taint_regs, taint_regs_lea, 32);
 	load_fx(fx_test);
-	oplen = taint_lea(opcode, mrm);
+	oplen = taint_lea(opcode, mrm, offset);
 	codeexec((char *)opcode, oplen, (long *)regs_test);
 	save_fx(fx_test);
 	diff();

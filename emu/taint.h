@@ -106,15 +106,22 @@ int taint_erase_push16(char *dest, long offset);
 
 int taint_erase_eax_edx(char *dest);
 int taint_erase_ax_dx(char *dest);
+int taint_erase_eax_high(char *dest);
 int taint_erase_eax(char *dest);
 int taint_erase_ax(char *dest);
 int taint_erase_al(char *dest);
+int taint_erase_ah(char *dest);
+int taint_erase_edx(char *dest);
+int taint_erase_dx(char *dest);
 
 /* TAINT SWAP */
 
 int taint_swap_reg32_reg32(char *dest, int reg1, int reg2);
 int taint_swap_reg16_reg16(char *dest, int reg1, int reg2);
 int taint_swap_reg8_reg8(char *dest, int reg1, int reg2);
+
+int taint_swap_eax_reg32(char *dest, int reg);
+int taint_swap_ax_reg16(char *dest, int reg);
 
 int taint_swap_reg32_mem32(char *dest, char *mrm, long offset);
 int taint_swap_reg16_mem16(char *dest, char *mrm, long offset);
@@ -124,8 +131,10 @@ int taint_swap_reg8_mem8(char *dest, char *mrm, long offset);
 
 int taint_leave32(char *dest, long offset);
 int taint_leave16(char *dest, long offset); /* probablt erroneous, useless anyway */
+int taint_enter32(char *dest, long offset); /* incomplete */
+int taint_enter16(char *dest, long offset);
 
-int taint_lea(char *dest, char *mrm);
+int taint_lea(char *dest, char *mrm, long offset);
 
 
 #endif /* TAINT_H */

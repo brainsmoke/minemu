@@ -575,9 +575,29 @@ int taint_erase_ax(char *dest)
 	return taint_erase_reg16(dest, 0);
 }
 
+int taint_erase_edx(char *dest)
+{
+	return taint_erase_reg32(dest, 2);
+}
+
+int taint_erase_dx(char *dest)
+{
+	return taint_erase_reg16(dest, 2);
+}
+
+int taint_erase_eax_high(char *dest)
+{
+	return taint_erase_hireg16(dest, 0);
+}
+
 int taint_erase_al(char *dest)
 {
 	return taint_erase_reg8(dest, 0);
+}
+
+int taint_erase_ah(char *dest)
+{
+	return taint_copy_reg8_to_reg16(dest, 0, 0);
 }
 
 int taint_erase_eax_edx(char *dest)
@@ -835,6 +855,11 @@ int taint_swap_reg32_reg32(char *dest, int reg1, int reg2)
 	return len + scratch_store_reg32(&dest[len], reg2, reg2);
 }
 
+int taint_swap_eax_reg32(char *dest, int reg)
+{
+	return taint_swap_reg32_reg32(dest, reg, 0);
+}
+
 /* OMG */
 int taint_swap_reg16_reg16(char *dest, int reg1, int reg2)
 {
@@ -898,6 +923,11 @@ int taint_swap_reg16_reg16(char *dest, int reg1, int reg2)
 		dest[26] = (tmp_index<<6) | (taint_index(reg1)<<4);
 		return 27;
 	}
+}
+
+int taint_swap_ax_reg16(char *dest, int reg)
+{
+	return taint_swap_reg16_reg16(dest, reg, 0);
 }
 
 int taint_swap_reg32_mem32(char *dest, char *mrm, long offset)
@@ -1310,7 +1340,20 @@ int taint_leave16(char *dest, long offset)
 	return len+taint_copy_mem16_to_reg16(&dest[len], mrm, offset);
 }
 
-int taint_lea(char *dest, char *mrm)
+int taint_enter32(char *dest, long offset) /* incomplete */
+{
+	int len = taint_copy_push_reg32(dest, 5, offset);
+	return len+taint_copy_reg32_to_reg32(&dest[len], 4, 5);
+}
+
+int taint_enter16(char *dest, long offset)
+{
+	int len = taint_copy_push_reg16(dest, 5, offset);
+	return len+taint_copy_reg16_to_reg16(&dest[len], 4, 5);
+}
+
+
+int taint_lea(char *dest, char *mrm, long _)
 {
 	if ( !is_memop(mrm) )
 		return 0; /* bad op */

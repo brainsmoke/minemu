@@ -56,42 +56,6 @@ int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
 
 #define JOIN (CONTROL|12)
 
-#define TAINT                  (0x80)
-#define TAINT_MASK           (~(TAINT-1))
-
-#define TAINT_BYTE         (0)
-
-#define TAINT_OR           (0)
-#define TAINT_XOR          (0)
-#define TAINT_COPY         (0)
-#define TAINT_COPY_ZX      (0)
-#define TAINT_SWAP         (0)
-#define TAINT_ERASE        (0)
-#define TAINT_PUSHA        (0)
-#define TAINT_POPA         (0)
-#define TAINT_LEA          (0)
-#define TAINT_LEAVE        (0)
-
-#define TAINT_REG_TO_MODRM  (0)
-#define TAINT_MODRM_TO_REG  (0)
-#define TAINT_REG_TO_PUSH   (0)
-#define TAINT_MODRM_TO_PUSH (0)
-#define TAINT_POP_TO_REG    (0)
-#define TAINT_POP_TO_MODRM  (0)
-#define TAINT_AX_TO_OFFSET  (0)
-#define TAINT_OFFSET_TO_AX  (0)
-#define TAINT_AX_TO_REG     (0)
-#define TAINT_AX_TO_STR     (0)
-#define TAINT_STR_TO_AX     (0)
-#define TAINT_AX_DX         (0)
-#define TAINT_STR_TO_STR    (0)
-#define TAINT_REG           (0)
-#define TAINT_MODRM         (0)
-#define TAINT_PUSH          (0)
-#define TAINT_HIGH_REG      (0)
-#define TAINT_DX            (0)
-#define TAINT_AX            (0)
-
 extern const unsigned char jit_action[];
 
 #endif /* JIT_CODE_H */

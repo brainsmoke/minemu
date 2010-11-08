@@ -9,6 +9,175 @@
 #include "taint.h"
 #include "debug.h"
 
+#define TAINT                  (0x80)
+#define TAINT_MASK           (~(TAINT-1))
+
+#define TAINT_MRM              (0x00)
+#define TAINT_REG_OFF          (0x20)
+#define TAINT_REG              (0x30)
+#define TAINT_OFF              (0x40)
+#define TAINT_IMPL             (0x50)
+#define TAINT_ADDR             (0x60)
+
+#define TAINT_MRM_OP( action )       ( (action&~0x1f) == TAINT_MRM     )
+#define TAINT_REG_OFF_OP( action )   ( (action&~0x0f) == TAINT_REG_OFF )
+#define TAINT_REG_OP( action )       ( (action&~0x0f) == TAINT_REG     )
+#define TAINT_OFF_OP( action )       ( (action&~0x0f) == TAINT_OFF     )
+#define TAINT_IMPL_OP( action )      ( (action&~0x0f) == TAINT_IMPL    )
+#define TAINT_ADDR_OP( action )      ( (action&~0x0f) == TAINT_ADDR    )
+
+enum
+{
+	/* arguments: modrm / offset */
+
+	TAINT_OR_MEM_TO_REG = TAINT_MRM,
+	TAINT_OR_REG_TO_MEM,
+	TAINT_XOR_MEM_TO_REG,
+	TAINT_XOR_REG_TO_MEM,
+	TAINT_COPY_MEM_TO_REG,
+	TAINT_COPY_REG_TO_MEM,
+
+	TAINT_BYTE_OR_MEM_TO_REG,
+	TAINT_BYTE_OR_REG_TO_MEM,
+	TAINT_BYTE_XOR_MEM_TO_REG,
+	TAINT_BYTE_XOR_REG_TO_MEM,
+	TAINT_BYTE_COPY_MEM_TO_REG,
+	TAINT_BYTE_COPY_REG_TO_MEM,
+
+	TAINT_COPY_ZX_MEM_TO_REG,
+	TAINT_BYTE_COPY_ZX_MEM_TO_REG,
+
+	TAINT_SWAP_REG_MEM,
+	TAINT_BYTE_SWAP_REG_MEM,
+
+	TAINT_COPY_MEM_TO_PUSH,
+	TAINT_COPY_POP_TO_MEM,
+
+	TAINT_ERASE_MEM,
+	TAINT_BYTE_ERASE_MEM,
+
+	TAINT_LEA,
+
+	/* arguments: register / offset */
+
+	TAINT_COPY_REG_TO_PUSH = TAINT_REG_OFF,
+	TAINT_COPY_POP_TO_REG,
+
+	/* arguments: register */
+
+	TAINT_SWAP_AX_REG = TAINT_REG,
+	TAINT_ERASE_REG,
+	TAINT_BYTE_ERASE_REG,
+
+	/* arguments: offset */
+
+	TAINT_COPY_STR_TO_STR = TAINT_OFF,
+	TAINT_COPY_AX_TO_STR,
+	TAINT_COPY_STR_TO_AX,
+	TAINT_BYTE_COPY_STR_TO_STR,
+	TAINT_BYTE_COPY_AL_TO_STR,
+	TAINT_BYTE_COPY_STR_TO_AL,
+	TAINT_ERASE_PUSH,
+	TAINT_PUSHA,
+	TAINT_POPA,
+	TAINT_LEAVE,
+	TAINT_ENTER,
+
+	/* no arguments */
+
+	TAINT_ERASE_AX = TAINT_IMPL,
+	TAINT_ERASE_DX,
+	TAINT_ERASE_AX_DX,
+	TAINT_ERASE_AXH,
+	TAINT_BYTE_ERASE_AL,
+
+	/* arguments: address, offset */
+
+	TAINT_COPY_AX_TO_OFFSET = TAINT_ADDR,
+	TAINT_COPY_OFFSET_TO_AX,
+	TAINT_BYTE_COPY_AL_TO_OFFSET,
+	TAINT_BYTE_COPY_OFFSET_TO_AL,
+};
+
+union
+{
+	struct { int (*f)(char *, char *, long); int (*f16)(char *, char *, long); } mrm;
+	struct { int (*f)(char *, int, long);    int (*f16)(char *, int, long);    } reg_off;
+	struct { int (*f)(char *, int);          int (*f16)(char *, int);          } reg;
+	struct { int (*f)(char *, long);         int (*f16)(char *, long);         } off;
+	struct { int (*f)(char *);               int (*f16)(char *);               } impl;
+	struct { int (*f)(char *, long, long);   int (*f16)(char *, long, long);   } addr;
+} taint_handlers[] =
+{
+	[TAINT_OR_MEM_TO_REG].mrm =        { .f = taint_or_mem32_to_reg32,   .f16 = taint_or_mem16_to_reg16   },
+	[TAINT_OR_REG_TO_MEM].mrm =        { .f = taint_or_reg32_to_mem32,   .f16 = taint_or_reg16_to_mem16   },
+	[TAINT_XOR_MEM_TO_REG].mrm =       { .f = taint_xor_mem32_to_reg32,  .f16 = taint_xor_mem16_to_reg16  },
+	[TAINT_XOR_REG_TO_MEM].mrm =       { .f = taint_xor_reg32_to_mem32,  .f16 = taint_xor_reg16_to_mem16  },
+	[TAINT_COPY_MEM_TO_REG].mrm =      { .f = taint_copy_mem32_to_reg32, .f16 = taint_copy_mem16_to_reg16 },
+	[TAINT_COPY_REG_TO_MEM].mrm =      { .f = taint_copy_reg32_to_mem32, .f16 = taint_copy_reg16_to_mem16 },
+
+	[TAINT_BYTE_OR_MEM_TO_REG].mrm =   { .f = taint_or_mem8_to_reg8   },
+	[TAINT_BYTE_OR_REG_TO_MEM].mrm =   { .f = taint_or_reg8_to_mem8   },
+	[TAINT_BYTE_XOR_MEM_TO_REG].mrm =  { .f = taint_xor_mem8_to_reg8  },
+	[TAINT_BYTE_XOR_REG_TO_MEM].mrm =  { .f = taint_xor_reg8_to_mem8  },
+	[TAINT_BYTE_COPY_MEM_TO_REG].mrm = { .f = taint_copy_mem8_to_reg8 },
+	[TAINT_BYTE_COPY_REG_TO_MEM].mrm = { .f = taint_copy_reg8_to_mem8 },
+
+	[TAINT_COPY_ZX_MEM_TO_REG].mrm =      { .f = taint_copy_mem16_to_reg32, .f16 = taint_or_mem16_to_reg16  },
+	[TAINT_BYTE_COPY_ZX_MEM_TO_REG].mrm = { .f = taint_copy_mem8_to_reg32,  .f16 = taint_copy_mem8_to_reg16 },
+
+	[TAINT_SWAP_REG_MEM].mrm =      { .f = taint_swap_reg32_mem32, .f16 = taint_swap_reg16_mem16 },
+	[TAINT_BYTE_SWAP_REG_MEM].mrm = { .f = taint_swap_reg8_mem8                                  },
+
+	[TAINT_COPY_MEM_TO_PUSH].mrm = { .f = taint_copy_push_mem32, .f16 = taint_copy_push_mem16 },
+	[TAINT_COPY_POP_TO_MEM].mrm =  { .f = taint_copy_pop_mem32,  .f16 = taint_copy_pop_mem16 },
+
+	[TAINT_ERASE_MEM].mrm =        { .f = taint_erase_mem32, .f16 = taint_erase_mem16 },
+	[TAINT_BYTE_ERASE_MEM].mrm =   { .f = taint_erase_mem8 },
+
+	[TAINT_LEA].mrm =              { .f = taint_lea },
+
+	/* arguments: register / offset */
+
+	[TAINT_COPY_REG_TO_PUSH].reg_off = { .f = taint_copy_push_reg32, .f16 = taint_copy_push_reg16 },
+	[TAINT_COPY_POP_TO_REG].reg_off  = { .f = taint_copy_pop_reg32,  .f16 = taint_copy_pop_reg16  },
+
+	/* arguments: register */
+
+	[TAINT_SWAP_AX_REG].reg    = { .f = taint_swap_eax_reg32, .f16 = taint_swap_ax_reg16 },
+	[TAINT_ERASE_REG].reg      = { .f = taint_erase_reg32, .f16 = taint_erase_reg16      },
+	[TAINT_BYTE_ERASE_REG].reg = { .f = taint_erase_reg8                                 },
+
+	/* arguments: offset */
+
+	[TAINT_COPY_STR_TO_STR].off      = { .f = taint_copy_str32_to_str32, .f16 = taint_copy_str16_to_str16 },
+	[TAINT_COPY_AX_TO_STR].off       = { .f = taint_copy_eax_to_str32,   .f16 = taint_copy_ax_to_str16    },
+	[TAINT_COPY_STR_TO_AX].off       = { .f = taint_copy_str32_to_eax,   .f16 = taint_copy_str16_to_ax    },
+	[TAINT_BYTE_COPY_STR_TO_STR].off = { .f = taint_copy_str32_to_str32                                   },
+	[TAINT_BYTE_COPY_AL_TO_STR].off  = { .f = taint_copy_al_to_str8                                       },
+	[TAINT_BYTE_COPY_STR_TO_AL].off  = { .f = taint_copy_str8_to_al                                       },
+	[TAINT_ERASE_PUSH].off           = { .f = taint_erase_push32,        .f16 = taint_erase_push16        },
+	[TAINT_PUSHA].off                = { .f = taint_copy_pusha32,        .f16 = taint_copy_pusha16        },
+	[TAINT_POPA].off                 = { .f = taint_copy_popa32,         .f16 = taint_copy_popa16         },
+	[TAINT_LEAVE].off                = { .f = taint_leave32,             .f16 = taint_leave16             },
+	[TAINT_ENTER].off                = { .f = taint_enter32,             .f16 = taint_enter16             },
+
+	/* no arguments */
+
+	[TAINT_ERASE_AX].impl =      { .f = taint_erase_eax,      .f16 = taint_erase_ax    },
+	[TAINT_ERASE_DX].impl =      { .f = taint_erase_edx,      .f16 = taint_erase_dx    },
+	[TAINT_ERASE_AX_DX].impl =   { .f = taint_erase_eax_edx,  .f16 = taint_erase_ax_dx },
+	[TAINT_ERASE_AXH].impl =     { .f = taint_erase_eax_high, .f16 = taint_erase_ah    },
+	[TAINT_BYTE_ERASE_AL].impl = { .f = taint_erase_al                                 },
+
+	/* arguments: address / offset */
+
+	[TAINT_COPY_AX_TO_OFFSET].addr = { .f = taint_copy_eax_to_addr32, .f16 = taint_copy_ax_to_addr16 },
+	[TAINT_COPY_OFFSET_TO_AX].addr = { .f = taint_copy_addr32_to_eax, .f16 = taint_copy_addr16_to_ax },
+	[TAINT_BYTE_COPY_AL_TO_OFFSET].addr = { .f = taint_copy_al_to_addr8 },
+	[TAINT_BYTE_COPY_OFFSET_TO_AL].addr = { .f = taint_copy_addr8_to_al },
+};
+
 /* op action */
 
 #define C  COPY_INSTRUCTION
@@ -36,53 +205,55 @@
 
 #define XXX (C) /* todo */
 #define PRIV (C)
+#define MM (C)
 
-#define TOMR ( TAINT | TAINT_OR      | TAINT_MODRM_TO_REG  )
-#define TORM ( TAINT | TAINT_OR      | TAINT_REG_TO_MODRM  )
-#define TXMR ( TAINT | TAINT_XOR     | TAINT_MODRM_TO_REG  )
-#define TXRM ( TAINT | TAINT_XOR     | TAINT_REG_TO_MODRM  )
-#define TCMR ( TAINT | TAINT_COPY    | TAINT_MODRM_TO_REG  )
-#define TCRM ( TAINT | TAINT_COPY    | TAINT_REG_TO_MODRM  )
-#define TCRP ( TAINT | TAINT_COPY    | TAINT_REG_TO_PUSH   )
-#define TCMP ( TAINT | TAINT_COPY    | TAINT_MODRM_TO_PUSH )
-#define TCPR ( TAINT | TAINT_COPY    | TAINT_POP_TO_REG    )
-#define TCPM ( TAINT | TAINT_COPY    | TAINT_POP_TO_MODRM  )
-#define TCAO ( TAINT | TAINT_COPY    | TAINT_AX_TO_OFFSET  )
-#define TCOA ( TAINT | TAINT_COPY    | TAINT_OFFSET_TO_AX  )
-#define TCSS ( TAINT | TAINT_COPY    | TAINT_STR_TO_STR    )
-#define TCAS ( TAINT | TAINT_COPY    | TAINT_AX_TO_STR     )
-#define TCSA ( TAINT | TAINT_COPY    | TAINT_STR_TO_AX     )
-#define TZMR ( TAINT | TAINT_COPY_ZX | TAINT_MODRM_TO_REG  )
-#define TSRM ( TAINT | TAINT_SWAP    | TAINT_REG_TO_MODRM  )
-#define TSAR ( TAINT | TAINT_SWAP    | TAINT_AX_TO_REG     )
-#define TER  ( TAINT | TAINT_ERASE   | TAINT_REG           )
-#define TEM  ( TAINT | TAINT_ERASE   | TAINT_MODRM         )
-#define TEP  ( TAINT | TAINT_ERASE   | TAINT_PUSH          )
-#define TEH  ( TAINT | TAINT_ERASE   | TAINT_HIGH_REG      )
-#define TED  ( TAINT | TAINT_ERASE   | TAINT_DX            )
-#define TEA  ( TAINT | TAINT_ERASE   | TAINT_AX            )
-#define TEAD ( TAINT | TAINT_ERASE   | TAINT_AX_DX         )
-#define TPUA ( TAINT | TAINT_PUSHA                         )
-#define TPPA ( TAINT | TAINT_POPA                          )
-#define TLEA ( TAINT | TAINT_LEA                           )
-#define TLVE ( TAINT | TAINT_LEAVE                         )
+#define TOMR ( TAINT | TAINT_OR_MEM_TO_REG           )
+#define TORM ( TAINT | TAINT_OR_REG_TO_MEM           )
+#define TXMR ( TAINT | TAINT_XOR_MEM_TO_REG          )
+#define TXRM ( TAINT | TAINT_XOR_REG_TO_MEM          )
+#define TCMR ( TAINT | TAINT_COPY_MEM_TO_REG         )
+#define TCRM ( TAINT | TAINT_COPY_REG_TO_MEM         )
+#define TCRP ( TAINT | TAINT_COPY_REG_TO_PUSH        )
+#define TCMP ( TAINT | TAINT_COPY_MEM_TO_PUSH        )
+#define TCPR ( TAINT | TAINT_COPY_POP_TO_REG         )
+#define TCPM ( TAINT | TAINT_COPY_POP_TO_MEM         )
+#define TCAO ( TAINT | TAINT_COPY_AX_TO_OFFSET       )
+#define TCOA ( TAINT | TAINT_COPY_OFFSET_TO_AX       )
+#define TCSS ( TAINT | TAINT_COPY_STR_TO_STR         )
+#define TCAS ( TAINT | TAINT_COPY_AX_TO_STR          )
+#define TCSA ( TAINT | TAINT_COPY_STR_TO_AX          )
+#define TZMR ( TAINT | TAINT_COPY_ZX_MEM_TO_REG      )
+#define TSRM ( TAINT | TAINT_SWAP_REG_MEM            )
+#define TSAR ( TAINT | TAINT_SWAP_AX_REG             )
+#define TER  ( TAINT | TAINT_ERASE_REG               )
+#define TEM  ( TAINT | TAINT_ERASE_MEM               )
+#define TEP  ( TAINT | TAINT_ERASE_PUSH              )
+#define TEH  ( TAINT | TAINT_ERASE_AXH               )
+#define TED  ( TAINT | TAINT_ERASE_DX                )
+#define TEA  ( TAINT | TAINT_ERASE_AX                )
+#define TEAD ( TAINT | TAINT_ERASE_AX_DX             )
+#define TPUA ( TAINT | TAINT_PUSHA                   )
+#define TPPA ( TAINT | TAINT_POPA                    )
+#define TLEA ( TAINT | TAINT_LEA                     )
+#define TLVE ( TAINT | TAINT_LEAVE                   )
+#define TENT ( TAINT | TAINT_ENTER                   )
 
-#define BORM ( TORM | TAINT_BYTE )
-#define BOMR ( TOMR | TAINT_BYTE )
-#define BXRM ( TXRM | TAINT_BYTE )
-#define BXMR ( TXMR | TAINT_BYTE )
-#define BCRM ( TCRM | TAINT_BYTE )
-#define BCMR ( TCMR | TAINT_BYTE )
-#define BCAO ( TCAO | TAINT_BYTE )
-#define BCOA ( TCOA | TAINT_BYTE )
-#define BCSS ( TCSS | TAINT_BYTE )
-#define BCAS ( TCAS | TAINT_BYTE )
-#define BCSA ( TCSA | TAINT_BYTE )
-#define BSRM ( TSRM | TAINT_BYTE )
-#define BEA  ( TEA  | TAINT_BYTE )
-#define BER  ( TER  | TAINT_BYTE )
-#define BEM  ( TEM  | TAINT_BYTE )
-#define BZMR ( TZMR | TAINT_BYTE )
+#define BOMR ( TAINT | TAINT_BYTE_OR_MEM_TO_REG      )
+#define BORM ( TAINT | TAINT_BYTE_OR_REG_TO_MEM      )
+#define BXMR ( TAINT | TAINT_BYTE_XOR_MEM_TO_REG     )
+#define BXRM ( TAINT | TAINT_BYTE_XOR_REG_TO_MEM     )
+#define BCMR ( TAINT | TAINT_BYTE_COPY_MEM_TO_REG    )
+#define BCRM ( TAINT | TAINT_BYTE_COPY_REG_TO_MEM    )
+#define BCAO ( TAINT | TAINT_BYTE_COPY_AL_TO_OFFSET  )
+#define BCOA ( TAINT | TAINT_BYTE_COPY_OFFSET_TO_AL  )
+#define BCSS ( TAINT | TAINT_BYTE_COPY_STR_TO_STR    )
+#define BCAS ( TAINT | TAINT_BYTE_COPY_AL_TO_STR     )
+#define BCSA ( TAINT | TAINT_BYTE_COPY_STR_TO_AL     )
+#define BZMR ( TAINT | TAINT_BYTE_COPY_ZX_MEM_TO_REG )
+#define BSRM ( TAINT | TAINT_BYTE_SWAP_REG_MEM       )
+#define BER  ( TAINT | TAINT_BYTE_ERASE_REG          )
+#define BEM  ( TAINT | TAINT_BYTE_ERASE_MEM          )
+#define BEA  ( TAINT | TAINT_BYTE_ERASE_AL           )
 
 const unsigned char jit_action[] =
 {
@@ -96,33 +267,33 @@ const unsigned char jit_action[] =
 /* 5? */ TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,
 /* 6? */ TPUA,TPPA,  C ,PRIV, BAD, BAD, BAD, BAD, TEP,TCMR, TEP,TCMR,PRIV,PRIV,PRIV,PRIV,
 /* 7? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC ,
-/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, XXX,TLEA, XXX,TCPM,
+/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, TEM,TLEA,  C ,TCPM,
 /* 9? */   C ,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR, TEH, TED,  CF,  C , TEP,  C ,  C , BEA,
 /* A? */ BCOA,TCOA,BCAO,TCAO,BCSS,TCSS,  C ,  C ,  C ,  C ,BCAS,TCAS,BCSA,TCSA,  C ,  C ,
 /* B? */  BER, BER, BER, BER, BER, BER, BER, BER, TER, TER, TER, TER, TER, TER, TER, TER,
-/* C? */  XXX, XXX,  RC,  R , XXX, XXX, BEM, TEM, XXX,TLVE,  RF,  RF,  C , INT,  C ,  C ,
-/* D? */  XXX, XXX, XXX, XXX,  C ,  C ,  C , XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
+/* C? */  XXX, XXX,  RC,  R , XXX, XXX, BEM, TEM,TENT,TLVE,  RF,  RF,  C , INT,  C ,  C ,
+/* D? */   C ,  C , XXX, XXX,  C ,  C , XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
 /* E? */   L ,  L ,  L ,  L ,PRIV,PRIV,PRIV,PRIV, CR , JR , JF , JR ,PRIV,PRIV,PRIV,PRIV,
 /* F? */  BAD,  U , BAD, BAD,PRIV,  C , BAD, BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD,
 
 	[ESC_OPTABLE] =
 /*        ?0   ?1   ?2   ?3   ?4   ?5   ?6   ?7   ?8   ?9   ?A   ?B   ?C   ?D   ?E   ?F */
 /* 0? */ PRIV,PRIV,PRIV,PRIV,  C ,  U ,  C ,  U ,  C ,  C ,  C ,  U ,  C ,  C ,  C ,  C ,
-/* 1? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
-/* 2? */ PRIV,PRIV,PRIV,PRIV,  C ,  C ,  C ,  C , XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
+/* 1? */  MM , MM , MM , MM , MM , MM , MM , MM ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
+/* 2? */ PRIV,PRIV,PRIV,PRIV,  C ,  C ,  C ,  C , MM , MM , MM , MM , MM , MM , MM , MM ,
 /* 3? */ PRIV,TEAD,TEAD,TEAD, SE ,  C ,  C ,PRIV, BAD,  C , BAD,  C ,  C ,  C ,  C ,  C ,
 /* 4? */ CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,CMOV,
-/* 5? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
-/* 6? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
-/* 7? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX,  C ,PRIV,PRIV,  C ,  C , XXX, XXX, XXX, XXX,
+/* 5? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
+/* 6? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
+/* 7? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  C ,PRIV,PRIV,  C ,  C ,  MM,  MM,  MM,  MM,
 /* 8? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC ,
 /* 9? */  BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM,
 /* A? */  TEP,  C , XXX,  C , XXX, XXX,  C ,  C , TEP,  C ,PRIV,  C , XXX, XXX, XXX,TOMR,
 /* B? */  XXX, XXX,  C ,  C ,  C ,  C ,BZMR,TZMR, XXX,  C ,  C ,  C ,  C ,  C ,BZMR,TZMR,
-/* C? */ BORM,TORM,  C ,TCRM,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
-/* D? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
-/* E? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
-/* F? */  XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX, XXX,
+/* C? */ BORM,TORM,  MM,TCRM,  MM,  MM,  MM,  MM,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
+/* D? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
+/* E? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
+/* F? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
 
 	[G38_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
