@@ -5,6 +5,9 @@
 
 int offset_mem(char *dst_mrm, char *src_mrm, long offset);
 
+int taint_ijmp(char *dest, char *mrm, long offset);
+int taint_icall(char *dest, char *mrm, long offset);
+
 /* TAINT COPY */
 
 int taint_copy_reg32_to_reg32(char *dest, int from_reg, int to_reg);

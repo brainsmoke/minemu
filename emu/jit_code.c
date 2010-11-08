@@ -507,12 +507,15 @@ static int generate_ijump_tail(char *dest, char **jmp_orig, char **jmp_jit)
 #ifdef EMU_DEBUG
 "FF 04 25 L"          /* incl ijmp_count           */
 #endif
+		"66 0f 38 17 ed" /* ptest  %xmm5,%xmm5     */
+		"2E 75 12"    /*                           */
 		"3B 05 L"     /* cmp o_addr, %eax          */
-		"2E 75 09"    /* jne, predict hit          */
+		"2E 75 0B"    /* jne, fall through         */
 		"9D"          /* popf                      */
 		"58"          /* pop %eax                  */
 		"5C"          /* pop %esp                  */
 		"FF 25 L"     /* jmp *j_addr               */
+		"0F 0B"       /* TAINT DETECTED!           */
 #ifdef EMU_DEBUG
 "FF 04 25 L"          /* incl ijmp_misses          */
 #endif
@@ -542,15 +545,16 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	long mrm_len = instr->len - instr->mrm;
 	int i;
 
-	int len = gen_code(
-		dest,
+	int len_taint = taint_ijmp(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	int len = len_taint+gen_code(
+		&dest[len_taint],
 		"A3 L"           /* mov %eax, scratch_stack-4 */
 		"? 8B &$",       /* mov ... ( -> %eax )       */
 		&scratch_stack[-1],
 		instr->p[2], &i, &instr->addr[instr->mrm], mrm_len
 	);
 
-	dest[i] &= 0xC7; /* -> %eax */
+	dest[len_taint+i] &= 0xC7; /* -> %eax */
 	len += generate_ijump_tail(&dest[len], &cache[0], &cache[1]);
 	*trans = (trans_t){ .len = len };
 
@@ -596,7 +600,7 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	 * proposed fix: scan memory for call instructions upon relocation,
 	 * change the address in-place
 	 */
-	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -625,18 +629,21 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 	int len = gen_code(
 		dest,
 
+		"66 0F 3A 21 AC 24 L 0E" /* insertps $0xe,TAINT_OFFSET(%esp),%xmm5 */
 		"A3 L"           /* mov %eax, scratch_stack-4 */
 		"58"             /* pop %eax                  */
 		"89 25 L"        /* mov %esp, scratch_stack   */
 		"BC L"           /* mov $scratch_stack-4 %esp */
 		"9C"             /* pushf                     */
-		"51"             /* push %ecx                 */
-		"0F B7 C8"       /* movzx %ax, %ecx           */
 #ifdef EMU_DEBUG
 "FF 04 25 L"             /* incl ret_count            */
 #endif
+		"66 0f 38 17 ed" /* ptest  %xmm5,%xmm5     */
+		"51"             /* push %ecx                 */
+		"2E 75 23"       /* jne, predict fall through */
+		"0F B7 C8"       /* movzx %ax, %ecx           */
 		"3B 04 8D L"     /* cmp &jmp_list.addr[0](,%ecx,4), %eax     */
-		"2E 75 16"       /* jne, predict hit          */
+		"2E 75 18"       /* jne, predict fall through */
 		"8B 04 8D L"     /* mov &jmp_list.jit_addr[0](,%ecx,4), %eax */
 		"59"             /* pop %ecx                  */
 		"9D"             /* popf                      */
@@ -644,8 +651,10 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 		"58"             /* pop %eax                  */
 		"5C"             /* pop %esp                  */
 		"FF 25 L"        /* jmp *j_addr               */
+		"0F 0B"          /* TAINT DETECTED!           */
 		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
 
+		TAINT_OFFSET,
 		&scratch_stack[-1],
 		scratch_stack,
 		&scratch_stack[-1],
@@ -797,6 +806,7 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 	if (instr->p[2]) /* we don't do segments (yet?) */
 		return copy_instr(dest, instr, trans);
 
+	/* it's 5AM */
 	if (TAINT_MRM_OP(act))
 		len = (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
 		      (dest, &instr->addr[instr->mrm], TAINT_OFFSET);

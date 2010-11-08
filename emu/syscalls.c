@@ -19,6 +19,8 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 	      call, arg1, arg2, arg3, arg4, arg5, arg6);
 */
 
+	long ret;
+
 	switch (call)
 	{
  		case __NR_brk:
