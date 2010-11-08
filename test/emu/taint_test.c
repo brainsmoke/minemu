@@ -383,12 +383,14 @@ void ref_copy_pop_reg16(int reg, long off)
 
 void ref_copy_push_mem32(char *mrm, long off)
 {
+	if (!is_memop(mrm)) { ref_copy_push_reg32(mrm[0]&0x7, off); return; }
 	char *addr = do_lea(mrm);
 	*(long *)(regs_test[4]+off-4) = *(long *)(addr+off);
 }
 
 void ref_copy_push_mem16(char *mrm, long off)
 {
+	if (!is_memop(mrm)) { ref_copy_push_reg16(mrm[0]&0x7, off); return; }
 	char *addr = do_lea(mrm);
 
 	*(short *)(regs_test[4]+off-2) = *(short *)(addr+off);
@@ -396,6 +398,7 @@ void ref_copy_push_mem16(char *mrm, long off)
 
 void ref_copy_pop_mem32(char *mrm, long off)
 {
+	if (!is_memop(mrm)) { ref_copy_pop_reg32(mrm[0]&0x7, off); return; }
 	char *addr = do_lea(mrm);
 
 	*(long *)(addr+off) = *(long *)(regs_test[4]+off);
@@ -403,6 +406,7 @@ void ref_copy_pop_mem32(char *mrm, long off)
 
 void ref_copy_pop_mem16(char *mrm, long off)
 {
+	if (!is_memop(mrm)) { ref_copy_pop_reg16(mrm[0]&0x7, off); return; }
 	char *addr = do_lea(mrm);
 
 	*(short *)(addr+off) = *(short *)(regs_test[4]+off);
@@ -776,29 +780,6 @@ void test_mem(int (*taint_op)(char *, char *, long), void (*ref_op)(char *, long
 		}
 }
 
-void test_memonly(int (*taint_op)(char *, char *, long), void (*ref_op)(char *, long))
-{
-	int i, j;
-	char mrm[16];
-
-	for (i=0; i<8; i++)
-		for (j=0; mrm_tests[j]; j++)
-		{
-			memcpy(mrm, mrm_tests[j], mrm_len(mrm_tests[j]));
-			mrm[0] |= i<<3;
-			if (!is_memop(mrm))
-				continue;
-			setup();
-			ref_op(mrm, offset);
-			backup();
-			load_fx(fx_test);
-			oplen = taint_op(opcode, mrm, offset);
-			codeexec((char *)opcode, oplen, (long *)regs_test);
-			save_fx(fx_test);
-			diff();
-		}
-}
-
 void test_reg(int (*taint_op)(char *, int), void (*ref_op)(int))
 {
 	int i;
@@ -1035,14 +1016,14 @@ int main(int argc, char **argv)
 	test_stackop(taint_copy_push_reg32, ref_copy_push_reg32);
 	test_stackop(taint_copy_push_reg16, ref_copy_push_reg16);
 
-	test_memonly(taint_copy_push_mem32, ref_copy_push_mem32);
-	test_memonly(taint_copy_push_mem16, ref_copy_push_mem16);
+	test_mem(taint_copy_push_mem32, ref_copy_push_mem32);
+	test_mem(taint_copy_push_mem16, ref_copy_push_mem16);
 
 	test_stackop(taint_copy_pop_reg32, ref_copy_pop_reg32);
 	test_stackop(taint_copy_pop_reg16, ref_copy_pop_reg16);
 
-	test_memonly(taint_copy_pop_mem32, ref_copy_pop_mem32);
-	test_memonly(taint_copy_pop_mem16, ref_copy_pop_mem16);
+	test_mem(taint_copy_pop_mem32, ref_copy_pop_mem32);
+	test_mem(taint_copy_pop_mem16, ref_copy_pop_mem16);
 
 	test_addr(taint_copy_eax_to_addr32, ref_copy_eax_to_addr32);
 	test_addr(taint_copy_ax_to_addr16, ref_copy_ax_to_addr16);

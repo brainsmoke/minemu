@@ -34,6 +34,8 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 
 		case __NR_execve:
 			break;
+		case __NR_vfork:
+			call = __NR_fork;
 		default:
 			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 	}

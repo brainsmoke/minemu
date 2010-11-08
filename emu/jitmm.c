@@ -11,32 +11,59 @@
 #include "error.h"
 #include "runtime.h"
 
-static char blocks[100];
+static short blocks[2000];
 static unsigned long n_blocks, block_size;
 
 void jit_mm_init(void)
 {
-	block_size = 4*1024*1024;
+	block_size = 65536;
 	n_blocks = JIT_CODE_SIZE/block_size;
-	memset(blocks, 0, n_blocks);
+	memset(blocks, 0, n_blocks*sizeof(short));
+	blocks[0] = n_blocks;
 }
 
 void *jit_alloc(unsigned long size)
 {
-	long i;
+	int i, blocks_needed = size/block_size+1;
 
-	if (size > block_size)
-		die("requested block size too big");
+	if (blocks_needed < 1)
+		blocks_needed = 1;
 
-	for (i=0; i<n_blocks; i++)
-		if (blocks[i] == 0)
+	for (i=0;i<n_blocks;)
+	{
+		if (blocks[i] < 0)
+			i -= blocks[i];
+		else if (blocks[i] < blocks_needed)
+			i += blocks[i];
+		else
 		{
-			blocks[i] = 1;
+			if (blocks[i] > blocks_needed)
+				blocks[i+blocks_needed] = blocks[i]-blocks_needed;
+
+			blocks[i] = -blocks_needed;
 			return (void *)(JIT_CODE_START+i*block_size);
 		}
-
-	die("out of blocks");
+	}
+	die("jit_alloc(): requested block size too big: %d", size);
 	return NULL;
+}
+
+static int get_alloc_block(void *p)
+{
+	unsigned long offset = (unsigned long)p - JIT_CODE_START;
+
+	if (offset % block_size)
+		die("get_alloc_block(): bad pointer");
+
+	int i = offset / block_size;
+
+	if (i >= n_blocks)
+		die("get_alloc_block(): bad pointer");
+
+	if (blocks[i] >= 0)
+		die("get_alloc_block(): unallocated block");
+
+	return i;
 }
 
 void *jit_realloc(void *p, unsigned long size)
@@ -44,7 +71,7 @@ void *jit_realloc(void *p, unsigned long size)
 	if (p == NULL)
 		return jit_alloc(size);
 
-	if (size > block_size)
+	if (size > blocks[get_alloc_block(p)]*block_size)
 		die("requested block size too big");
 
 	return p;
@@ -52,23 +79,18 @@ void *jit_realloc(void *p, unsigned long size)
 
 void jit_free(void *p)
 {
-	long i;
+	long this, next;
 
 	if (!p)
 		return;
 
-	for (i=0; i<n_blocks; i++)
-		if ( (JIT_CODE_START+i*block_size) == (unsigned long)p )
-		{
-			if (blocks[i] != 1)
-				die("freeing unallocated block");
+	this = get_alloc_block(p);
+	blocks[this] = -blocks[this];
 
-			blocks[i] = 0;
-			return;
-		}
-
-	die("freeing noexistant block: %x", p);
+	while ( (next=this+blocks[this]) < n_blocks && blocks[next] > 0 )
+	{
+		blocks[this] += blocks[next];
+		blocks[next] = 0;
+	}
 }
-
-
 

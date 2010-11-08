@@ -252,6 +252,9 @@ int taint_copy_push_reg32(char *dest, int reg, long offset)
 
 int taint_copy_push_mem32(char *dest, char *mrm, long offset)
 {
+	if ( !is_memop(mrm) )
+		return taint_copy_push_reg32(dest, mrm[0]&0x7, offset);
+
 	char mrm_stack[] = { 0x44, 0x24, '\xFC' };                       /* ...., -4(%esp) */
 	return direct_copy_mem32_to_mem32(dest, mrm, mrm_stack, offset);
 }
@@ -267,6 +270,9 @@ int taint_copy_pop_reg32(char *dest, int reg, long offset)
 
 int taint_copy_pop_mem32(char *dest, char *mrm, long offset)
 {
+	if ( !is_memop(mrm) )
+		return taint_copy_pop_reg32(dest, mrm[0]&0x7, offset);
+
 	char mrm_stack[] = { 0x04, 0x24 };                               /* (%esp), ...    */
 	return direct_copy_mem32_to_mem32(dest, mrm_stack, mrm, offset);
 }
@@ -473,6 +479,9 @@ int taint_copy_push_reg16(char *dest, int reg, long offset)
 
 int taint_copy_push_mem16(char *dest, char *mrm, long offset)
 {
+	if ( !is_memop(mrm) )
+		return taint_copy_push_reg16(dest, mrm[0]&0x7, offset);
+
 	memcpy(dest, "\x66\x0f\xc4", 3); /* pinsrw $0, %xmm5, addr */
 	int len = 4+offset_mem(&dest[3], mrm, offset);
 	dest[3] = ( dest[3] &~0x38 ) | ( scratch_reg()<<3 ); 
@@ -493,6 +502,9 @@ int taint_copy_pop_reg16(char *dest, int reg, long offset)
 
 int taint_copy_pop_mem16(char *dest, char *mrm, long offset)
 {
+	if ( !is_memop(mrm) )
+		return taint_copy_pop_reg16(dest, mrm[0]&0x7, offset);
+
 	memcpy(dest,"\x66\x0f\xc4\xac\x24", 5); /* pinsrw $0x0, %xmm5, addr   */
 	imm_to(&dest[5], offset);
 	dest[9] = 0;

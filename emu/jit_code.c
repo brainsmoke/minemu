@@ -8,6 +8,7 @@
 #include "error.h"
 #include "taint.h"
 #include "debug.h"
+#include "mm.h"
 
 #define TAINT                  (0x80)
 #define TAINT_MASK           (~(TAINT-1))
@@ -107,7 +108,8 @@ union
 	struct { int (*f)(char *, long);         int (*f16)(char *, long);         } off;
 	struct { int (*f)(char *);               int (*f16)(char *);               } impl;
 	struct { int (*f)(char *, long, long);   int (*f16)(char *, long, long);   } addr;
-} taint_handlers[] =
+}
+	taint_ops[] =
 {
 	[TAINT_OR_MEM_TO_REG].mrm =        { .f = taint_or_mem32_to_reg32,   .f16 = taint_or_mem16_to_reg16   },
 	[TAINT_OR_REG_TO_MEM].mrm =        { .f = taint_or_reg32_to_mem32,   .f16 = taint_or_reg16_to_mem16   },
@@ -786,8 +788,38 @@ static int copy_instr(char *dest, instr_t *instr, trans_t *trans)
 
 static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 {
-	int len = 0;
-	return len+copy_instr(&dest[len], instr, trans);
+	int len = 0, act = jit_action[instr->op]^TAINT, op16 = (instr->p[3] == 0x66);
+
+	if (instr->p[2]) /* we don't do segments (yet?) */
+		return copy_instr(dest, instr, trans);
+
+	if (TAINT_MRM_OP(act))
+		len = (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
+		      (dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+
+	else if (TAINT_REG_OFF_OP( act ))
+		len = (op16 && taint_ops[act].reg_off.f16 ? taint_ops[act].reg_off.f16 : taint_ops[act].reg_off.f)
+		      (dest, (instr->addr[instr->mrm-1]>>3)&7, TAINT_OFFSET);
+
+	else if (TAINT_REG_OP( act ))
+		len = (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
+		      (dest, (instr->addr[instr->mrm-1]>>3)&7);
+
+	else if (TAINT_OFF_OP( act ))
+		len = (op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
+		      (dest, TAINT_OFFSET);
+
+	else if (TAINT_IMPL_OP( act ))
+		len = (op16 && taint_ops[act].impl.f16 ? taint_ops[act].impl.f16 : taint_ops[act].impl.f)
+		      (dest);
+
+	else if (TAINT_ADDR_OP( act ))
+		len = (op16 && taint_ops[act].addr.f16 ? taint_ops[act].addr.f16 : taint_ops[act].addr.f)
+		      (dest, *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
+
+	len += copy_instr(&dest[len], instr, trans);
+	*trans = (trans_t){ .len = len };
+	return len;
 }
 
 static void translate_control(char *dest, instr_t *instr, trans_t *trans,
