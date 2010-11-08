@@ -568,8 +568,9 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 	/* XXX FUGLY translated address is inserted by caller since we don't know
 	 * yet how long the instruction translation will be
 	 */
-	return gen_code(
-		dest,
+	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+	int len = len_taint+gen_code(
+		&dest[len_taint],
 
 		"68 L"                /* push $retaddr */
 		"C7 05 L L"           /* movl $addr, jmp_list.addr[HASH_INDEX(addr)] */
@@ -579,6 +580,8 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 		&jmp_list.addr[hash],       &instr->addr[instr->len],
 		&jmp_list.jit_addr[hash],   retaddr_index
 	);
+	*retaddr_index += len_taint;
+	return len;
 }
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
@@ -593,8 +596,9 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	 * proposed fix: scan memory for call instructions upon relocation,
 	 * change the address in-place
 	 */
-	int len = gen_code(
-		dest,
+	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+	int len = len_taint+gen_code(
+		&dest[len_taint],
 
 		"A3 L"                /* mov %eax, scratch_stack-4 */
 		"? 8B &$"             /* mov ... ( -> %eax )       */
@@ -609,9 +613,9 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 		&jmp_list.jit_addr[hash],   &retaddr_index
 	);
 
-	dest[mrm] &= 0xC7; /* -> %eax */
+	dest[len_taint+mrm] &= 0xC7; /* -> %eax */
 	len += generate_ijump_tail(&dest[len], &cache[0], &cache[1]);
-	imm_to(&dest[retaddr_index], ((long)dest)+len);
+	imm_to(&dest[len_taint+retaddr_index], ((long)dest)+len);
 	*trans = (trans_t){ .len = len };
 	return len;
 }
