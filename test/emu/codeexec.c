@@ -64,8 +64,8 @@ void codeexec(char *input, int input_sz, long *regs)
 	int sz = ( (max_len-1)|0xfff ) + 1;
 	int i;
 	char *code = get_rwmem(sz), *p=code;
-	func_t func;
-    *(char **)(&func) = code;
+	func_t func; long intermediate = (long)code;
+    func = (func_t)intermediate;
 
 
 	p = add_swap_flags(p, regs);

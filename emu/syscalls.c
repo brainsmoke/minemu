@@ -74,9 +74,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
  		case __NR_signal:
 		{
-			kernel_sighandler_t handler;
-			*(long*)&handler = arg2;
-			ret = (long)user_signal(arg1, handler);
+			ret = (long)user_signal(arg1, (kernel_sighandler_t)arg2);
 			break;
 		}
  		case __NR_sigaction:

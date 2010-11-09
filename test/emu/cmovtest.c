@@ -39,8 +39,8 @@ typedef long (*func_t)(long flags, long orig, long condval);
 long test_cmovcc(int cond, long flags, long orig, long condval)
 {
 	char *code = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-	func_t func;
-	*(char **)(&func) = code;
+	long intermediate = (long)code;
+	func_t func = (func_t) intermediate;
 	gen_code(
 		code,
 
