@@ -6,7 +6,7 @@
 #include "scratch.h"
 #include "runtime.h"
 #include "error.h"
-#include "taint.h"
+#include "taint_code.h"
 #include "debug.h"
 #include "mm.h"
 

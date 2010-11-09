@@ -1,5 +1,6 @@
 
 #include <linux/unistd.h>
+#include <string.h>
 
 #include "scratch.h"
 #include "runtime.h"
@@ -9,6 +10,7 @@
 #include "syscalls.h"
 #include "sigwrap.h"
 #include "exec.h"
+
 
 long syscall_emu(long call, long arg1, long arg2, long arg3,
                             long arg4, long arg5, long arg6)
@@ -20,7 +22,6 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 */
 
 	long ret;
-
 	switch (call)
 	{
  		case __NR_brk:
@@ -33,17 +34,21 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 		case __NR_sigreturn:
  		case __NR_rt_sigaction:
 		case __NR_rt_sigreturn:
-
 		case __NR_execve:
 			break;
+
+		case __NR_read:
+			ret = syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
+//			if (ret > 0)
+//				memset( (char *)(arg2+TAINT_OFFSET), 0xFF, ret);
+			return ret;
 		case __NR_vfork:
 			call = __NR_fork;
 		default:
 			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 	}
 
-	long ret = call;
-
+	ret = call;
 	if (!try_block_signals())
 		return ret; /* we have a signal in progress, revert to pre-syscall state */
 

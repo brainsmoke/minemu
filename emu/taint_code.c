@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "taint.h"
+#include "taint_code.h"
 
 #include "error.h"
 //#include "opcodes.h"

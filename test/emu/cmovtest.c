@@ -7,7 +7,7 @@
 
 #include "debug.h"
 #include "error.h"
-#include "taint.h"
+#include "taint_code.h"
 #include "opcodes.h"
 #include "jit_code.h"
 

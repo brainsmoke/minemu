@@ -1,5 +1,5 @@
-#ifndef TAINT_H
-#define TAINT_H
+#ifndef TAINT_CODE_H
+#define TAINT_CODE_H
 
 /* all tainting is done pre-op */
 
@@ -140,5 +140,5 @@ int taint_enter16(char *dest, long offset);
 int taint_lea(char *dest, char *mrm, long offset);
 
 
-#endif /* TAINT_H */
+#endif /* TAINT_CODE_H */
 

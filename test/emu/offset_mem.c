@@ -8,7 +8,7 @@
 #include "debug.h"
 #include "codeexec.h"
 #include "opcodes.h"
-#include "taint.h"
+#include "taint_code.h"
 
 long taint_tmp[1];
 

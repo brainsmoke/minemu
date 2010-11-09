@@ -140,18 +140,18 @@ temu: emu/mm.ld emu/temu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
 test/emu/shellcode: test/emu/shellcode.o test/emu/debug.o test/emu/codeexec.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o emu/taint.o
+test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o emu/taint_code.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o emu/taint.o test/emu/debug.o
+test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o emu/taint_code.o test/emu/debug.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/taint_test2: test/emu/taint_test2.o emu/taint.o emu/debug.o emu/error.o emu/lib.o emu/syscalls_asm.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint.o
+test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint.o
+test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
