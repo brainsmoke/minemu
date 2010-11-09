@@ -708,7 +708,7 @@ static int generate_jcc(char *dest, char *jmp_addr, int cond, trans_t *trans,
 		int stub_len = generate_cross_map_jump(&dest[2], jmp_addr, trans);
 		trans->len = stub_len+2;
 		dest[0] = '\x70'+ (cond^1); /* j!cc over( jmp *mem ) */
-		dest[1] = '\x06'+stub_len;
+		dest[1] = stub_len;
 		return trans->len;
 	}
 }
