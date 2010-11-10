@@ -13,14 +13,6 @@
 
 typedef struct
 {
-	char *addr, *jit_addr;
-
-} jmp_map_t;
-
-extern jmp_map_t jmp_cache[JMP_CACHE_SIZE];
-
-typedef struct
-{
 	char *addr[JMP_LIST_SIZE];
 	char *jit_addr[JMP_LIST_SIZE];
 

@@ -385,7 +385,8 @@ static char *jit_map_resize(code_map_t *map, unsigned long new_len)
 	//char *new_addr = jit_realloc(map->jit_addr, new_len);
 
 	if ( (map->jit_addr) && (new_addr != map->jit_addr) )
-		move_jmp_mappings(map->jit_addr, map->jit_len, new_addr);
+		die("jmp mapping resize is not supported");
+//		move_jmp_mappings(map->jit_addr, map->jit_len, new_addr);
 
 	map->jit_addr = new_addr;
 	map->jit_len = new_len;
