@@ -25,6 +25,36 @@ push $jit_eip              # jump to jit translated code
 jmp runtime_ijmp
 
 
+taint_fault:
+int $3
+
+.global XXX_TEMP
+.type XXX_TEMP, @function
+XXX_TEMP:
+mov %esp, scratch_stack
+mov $scratch_stack-4, %esp
+pushf
+
+#ifdef EMU_DEBUG
+incl ijmp_count
+#endif
+
+ptest  %xmm5, %xmm5
+push   %ecx
+jne,pn taint_fault
+movzwl %ax, %ecx
+cmpl jmp_list(,%ecx,4), %eax
+jne,pn direct_miss
+movl (JMP_LIST_SIZE*4)+jmp_list(, %ecx, 4), %eax
+pop %ecx
+popf
+mov %eax, jit_eip
+pop %eax
+pop %esp
+jmp *jit_eip
+
+direct_miss:
+
 .global runtime_ret
 .type runtime_ret, @function
 runtime_ret:
@@ -34,6 +64,8 @@ incl ret_misses
 pop %ecx
 push $jit_eip
 jmp runtime_ijmp
+
+
 
 #
 # runtime_ijmp() is called from the jit code and has hackish calling

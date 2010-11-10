@@ -451,44 +451,18 @@ int gen_code(char *dst, char *fmt, ...)
 	return j;
 }
 
+static int jump_to(char *dest, char *jmp_addr)
+{
+	dest[0] = '\xe9';
+	long rel32 = (long)jmp_addr - (long)&dest[5];
+	imm_to(&dest[1], rel32);
+	return 5;
+}
+
+extern char XXX_TEMP[];
 static int generate_ijump_tail(char *dest)
 {
-	return gen_code(
-		dest,
-
-		"89 25 L"        /* mov %esp, scratch_stack   */
-		"BC L"           /* mov $scratch_stack-4 %esp */
-		"9C"             /* pushf                     */
-#ifdef EMU_DEBUG
-"FF 04 25 L"             /* incl ret_count            */
-#endif
-		"66 0f 38 17 ed" /* ptest  %xmm5,%xmm5     */
-		"51"             /* push %ecx                 */
-		"2E 75 23"       /* jne, predict fall through */
-		"0F B7 C8"       /* movzx %ax, %ecx           */
-		"3B 04 8D L"     /* cmp &jmp_list.addr[0](,%ecx,4), %eax     */
-		"2E 75 18"       /* jne, predict fall through */
-		"8B 04 8D L"     /* mov &jmp_list.jit_addr[0](,%ecx,4), %eax */
-		"59"             /* pop %ecx                  */
-		"9D"             /* popf                      */
-		"A3 L"           /* mov %eax, jit_eip         */
-		"58"             /* pop %eax                  */
-		"5C"             /* pop %esp                  */
-		"FF 25 L"        /* jmp *j_addr               */
-		"0F 0B"          /* TAINT DETECTED!           */
-		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
-
-		scratch_stack,
-		&scratch_stack[-1],
-#ifdef EMU_DEBUG
-&ret_count,
-#endif
-		&jmp_list.addr[0],
-		&jmp_list.jit_addr[0],
-		&jit_eip,
-		&jit_eip,
-		&runtime_ret_addr
-	);
+	return jump_to(dest, XXX_TEMP);
 }
 
 static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
