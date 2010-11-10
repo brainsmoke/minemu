@@ -547,7 +547,7 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 		&dest[len_taint],
 
 		"68 L"                /* push $retaddr                                        */
-		"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr).addr]     */
+		"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
 		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 		&instr->addr[instr->len],
