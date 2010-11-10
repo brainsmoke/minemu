@@ -479,10 +479,9 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 	return len;
 }
 
-extern char YYY_TEMP[];
 static int generate_ijump_tail(char *dest)
 {
-	return jump_to(dest, runtime_ijmp);
+	return jump_to(dest, (char *)(long)runtime_ijmp);
 }
 
 static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
@@ -504,7 +503,7 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		addr[1] + (addr[2]<<8)
 	);
 
-	len += jump_to(&dest[len], YYY_TEMP);
+	len += jump_to(&dest[len], (char *)(long)runtime_ret_cleanup);
 
 	*trans = (trans_t){ .len=len };
 

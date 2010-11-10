@@ -44,9 +44,9 @@ runtime_ijmp:
 mov %esp, scratch_stack
 mov $scratch_stack-4, %esp
 pushf
-.global YYY_TEMP
-.type YYY_TEMP, @function
-YYY_TEMP:
+.global runtime_ret_cleanup
+.type runtime_ret_cleanup, @function
+runtime_ret_cleanup:
 
 #ifdef EMU_DEBUG
 incl ijmp_count
@@ -76,10 +76,6 @@ runtime_exit_jmpaddr:
 #
 
 direct_miss:
-
-.global runtime_ret
-.type runtime_ret, @function
-runtime_ret:
 #ifdef EMU_DEBUG
 incl ret_misses
 #endif

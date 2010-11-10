@@ -7,7 +7,7 @@ void emu_start(void *eip, long *esp);
 void state_restore(void);
 
 long runtime_ijmp(void);
-long runtime_ret(void);
+long runtime_ret_cleanup(void);
 long jit_fragment_exit(void);
 
 long int80_emu(void);
