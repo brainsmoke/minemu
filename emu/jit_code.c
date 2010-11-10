@@ -672,14 +672,22 @@ int generate_ill(char *dest, trans_t *trans)
 
 static int generate_cmov(char *dest, instr_t *instr, trans_t *trans)
 {
-	int mrm = instr->mrm, len = instr->len;
+	int taint_len = 0, mrm = instr->mrm, len = instr->len;
 	char *addr = instr->addr;
+
+	if (instr->p[2] == 0) /* we don't do segments (yet?) */
+	{
+		if (instr->p[3] == 0x66)
+			taint_len = taint_copy_mem16_to_reg16(&dest[2], &addr[mrm], TAINT_OFFSET);
+		else
+			taint_len = taint_copy_mem32_to_reg32(&dest[2], &addr[mrm], TAINT_OFFSET);
+	}
 	dest[0] = '\x70' + ( (addr[mrm-1]&0xf) ^ 1 );
-	dest[1] = len-1;
-	memcpy(&dest[2], addr, mrm-2);
-	dest[mrm] = '\x8b';
-	memcpy(&dest[mrm+1], &addr[mrm], len-mrm);
-	*trans = (trans_t){ .len = len+1 };
+	dest[1] = taint_len+len-1;
+	memcpy(&dest[2+taint_len], addr, mrm-2);
+	dest[taint_len+mrm] = '\x8b';
+	memcpy(&dest[taint_len+mrm+1], &addr[mrm], len-mrm);
+	*trans = (trans_t){ .len = taint_len+len+1 };
 	return trans->len;
 }
 
