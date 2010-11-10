@@ -44,9 +44,6 @@ static stack_t user_altstack;
 static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
 extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
-            syscall_intr_call_return[],
-            runtime_ijmp_critical_start[], runtime_ijmp_critical_end[],
-            runtime_ijmp_fastpath_start[], runtime_ijmp_fastpath_end[],
             runtime_exit_jmpaddr[];
 
 /* INTERCAL's COME FROM is for wimps :-)
@@ -94,14 +91,12 @@ static void finish_instruction(struct sigcontext *context)
 	{
 		context->eip = (long)syscall_intr_critical_start;
 	}
-	else if ( between(runtime_ijmp_critical_start, runtime_ijmp_critical_end, (char *)context->eip) )
-	{
-		context->eip = (long)runtime_ijmp_critical_start;
-		context->esp = (long)&scratch_stack[-2];
-	}
 
-	long *old_address = set_runtime_exit_addr(&jit_fragment_exit_addr);
+	long *old_address =
+	set_runtime_exit_addr(&jit_fragment_exit_addr);
+
 	jit_fragment_run(context);
+
 	set_runtime_exit_addr(old_address);
 
 	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);

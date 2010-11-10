@@ -57,8 +57,10 @@ push   %ecx
 jne,pn taint_fault
 movzwl %ax, %ecx
 cmpl jmp_list(,%ecx,4), %eax
-jne,pn direct_miss
+jne,pn cache_lookup_loop
 movl (JMP_LIST_SIZE*4)+jmp_list(, %ecx, 4), %eax
+
+jit_return: # %eax contains jump address
 pop %ecx
 popf
 mov %eax, jit_eip
@@ -75,89 +77,59 @@ runtime_exit_jmpaddr:
 #
 #
 
-direct_miss:
+#
+# Processor state:
+#
+# runtime stack: (high to low)
+#
+# scratch_stack - 0: user %esp
+#               - 4: user %eax
+#               - 8: user %eflags
+#               - C: user %ecx     <-- %esp
+# 
+# %eax: user jmp address
+# %ecx: %ax
+#
+cache_lookup_loop:
+
 #ifdef EMU_DEBUG
 incl ijmp_misses
 #endif
-pop %ecx
-push $jit_eip
 
-# look up the jump address in the jmp_list
-push %edi
-push %ecx
-movzx %ax, %ecx                  # jump address & 0xffff -> %ecx
-mov $jmp_list, %edi
-lookup_loop:
-cmpl %eax, (%edi, %ecx, 4)       # jmp_list.addr[%ecx]
-je,pt found
-testl $-1, (%edi, %ecx, 4)
+inc %cx                          # %ecx = (%ecx+1) % 0x10000 (next cache entry)
+cmpl %eax, jmp_list(, %ecx, 4)   # jmp_list.addr[%ecx]
+je,pt cache_hit
+testl $-1, jmp_list(, %ecx, 4)   # jmp_list.addr[%ecx]
 jz,pn cache_miss
-inc %cx                          # %ecx = (%ecx+1) % 0x10000
 cmp %ax, %cx
-je,pn cache_miss
+jne,pt cache_lookup_loop
 
-jmp lookup_loop
-
-found:
-# address found in jmp_list,
-# look up the mapping in the corresponding
-# jit_address list
-movl (JMP_LIST_SIZE*4)(%edi, %ecx, 4), %eax
-
-# - save jit_address in cache
-# - restore register state
-# - jump to jit_address
-jit_return:
-mov 8(%esp), %edi
-pop %ecx
-mov %eax, (%edi)
-pop %edi
-addl $4, %esp
-mov %eax, jit_eip
-
-.global runtime_ijmp_critical_start
-runtime_ijmp_critical_start:
-testl $-1, jit_fragment_running
-jnz interrupted
-popf
-pop %eax
-pop %esp
-.global runtime_ijmp_critical_end
-runtime_ijmp_critical_end:
-jmp *jit_eip
-
-interrupted:
-popf
-pop %eax
-pop %esp
-jmp jit_fragment_exit
+cache_hit:
+movl (JMP_LIST_SIZE*4)+jmp_list(, %ecx, 4), %eax
+jmp jit_return
 
 # address not found in jmp_list
+#
+# Processor state:
+#
+# %ecx: clobbered
+#
 cache_miss:
 push %edx
 push %ebx
 
 push %eax            # addr
-push %eax            # addr (function argument)
-call jit_lookup_addr
-addl $4, %esp        # pop function argument (undefined value)
+push %eax            # addr
+call jit_lookup_addr # (char *addr);
+lea 4(%esp), %esp
 test %eax, %eax      # jit_addr or NULL
 jnz lookup_hit
 
 # the code we're looking for has not been translated yet
-push (%esp)
-call runtime_jit
-addl $4, %esp
+call runtime_jit     # (char *addr);
 
 lookup_hit:
-pop %edx             # addr
-push %eax            # jit_addr
-push %eax            # jit_addr
-push %edx            # addr
-call add_jmp_mapping
-addl $8, %esp        # unsafe jit_addr, addr
-pop %eax             # addr
-
+lea 4(%esp), %esp
 pop %ebx
 pop %edx
 jmp jit_return
