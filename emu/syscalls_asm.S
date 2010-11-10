@@ -125,7 +125,7 @@ push %edi
 syscall_intr_critical_start:
 movb $1, jit_fragment_restartsys
 testb $1, jit_fragment_running
-jnz syscall_intr_call_return
+jnz return
 movl  8(%ebp),%eax
 movl 12(%ebp),%ebx
 movl 16(%ebp),%ecx
@@ -136,8 +136,7 @@ movl 32(%ebp),%ebp
 .global syscall_intr_critical_end
 syscall_intr_critical_end:
 int $0x80
-.global syscall_intr_call_return
-syscall_intr_call_return:
+return:
 pop %edi
 pop %esi
 pop %ebx
