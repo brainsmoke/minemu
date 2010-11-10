@@ -27,8 +27,8 @@
 .lcomm fault_page_3, 4096
 .global fault_page_3
 
-.lcomm jmp_list, JMP_LIST_MEM_SIZE
-.global jmp_list
+.lcomm jmp_cache, JMP_CACHE_MEM_SIZE
+.global jmp_cache
 
 .global scratch_xmm5
 .lcomm scratch_xmm5, 16
@@ -41,8 +41,8 @@
 .lcomm taint_tmp, 4
 
 
-.lcomm jmp_list_size, 4
-.global jmp_list_size
+.lcomm jmp_cache_size, 4
+.global jmp_cache_size
 
 .lcomm jit_fragment_running, 4
 .global jit_fragment_running

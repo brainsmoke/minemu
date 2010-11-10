@@ -56,9 +56,9 @@ ptest  %xmm5, %xmm5
 push   %ecx
 jne,pn taint_fault
 movzwl %ax, %ecx
-cmpl jmp_list(,%ecx,4), %eax
+cmpl jmp_cache(,%ecx,4), %eax
 jne,pn cache_lookup_loop
-movl (JMP_LIST_SIZE*4)+jmp_list(, %ecx, 4), %eax
+movl (JMP_CACHE_SIZE*4)+jmp_cache(, %ecx, 4), %eax
 
 jit_return: # %eax contains jump address
 pop %ecx
@@ -97,18 +97,18 @@ incl ijmp_misses
 #endif
 
 inc %cx                          # %ecx = (%ecx+1) % 0x10000 (next cache entry)
-cmpl %eax, jmp_list(, %ecx, 4)   # jmp_list.addr[%ecx]
+cmpl %eax, jmp_cache(, %ecx, 4)   # jmp_cache.addr[%ecx]
 je,pt cache_hit
-testl $-1, jmp_list(, %ecx, 4)   # jmp_list.addr[%ecx]
+testl $-1, jmp_cache(, %ecx, 4)   # jmp_cache.addr[%ecx]
 jz,pn cache_miss
 cmp %ax, %cx
 jne,pt cache_lookup_loop
 
 cache_hit:
-movl (JMP_LIST_SIZE*4)+jmp_list(, %ecx, 4), %eax
+movl (JMP_CACHE_SIZE*4)+jmp_cache(, %ecx, 4), %eax
 jmp jit_return
 
-# address not found in jmp_list
+# address not found in jmp_cache
 #
 # Processor state:
 #

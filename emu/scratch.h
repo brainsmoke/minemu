@@ -2,25 +2,20 @@
 #define SCRATCH_H
 
 #define JMP_CACHE_SIZE (65536)
-#define JMP_LIST_SIZE (65536)
-#define N_SYSCALL_HOOKS (400)
-#define EMU_BIT (0x01)
-
 #define JMP_CACHE_MEM_SIZE (JMP_CACHE_SIZE*8)
-#define JMP_LIST_MEM_SIZE (JMP_LIST_SIZE*8)
 
 #ifndef __ASSEMBLER__
 
 typedef struct
 {
-	char *addr[JMP_LIST_SIZE];
-	char *jit_addr[JMP_LIST_SIZE];
+	char *addr[JMP_CACHE_SIZE];
+	char *jit_addr[JMP_CACHE_SIZE];
 
-} jmp_list_t;
+} jmp_cache_t;
 
-extern jmp_list_t jmp_list;
+extern jmp_cache_t jmp_cache;
 
-extern unsigned long jmp_list_size;
+extern unsigned long jmp_cache_size;
 
 extern unsigned long sigwrap_stack[];
 extern unsigned long sigwrap_stack_bottom[];
