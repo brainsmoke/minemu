@@ -4,6 +4,8 @@
 #include "jmpcache.h"
 #include "scratch.h"
 
+#define HASH_OFFSET(i, addr) (((unsigned long)(i)-(unsigned long)(addr))&0xfffful)
+
 /* jump tables */
 
 void add_jmp_mapping(char *addr, char *jit_addr)
