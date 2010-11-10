@@ -30,12 +30,11 @@ int fd_printf(int fd, const char *format, ...)
 }
 
 /* make symbols resolve */
-void runtime_ijmp_addr(void) { die("calling placeholder"); }
-void runtime_ret_addr(void) { die("calling placeholder"); }
-void alloc_stub_cache(void) { die("calling placeholder"); }
-void alloc_jmp_cache(void) { die("calling placeholder"); }
-void int80_emu_addr(void) { die("calling placeholder"); }
-void linux_sysenter_emu_addr(void) { die("calling placeholder"); }
+void runtime_ijmp(void) { die("calling placeholder"); }
+void runtime_ret_cleanup(void) { die("calling placeholder"); }
+void int80_emu(void) { die("calling placeholder"); }
+void linux_sysenter_emu(void) { die("calling placeholder"); }
+void jit_fragment_exit(void) { die("calling placeholder"); }
 
 char *tests[] =
 {
