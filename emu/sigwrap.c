@@ -44,7 +44,8 @@ static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
 extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
             syscall_intr_call_return[],
-            runtime_ijmp_critical_start[], runtime_ijmp_critical_end[];
+            runtime_ijmp_critical_start[], runtime_ijmp_critical_end[],
+            runtime_ijmp_fastpath_start[], runtime_ijmp_fastpath_end[];
 
 /* INTERCAL's COME FROM is for wimps :-)
  *
@@ -54,6 +55,18 @@ static void finish_instruction(struct sigcontext *context)
 {
 	char *orig_eip, *jit_op_start;
 	long jit_op_len;
+
+	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
+	{
+		if ( (char *)context->eip == jit_op_start ) /* we don't have to do anything */
+		{
+			context->eip = (long)orig_eip; /* set return instruction pointer to user eip */
+			return;
+		}
+		/* jit the jit! */
+		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
+		jit_fragment_run(context);
+	}
 
 	if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, (char *)context->eip) )
 	{
@@ -66,21 +79,15 @@ static void finish_instruction(struct sigcontext *context)
 			context->eip = (long)runtime_ijmp_critical_start;
 			context->esp = (long)&scratch_stack[-2];
 		}
-	}
-	else if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
-	{
-		if ( (char *)context->eip == jit_op_start ) /* we don't have to do anything */
+		else if ( between(runtime_ijmp_fastpath_start, runtime_ijmp_fastpath_end, (char *)context->eip) )
 		{
-			context->eip = (long)orig_eip; /* set return instruction pointer to user eip */
-			return;
+			/* jit the runtime! */
+			context->eip = (long)jit_fragment(runtime_ijmp_fastpath_start,
+			                                  runtime_ijmp_fastpath_end-runtime_ijmp_fastpath_start,
+			                                  (char *)context->eip);
 		}
-		/* jit the jit! */
-		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
+		jit_fragment_run(context);
 	}
-	else
-		die("instruction pointer (%x) not in jit code, nor in runtime code", context->eip);
-
-	jit_fragment_run(context);
 
 	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
 	if ( (char *)context->eip != jit_op_start )

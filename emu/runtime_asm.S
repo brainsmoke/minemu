@@ -24,6 +24,8 @@ push %ebx                  # cleared %eflags
 push $jit_eip              # jump to jit translated code
 jmp runtime_ijmp
 
+.global runtime_ijmp_fastpath_start
+runtime_ijmp_fastpath_start:
 
 taint_fault:
 int $3
@@ -55,6 +57,9 @@ mov %eax, jit_eip
 pop %eax
 pop %esp
 jmp *jit_eip
+.global runtime_ijmp_fastpath_end
+runtime_ijmp_fastpath_end:
+nop
 
 direct_miss:
 
