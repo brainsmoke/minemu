@@ -15,7 +15,7 @@
  * switches back after that instruction is done.
  */
 
-static long jit_fragment_jump_relative(char *dest, instr_t *instr, char *jump_jit_addr)
+static long jit_fragment_jcc(char *dest, instr_t *instr, char *jump_jit_addr)
 {
 	return gen_code(
 		dest,
@@ -27,7 +27,7 @@ static long jit_fragment_jump_relative(char *dest, instr_t *instr, char *jump_ji
 	);
 }
 
-static long jit_fragment_jump_relative_exit(char *dest, instr_t *instr, char *jump_addr)
+static long jit_fragment_jcc_exit(char *dest, instr_t *instr, char *jump_addr)
 {
 	int len = gen_code(
 		dest,
@@ -58,26 +58,6 @@ static long jit_fragment_jump_exit(char *dest, char *jump_addr)
 	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }
 
-static long jit_fragment_jump_indirect_exit(char *dest, instr_t *instr)
-{
-	long i;
-	int len = gen_code(
-		dest,
-
-		"A3 L"                                  /* movl %eax, jit_fragment_scratch     */
-		"? 8B &$"                               /* movl (seg:)?mem, %eax               */
-		"A3 L"                                  /* movl %eax, jit_eip                  */
-		"A1 L",                                 /* movl jit_fragment_scratch, %eax     */
-
-		&jit_fragment_scratch,    
-		instr->p[2], &i, &instr->addr[instr->mrm], instr->len-instr->mrm,
-		&jit_eip,
-		&jit_fragment_scratch
-	);
-	dest[i] &= 0xC7;
-	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);;
-}
-
 static long jit_fragment_control(char *dest, instr_t *instr,
                                  char *addr, unsigned long len,
                                  char *mapping[])
@@ -90,12 +70,9 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 	{
 		case JUMP_CONDITIONAL:
 			if ( contains(addr, len+1, jump_addr) )
-				return jit_fragment_jump_relative(dest, instr, mapping[jump_addr-addr]);
-			else if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, jump_addr) &&
-			          contains(runtime_code_start, RUNTIME_CODE_SIZE, pc) )
-				return jit_fragment_jump(dest, jump_addr);
+				return jit_fragment_jcc(dest, instr, mapping[jump_addr-addr]);
 			else
-				return jit_fragment_jump_relative_exit(dest, instr, jump_addr);
+				return jit_fragment_jcc_exit(dest, instr, jump_addr);
 
 		case LOOP: /* loops */
 			off = gen_code(
@@ -119,17 +96,14 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 		case JUMP_RELATIVE:
 			if ( contains(addr, len+1, jump_addr) )
 				return jit_fragment_jump(dest, mapping[jump_addr-addr]);
-			else if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, jump_addr) &&
-			          contains(runtime_code_start, RUNTIME_CODE_SIZE, pc) )
+			else if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, jump_addr) )
 				return jit_fragment_jump(dest, jump_addr);
 			else
 				return jit_fragment_jump_exit(dest, jump_addr);
 
-		case JUMP_INDIRECT:
-			/* this is: jmp *jit_eip */
-			return jit_fragment_jump_indirect_exit(dest, instr);
 		case CALL_RELATIVE: /* unimplemented, not needed, (not used by code generation) */
 		case CALL_INDIRECT:
+		case JUMP_INDIRECT:
 		case JUMP_FAR:
 		case JOIN:
 		case RETURN:

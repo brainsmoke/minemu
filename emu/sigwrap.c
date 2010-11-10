@@ -10,6 +10,7 @@
 #include "mm.h"
 #include "lib.h"
 #include "jit.h"
+#include "jit_code.h"
 #include "jit_fragment.h"
 #include "debug.h"
 
@@ -45,11 +46,34 @@ static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
             syscall_intr_call_return[],
             runtime_ijmp_critical_start[], runtime_ijmp_critical_end[],
-            runtime_ijmp_fastpath_start[], runtime_ijmp_fastpath_end[];
+            runtime_ijmp_fastpath_start[], runtime_ijmp_fastpath_end[],
+            runtime_exit_jmpaddr[];
 
 /* INTERCAL's COME FROM is for wimps :-)
  *
  */
+
+/* self-modifying code, UGLY UGLY UGLY NASTYNASTYNASTY :-( */
+long *set_runtime_exit_addr(long *ijmp_addr)
+{
+	char *write_addr = runtime_exit_jmpaddr-sizeof(long);
+
+	long base = PAGE_BASE(write_addr);
+	long len = PAGE_NEXT(&write_addr[sizeof(long)])-base;
+
+    if ( sys_mprotect(base, len, PROT_READ|PROT_WRITE|PROT_EXEC) & PG_MASK)
+		die("set_runtime_exit failed");
+
+	long *old_addr = (long *)imm_at(write_addr, sizeof(long));
+	imm_to(write_addr, (long)ijmp_addr);
+
+    if ( sys_mprotect(base, len, PROT_READ|PROT_EXEC) & PG_MASK)
+		die("set_runtime_exit failed");
+
+	return old_addr;
+}
+
+long jit_fragment_exit_addr = (long)jit_fragment_exit;
 
 static void finish_instruction(struct sigcontext *context)
 {
@@ -65,29 +89,20 @@ static void finish_instruction(struct sigcontext *context)
 		}
 		/* jit the jit! */
 		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
-		jit_fragment_run(context);
+	}
+	else if ( between(syscall_intr_critical_start, syscall_intr_critical_end, (char *)context->eip) )
+	{
+		context->eip = (long)syscall_intr_critical_start;
+	}
+	else if ( between(runtime_ijmp_critical_start, runtime_ijmp_critical_end, (char *)context->eip) )
+	{
+		context->eip = (long)runtime_ijmp_critical_start;
+		context->esp = (long)&scratch_stack[-2];
 	}
 
-	if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, (char *)context->eip) )
-	{
-		if ( between(syscall_intr_critical_start, syscall_intr_critical_end, (char *)context->eip) )
-		{
-			context->eip = (long)syscall_intr_critical_start;
-		}
-		else if ( between(runtime_ijmp_critical_start, runtime_ijmp_critical_end, (char *)context->eip) )
-		{
-			context->eip = (long)runtime_ijmp_critical_start;
-			context->esp = (long)&scratch_stack[-2];
-		}
-		else if ( between(runtime_ijmp_fastpath_start, runtime_ijmp_fastpath_end, (char *)context->eip) )
-		{
-			/* jit the runtime! */
-			context->eip = (long)jit_fragment(runtime_ijmp_fastpath_start,
-			                                  runtime_ijmp_fastpath_end-runtime_ijmp_fastpath_start,
-			                                  (char *)context->eip);
-		}
-		jit_fragment_run(context);
-	}
+	long *old_address = set_runtime_exit_addr(&jit_fragment_exit_addr);
+	jit_fragment_run(context);
+	set_runtime_exit_addr(old_address);
 
 	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
 	if ( (char *)context->eip != jit_op_start )

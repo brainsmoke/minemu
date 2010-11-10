@@ -24,9 +24,6 @@ xor %edi, %edi
 movl %ecx, scratch_stack-4   # cleared eax
 jmp XXX_TEMP
 
-.global runtime_ijmp_fastpath_start
-runtime_ijmp_fastpath_start:
-
 taint_fault:
 int $3
 
@@ -56,10 +53,11 @@ popf
 mov %eax, jit_eip
 pop %eax
 pop %esp
-jmp *jit_eip
-.global runtime_ijmp_fastpath_end
-runtime_ijmp_fastpath_end:
-nop
+
+jmp *jit_eip            #  self-modifying code replaces this for jit_fragment and back
+                        #  in case of a signal (*UGLY*)
+.global runtime_exit_jmpaddr
+runtime_exit_jmpaddr:
 
 direct_miss:
 
