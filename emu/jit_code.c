@@ -546,13 +546,13 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
-		"68 L"                /* push $retaddr */
-		"C7 05 L L"           /* movl $addr, jmp_cache.addr[HASH_INDEX(addr)] */
-		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache.jit_addr[HASH_INDEX(addr)] */
+		"68 L"                /* push $retaddr                                        */
+		"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr).addr]     */
+		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 		&instr->addr[instr->len],
-		&jmp_cache.addr[hash],       &instr->addr[instr->len],
-		&jmp_cache.jit_addr[hash],   retaddr_index
+		&jmp_cache[hash].addr,       &instr->addr[instr->len],
+		&jmp_cache[hash].jit_addr,   retaddr_index
 	);
 	*retaddr_index += len_taint;
 	return len;
@@ -573,17 +573,17 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
-		"A3 L"                /* mov %eax, scratch_stack-4 */
-		"? 8B &$"             /* mov ... ( -> %eax )       */
-		"68 L"                /* push $retaddr */
-		"C7 05 L L"           /* movl $addr, jmp_cache.addr[HASH_INDEX(addr)] */
-		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache.jit_addr[HASH_INDEX(addr)] */
+		"A3 L"                /* mov %eax, scratch_stack-4                            */
+		"? 8B &$"             /* mov ... ( -> %eax )                                  */
+		"68 L"                /* push $retaddr                                        */
+		"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
+		"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 		&scratch_stack[-1],
 		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 		&instr->addr[instr->len],
-		&jmp_cache.addr[hash],       &instr->addr[instr->len],
-		&jmp_cache.jit_addr[hash],   &retaddr_index
+		&jmp_cache[hash].addr,       &instr->addr[instr->len],
+		&jmp_cache[hash].jit_addr,   &retaddr_index
 	);
 
 	dest[len_taint+mrm] &= 0xC7; /* -> %eax */

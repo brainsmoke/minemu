@@ -40,10 +40,6 @@
 .global taint_tmp
 .lcomm taint_tmp, 4
 
-
-.lcomm jmp_cache_size, 4
-.global jmp_cache_size
-
 .lcomm jit_fragment_running, 4
 .global jit_fragment_running
 .lcomm jit_fragment_restartsys, 4

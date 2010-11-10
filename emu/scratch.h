@@ -8,14 +8,12 @@
 
 typedef struct
 {
-	char *addr[JMP_CACHE_SIZE];
-	char *jit_addr[JMP_CACHE_SIZE];
+	char *addr;
+	char *jit_addr;
 
-} jmp_cache_t;
+} jmp_map_t;
 
-extern jmp_cache_t jmp_cache;
-
-extern unsigned long jmp_cache_size;
+extern jmp_map_t jmp_cache[JMP_CACHE_SIZE];
 
 extern unsigned long sigwrap_stack[];
 extern unsigned long sigwrap_stack_bottom[];
