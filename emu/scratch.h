@@ -37,8 +37,6 @@ extern long sysenter_reentry;
 
 #ifdef EMU_DEBUG
 extern char *last_jit;
-extern long ret_misses;
-extern long ret_count;
 extern long ijmp_misses;
 extern long ijmp_count;
 #endif

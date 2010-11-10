@@ -77,7 +77,7 @@ runtime_exit_jmpaddr:
 
 direct_miss:
 #ifdef EMU_DEBUG
-incl ret_misses
+incl ijmp_misses
 #endif
 pop %ecx
 push $jit_eip

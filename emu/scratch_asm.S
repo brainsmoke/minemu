@@ -63,10 +63,6 @@
 .lcomm sysenter_reentry, 4
 .global sysenter_reentry
 #ifdef EMU_DEBUG
-.lcomm ret_misses, 4
-.global ret_misses
-.lcomm ret_count, 4
-.global ret_count
 .lcomm ijmp_misses, 4
 .global ijmp_misses
 .lcomm ijmp_count, 4

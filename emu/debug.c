@@ -270,7 +270,7 @@ void printhex_diff(const void *data1, ssize_t len1,
 #ifdef EMU_DEBUG
 void print_debug_data(void)
 {
-	debug("counts/misses ijmp: %u/%u ret: %u/%u", ijmp_count, ijmp_misses, ret_count, ret_misses);
+	debug("counts/misses ijmp: %u/%u", ijmp_count, ijmp_misses);
 }
 #endif
 
