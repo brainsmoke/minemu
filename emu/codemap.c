@@ -4,7 +4,7 @@
 
 #include "jit.h"
 #include "error.h"
-#include "jmpcache.h"
+#include "jmp_cache.h"
 #include "codemap.h"
 #include "runtime.h"
 

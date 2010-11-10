@@ -8,7 +8,7 @@
 #include "jit.h"
 #include "jitmm.h"
 #include "codemap.h"
-#include "jmpcache.h"
+#include "jmp_cache.h"
 #include "opcodes.h"
 #include "jit_code.h"
 #include "error.h"

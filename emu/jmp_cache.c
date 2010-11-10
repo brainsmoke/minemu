@@ -1,7 +1,7 @@
 
 #include "lib.h"
 #include "error.h"
-#include "jmpcache.h"
+#include "jmp_cache.h"
 #include "scratch.h"
 
 #define HASH_OFFSET(i, addr) (((unsigned long)(i)-(unsigned long)(addr))&0xfffful)

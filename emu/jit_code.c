@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "jit_code.h"
-#include "jmpcache.h"
+#include "jmp_cache.h"
 #include "scratch.h"
 #include "runtime.h"
 #include "error.h"

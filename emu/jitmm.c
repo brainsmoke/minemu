@@ -6,7 +6,7 @@
 
 #include "jit.h"
 #include "codemap.h"
-#include "jmpcache.h"
+#include "jmp_cache.h"
 #include "opcodes.h"
 #include "error.h"
 #include "runtime.h"
