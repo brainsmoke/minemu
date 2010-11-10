@@ -22,14 +22,25 @@ xor %ebp, %ebp
 xor %esi, %esi
 xor %edi, %edi
 movl %ecx, scratch_stack-4   # cleared eax
-jmp XXX_TEMP
+jmp runtime_ijmp
 
 taint_fault:
 int $3
 
-.global XXX_TEMP
-.type XXX_TEMP, @function
-XXX_TEMP:
+#
+# RET / ICALL / IJMP FAST PATH:
+#
+# runtime_ijmp() is called from the jit code
+#
+# processor state is the same as the processor state
+# would be for the user process except that %eax
+# contains the jump address and that the original
+# eax is stored at scratch_stack-4
+#
+.global runtime_ijmp
+.type runtime_ijmp, @function
+runtime_ijmp:
+
 mov %esp, scratch_stack
 mov $scratch_stack-4, %esp
 pushf
@@ -59,6 +70,11 @@ jmp *jit_eip            #  self-modifying code replaces this for jit_fragment an
 .global runtime_exit_jmpaddr
 runtime_exit_jmpaddr:
 
+#
+# END FAST PATH
+#
+#
+
 direct_miss:
 
 .global runtime_ret
@@ -69,31 +85,7 @@ incl ret_misses
 #endif
 pop %ecx
 push $jit_eip
-jmp runtime_ijmp
 
-
-
-#
-# runtime_ijmp() is called from the jit code and has hackish calling
-# conventions, optimized for small jit code and speed:
-#
-# Values on the stack (in push order)
-#
-# - original stack pointer
-# - original %eax
-# - flags
-# - cache address where the jit address ought to be stored
-#
-# %eax contains user jump address
-#
-# all other registers should be preserved
-#
-# outcome of this routine is a resored state and a jump to the
-# right jit code.
-
-.global runtime_ijmp
-.type runtime_ijmp, @function
-runtime_ijmp:
 # look up the jump address in the jmp_list
 push %edi
 push %ecx
@@ -221,7 +213,7 @@ call runtime_syscall
 pop %esp
 movl %eax, scratch_stack-4
 movl user_eip, %eax
-jmp XXX_TEMP
+jmp runtime_ijmp
 
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
@@ -233,12 +225,12 @@ call runtime_syscall
 pop %esp
 movl %eax, scratch_stack-4
 movl sysenter_reentry, %eax
-jmp XXX_TEMP
+jmp runtime_ijmp
 
 .global state_restore
 .type state_restore, @function
 state_restore:
 movl %eax, scratch_stack-4
 movl user_eip, %eax
-jmp XXX_TEMP
+jmp runtime_ijmp
 

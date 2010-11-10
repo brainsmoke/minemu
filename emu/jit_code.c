@@ -479,11 +479,10 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 	return len;
 }
 
-extern char XXX_TEMP[];
 extern char YYY_TEMP[];
 static int generate_ijump_tail(char *dest)
 {
-	return jump_to(dest, XXX_TEMP);
+	return jump_to(dest, runtime_ijmp);
 }
 
 static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
