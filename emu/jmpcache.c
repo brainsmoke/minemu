@@ -34,7 +34,7 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 
 static void jmp_list_clear(char *addr, unsigned long len)
 {
-	int i, last;
+	int i, last=-1 /* make compiler happy */ ;
 	char *tmp_addr, *tmp_jit_addr;
 
 	for (i=0; i<JMP_LIST_SIZE; i++)
