@@ -279,11 +279,15 @@ static char *jit_map_lookup_addr(code_map_t *map, char *addr)
 char *jit_lookup_addr(char *addr)
 {
 	code_map_t *map = find_code_map(addr);
+	char *jit_addr = NULL;
 
 	if (map)
-		return jit_map_lookup_addr(map, addr);
+		jit_addr = jit_map_lookup_addr(map, addr);
 
-	return NULL;
+	if (jit_addr)
+		add_jmp_mapping(addr, jit_addr);
+
+	return jit_addr;
 }
 
 /* reverse address lookup */
@@ -550,12 +554,12 @@ op_len = op_size(op, 16);
 #endif
 		die("attempting to jump in non-executable code addr: %X ", addr);
 }
-	jit_addr = jit_map_lookup_addr(map, addr);
+	jit_addr = jit_lookup_addr(addr);
 
 	if (jit_addr == NULL)
 	{
 		jit_translate(map, addr);
-		jit_addr = jit_map_lookup_addr(map, addr);
+		jit_addr = jit_lookup_addr(addr);
 	}
 
 	if (jit_addr == NULL)
@@ -563,4 +567,5 @@ op_len = op_size(op, 16);
 
 	return jit_addr;
 }
+
 
