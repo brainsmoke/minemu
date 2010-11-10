@@ -220,11 +220,10 @@ int80_emu:
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
 call runtime_syscall
-push %eax
-pushf
+pop %esp
+movl %eax, scratch_stack-4
 movl user_eip, %eax
-push $jit_eip
-jmp runtime_ijmp
+jmp XXX_TEMP
 
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
@@ -233,11 +232,10 @@ movl (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
 movl %esp, scratch_stack
 movl $scratch_stack, %esp
 call runtime_syscall
-push %eax
-pushf
+pop %esp
+movl %eax, scratch_stack-4
 movl sysenter_reentry, %eax
-push $jit_eip
-jmp runtime_ijmp
+jmp XXX_TEMP
 
 .global state_restore
 .type state_restore, @function

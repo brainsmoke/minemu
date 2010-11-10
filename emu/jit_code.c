@@ -372,7 +372,7 @@ int gen_code(char *dst, char *fmt, ...)
 #ifdef EMU_DEBUG
 	dst[0] = '\xC7'; dst[1] = '\x05';
 	imm_to(&dst[2], (long)&last_jit);
-	imm_to(&dst[6], (long)&dst[20]);
+	imm_to(&dst[6], (long)&dst[10]);
 	j=10;
 #endif
 	for (i=0; (c=fmt[i]); i++)
@@ -453,9 +453,8 @@ int gen_code(char *dst, char *fmt, ...)
 
 int jump_to(char *dest, char *jmp_addr)
 {
-	dest[0] = '\xe9';
-	long rel32 = (long)jmp_addr - (long)&dest[5];
-	imm_to(&dest[1], rel32);
+	dest[0] = '\xE9';
+	imm_to(&dest[1], (long)jmp_addr - (long)&dest[5]);
 	return 5;
 }
 
