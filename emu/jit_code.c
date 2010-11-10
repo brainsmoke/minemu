@@ -460,6 +460,7 @@ static int jump_to(char *dest, char *jmp_addr)
 }
 
 extern char XXX_TEMP[];
+extern char YYY_TEMP[];
 static int generate_ijump_tail(char *dest)
 {
 	return jump_to(dest, XXX_TEMP);
@@ -476,36 +477,15 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		"BC L"           /* mov $scratch_stack-4 %esp */
 		"9C"             /* pushf                     */
 		"81 44 24 08"    /* add ??, 8(%esp)           */
-		"S 00 00"
-		"51"             /* push %ecx                 */
-		"0F B7 C8"       /* movzx %ax, %ecx           */
-#ifdef EMU_DEBUG
-"FF 04 25 L"             /* incl ret_count            */
-#endif
-		"3B 04 8D L"     /* cmp &jmp_list.addr[0](,%ecx,4), %eax     */
-		"2E 75 16"       /* jne, predict hit          */
-		"8B 04 8D L"     /* mov &jmp_list.jit_addr[0](,%ecx,4), %eax */
-		"59"             /* pop %ecx                  */
-		"9D"             /* popf                      */
-		"A3 L"           /* mov %eax, jit_eip         */
-		"58"             /* pop %eax                  */
-		"5C"             /* pop %esp                  */
-		"FF 25 L"        /* jmp *j_addr               */
-		"FF 25 L",       /* jmp *runtime_ijmp_addr    */
+		"S 00 00",
 
 		&scratch_stack[-1],
 		scratch_stack,
 		&scratch_stack[-1],
-		addr[1] + (addr[2]<<8),
-#ifdef EMU_DEBUG
-&ret_count,
-#endif
-		&jmp_list.addr[0],
-		&jmp_list.jit_addr[0],
-		&jit_eip,
-		&jit_eip,
-		&runtime_ret_addr
+		addr[1] + (addr[2]<<8)
 	);
+
+	len += jump_to(&dest[len], YYY_TEMP);
 
 	*trans = (trans_t){ .len=len };
 

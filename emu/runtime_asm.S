@@ -34,6 +34,9 @@ XXX_TEMP:
 mov %esp, scratch_stack
 mov $scratch_stack-4, %esp
 pushf
+.global YYY_TEMP
+.type YYY_TEMP, @function
+YYY_TEMP:
 
 #ifdef EMU_DEBUG
 incl ijmp_count
