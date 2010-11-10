@@ -7,22 +7,22 @@
 .global emu_start
 .type emu_start, @function
 emu_start: # (long eip, long esp)
-movl 4(%esp), %esi           # load jit translated %eip from arg1
+movl 4(%esp), %esi           # load user %eip from arg1
 movl 8(%esp), %ebp           # load user's stack pointer from arg2
-movl $scratch_stack+4, %esp  # set the stack to the scratch stack
-push %ebp
-call shield                # protect emulator memory
-movl %esi, %eax
-xor %ecx, %ecx             # clear registers and flags
+
+movl $scratch_stack, %esp    # move the stack out of emulator memory
+call shield                  # protect emulator memory
+movl %ebp, %esp              # load user stack
+
+movl %esi, %eax              # user %eip
+xor %ecx, %ecx               # clear registers and flags
 xor %edx, %edx
 xor %ebx, %ebx
+xor %ebp, %ebp
 xor %esi, %esi
 xor %edi, %edi
-xor %ebp, %ebp
-push %ebx                  # cleared %eax
-push %ebx                  # cleared %eflags
-push $jit_eip              # jump to jit translated code
-jmp runtime_ijmp
+movl %ecx, scratch_stack-4   # cleared eax
+jmp XXX_TEMP
 
 .global runtime_ijmp_fastpath_start
 runtime_ijmp_fastpath_start:
@@ -242,11 +242,7 @@ jmp runtime_ijmp
 .global state_restore
 .type state_restore, @function
 state_restore:
-movl %esp, scratch_stack
-movl $scratch_stack, %esp
-push %eax
-pushf
+movl %eax, scratch_stack-4
 movl user_eip, %eax
-push $jit_eip
-jmp runtime_ijmp
+jmp XXX_TEMP
 
