@@ -17,6 +17,8 @@ typedef struct
 long imm_at(char *addr, long size);
 void imm_to(char *dest, long imm);
 
+int jump_to(char *dest, char *jmp_addr);
+
 int gen_code(char *dst, char *fmt, ...);
 
 int generate_ill(char *dest, trans_t *trans);

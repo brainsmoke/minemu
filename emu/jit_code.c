@@ -451,7 +451,7 @@ int gen_code(char *dst, char *fmt, ...)
 	return j;
 }
 
-static int jump_to(char *dest, char *jmp_addr)
+int jump_to(char *dest, char *jmp_addr)
 {
 	dest[0] = '\xe9';
 	long rel32 = (long)jmp_addr - (long)&dest[5];

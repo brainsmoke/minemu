@@ -29,17 +29,16 @@ static long jit_fragment_jump_relative(char *dest, instr_t *instr, char *jump_ji
 
 static long jit_fragment_jump_relative_exit(char *dest, instr_t *instr, char *jump_addr)
 {
-	return gen_code(
+	int len = gen_code(
 		dest,
 
 		"70+ 10"                                /* jcc end (inversed)               */
-		"C7 05 L L"                             /* movl $addr, jit_eip              */
-		"FF 25 L",                              /* jmp *jit_fragment_exit_addr      */
+		"C7 05 L L",                            /* movl $addr, jit_eip              */
 
 		(instr->addr[instr->mrm-1]^1) & 0x0f,
-		&jit_eip, jump_addr,
-		&jit_fragment_exit_addr
+		&jit_eip, jump_addr
 	);
+	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }
 
 static long jit_fragment_jump(char *dest, char *jump_jit_addr)
@@ -55,37 +54,34 @@ static long jit_fragment_jump(char *dest, char *jump_jit_addr)
 
 static long jit_fragment_jump_exit(char *dest, char *jump_addr)
 {
-	return gen_code(
+	int len = gen_code(
 		dest,
 
-		"C7 05 L L"                             /* movl $addr, jit_eip               */
-		"FF 25 L",                              /* jmp *jit_fragment_exit_addr       */
+		"C7 05 L L",                            /* movl $addr, jit_eip               */
 
-		&jit_eip, jump_addr,
-		&jit_fragment_exit_addr
+		&jit_eip, jump_addr
 	);
+	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }
 
 static long jit_fragment_jump_indirect_exit(char *dest, instr_t *instr, char *jump_addr)
 {
-	long code_len, i;
-	code_len = gen_code(
+	long i;
+	int len = gen_code(
 		dest,
 
 		"A3 L"                                  /* movl %eax, jit_fragment_scratch     */
 		"? 8B &$"                               /* movl (seg:)?mem, %eax               */
 		"A3 L"                                  /* movl %eax, jit_eip                  */
-		"A1 L"                                  /* movl jit_fragment_scratch, %eax     */
-		"FF 25 L",                              /* *jit_fragment_exit_addr             */
+		"A1 L",                                 /* movl jit_fragment_scratch, %eax     */
 
 		&jit_fragment_scratch,    
 		instr->p[2], &i, &instr->addr[instr->mrm], instr->len-instr->mrm,
 		&jit_eip,
-		&jit_fragment_scratch,    
-		&jit_fragment_exit_addr
+		&jit_fragment_scratch
 	);
 	dest[i] &= 0xC7;
-	return code_len;
+	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);;
 }
 
 static long jit_fragment_control(char *dest, instr_t *instr,
