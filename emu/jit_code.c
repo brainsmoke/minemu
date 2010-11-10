@@ -459,6 +459,27 @@ static int jump_to(char *dest, char *jmp_addr)
 	return 5;
 }
 
+static int generate_linux_sysenter(char *dest, trans_t *trans)
+{
+	int len = jump_to(dest, (void *)(long)linux_sysenter_emu);
+	*trans = (trans_t){ .len=len };
+	return len;
+}
+
+static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len = gen_code(
+		dest,
+		"C7 05 L L",     /* movl $post_addr, user_eip */
+
+		&user_eip, &instr->addr[instr->len]
+	);
+
+	len += jump_to(&dest[len], (void *)(long)int80_emu);
+	*trans = (trans_t){ .len=len };
+	return len;
+}
+
 extern char XXX_TEMP[];
 extern char YYY_TEMP[];
 static int generate_ijump_tail(char *dest)
@@ -591,32 +612,6 @@ static int generate_ret(char *dest, char *addr, trans_t *trans)
 
 	len += generate_ijump_tail(&dest[len]);
 	*trans = (trans_t){ .len=len };
-	return len;
-}
-
-static int generate_linux_sysenter(char *dest, trans_t *trans)
-{
-	int len = gen_code(
-		dest,
-		"FF 25 L",     /* jmp *linux_sysenter_emu_addr */
-		&linux_sysenter_emu_addr
-	);
-	*trans = (trans_t){ .len=len };
-	return len;
-}
-
-static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
-{
-	int len = gen_code(
-		dest,
-		"C7 05 L L"      /* movl $post_addr, user_eip */
-		"FF 25 L",       /* jmp *int80_emu_addr       */
-
-		&user_eip, &instr->addr[instr->len],
-		&int80_emu_addr);
-
-	*trans = (trans_t){ .len=len };
-
 	return len;
 }
 
