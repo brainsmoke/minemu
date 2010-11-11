@@ -44,6 +44,8 @@ int temu_main(int argc, char *argv[], char **envp, long *auxv)
 	argv = parse_options(&argv[1]);
 
 	init_temu_mem(envp);
+	sigwrap_init();
+	jit_init();
 
 	elf_prog_t prog =
 	{
@@ -58,9 +60,6 @@ int temu_main(int argc, char *argv[], char **envp, long *auxv)
 	int ret = load_elf(&prog);
 	if (ret < 0)
 		die("load_elf: %d", ret);
-
-	jit_init();
-	sigwrap_init();
 
 	char *vdso = (char *)get_aux(prog.auxv, AT_SYSINFO_EHDR);
 	long off = memscan(vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);
