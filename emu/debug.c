@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -52,6 +51,16 @@ const char *sigcontext_desc[] =
 	"           [  trapno ] [   err   ]  [   eip   ] [ cs] [csh]",
 	"           [  eflags ] [ esp@sig ]  [ ss] [ssh] [ *fpstate]",
 	"           [  oldmask] [   cr2   ]",
+};
+
+const char *stat64_desc[] =
+{
+	"           [        st_dev       ]  [xxxxxxxxxxx __st_ino ]",
+	"           [ st_mode ] [ st_nlink]  [  st_uid ] [  st_gid ]",
+	"           [        st_rdev      ]  [xxxxxxxxx] [  st_size ",
+	"                     ] [_blksize ]  [      st_blocks      ]",
+	"           [  atime  ] [ ..nsec  ]  [  mtime  ] [ ..nsec  ]",
+	"           [  ctime  ] [ ..nsec  ]  [         ino         ]",
 };
 
 const char *fpstate_desc[] =
@@ -363,6 +372,14 @@ void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe 
 	print_sigcontext_diff(&frame1->sc, &frame2->sc);
 	print_fpstate_diff(&frame1->fpstate, &frame2->fpstate);
 	printhex_diff_descr(&frame1->extramask, 12, &frame2->extramask, 12, sizeof(long), 1, sigframe_post_desc);
+}
+
+#define _LARGEFILE64_SOURCE 1
+#include <asm/stat.h>
+
+void print_stat(const struct stat64 *s)
+{
+	printhex_descr(s, sizeof(*s), 0, 0, stat64_desc);
 }
 
 

@@ -29,4 +29,7 @@ void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe 
 void print_debug_data(void);
 #endif
 
+struct stat64;
+void print_stat(const struct stat64 *s);
+
 #endif /* DEBUG_H */
