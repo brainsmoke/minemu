@@ -66,7 +66,7 @@ void add_code_region(char *addr, unsigned long len)
 		else
 			break;
 
-	codemaps[i] = (code_map_t){ addr, len, NULL, 0 };
+	codemaps[i] = (code_map_t){ addr, len, jit_alloc(len*6), 0 };
 	n_codemaps++;
 }
 

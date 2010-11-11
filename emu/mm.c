@@ -88,6 +88,9 @@ unsigned long user_brk(unsigned long new_brk)
 	return brk_cur;
 }
 
+#define _LARGEFILE64_SOURCE 1
+#include <asm/stat.h>
+
 unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
                          int flags, int fd, off_t pgoffset)
 {
@@ -99,7 +102,7 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 	if ( !(ret & PG_MASK) )
 	{
 		if (prot & PROT_EXEC)
-			add_code_region((char *)ret, PAGE_NEXT(length));
+			add_code_region((char *)ret, PAGE_NEXT(length));//, fd, pgoffset);
 		else
 			del_code_region((char *)ret, PAGE_NEXT(length));
 	}
