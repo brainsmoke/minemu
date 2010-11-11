@@ -33,10 +33,11 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	/* abuse our temu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
 	 */
-	char **new_argv = &temu_stack_bottom[- count - 3];
+	char **new_argv = &temu_stack_bottom[- count - 4];
 	new_argv[0] = argv[0];
-	new_argv[1] = filename;
-	memcpy(&new_argv[2], argv, sizeof(char *)*(count+1));
+	new_argv[1] = "--";
+	new_argv[2] = filename;
+	memcpy(&new_argv[3], argv, sizeof(char *)*(count+1));
 	sys_execve("/proc/self/exe", new_argv, envp);
 	die("user_execve failed");
 	return 0xdeadbeef;

@@ -1,5 +1,6 @@
 #include <sys/mman.h>
 #include <linux/personality.h>
+#include <string.h>
 
 #include "syscalls.h"
 #include "error.h"
@@ -13,8 +14,24 @@
 #include "codemap.h"
 #include "sigwrap.h"
 
+char **parse_options(char **argv)
+{
+	for (;;)
+	{
+		if ( (*argv == NULL) || (**argv != '-') )
+			return argv;
+
+		if ( strcmp(*argv, "--") == 0 )
+			return argv+1;
+
+		die("unknown option: %s", *argv);
+
+		argv++;
+	}
+}
+
 /* not called main() to avoid warnings about extra parameters :-(  */
-int temu_main(int argc, char **argv, char **envp, long *auxv)
+int temu_main(int argc, char *argv[], char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);
 
@@ -24,12 +41,14 @@ int temu_main(int argc, char **argv, char **envp, long *auxv)
 		sys_execve("/proc/self/exe", argv, envp);
 	}
 
+	argv = parse_options(&argv[1]);
+
 	init_temu_mem(envp);
 
 	elf_prog_t prog =
 	{
-		.filename = argv[1],
-		.argv = &argv[2],
+		.filename = argv[0],
+		.argv = &argv[1],
 		.envp = envp,
 		.auxv = auxv,
 		.task_size = USER_END,
