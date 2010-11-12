@@ -69,7 +69,7 @@ int temu_main(int argc, char *argv[], char **envp, long *auxv)
 	else
 		sysenter_reentry = (long)&vdso[off];
 
-	add_code_region(vdso, 0x1000); /* vdso */
+	add_code_region(vdso, 0x1000, 0, 0, 0, 0); /* vdso */
 
 	emu_start(prog.entry, prog.sp);
 

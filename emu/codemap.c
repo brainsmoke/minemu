@@ -51,23 +51,44 @@ code_map_t *find_jit_code_map(char *jit_addr)
 	return NULL;
 }
 
-void add_code_region(char *addr, unsigned long len)
+static void add_code_map(code_map_t *map)
 {
 	int i;
-
-	del_code_region(addr, len);
 
 	if (n_codemaps >= MAX_CODEMAPS)
 		die("Too many codemaps");
 
 	for (i=n_codemaps; i>0; i--)
-		if ( (unsigned long)addr < (unsigned long)codemaps[i-1].addr )
+		if ( (unsigned long)map->addr < (unsigned long)codemaps[i-1].addr )
 			codemaps[i] = codemaps[i-1];
 		else
 			break;
 
-	codemaps[i] = (code_map_t){ addr, len, jit_alloc(len*6), 0 };
+	codemaps[i] = *map;
+
 	n_codemaps++;
+}
+
+void add_code_region(char *addr, unsigned long len, unsigned long long dev,
+                                                    unsigned long long inode,
+                                                    unsigned long mtime,
+                                                    unsigned long pgoffset)
+{
+	del_code_region(addr, len);
+
+	code_map_t map = (code_map_t)
+	{
+		.addr = addr,
+		.len = len,
+		.jit_addr = NULL,
+		.jit_len = 0,
+		.dev = dev,
+		.inode = inode,
+		.mtime = mtime,
+		.pgoffset = pgoffset,
+	};
+
+	add_code_map(&map);
 }
 
 void del_code_region(char *addr, unsigned long len)
@@ -82,18 +103,31 @@ void del_code_region(char *addr, unsigned long len)
 			continue;
 		}
 
-		unsigned long start = (unsigned long)addr,
-		              end = start + len,
-		              o_start = (unsigned long)codemaps[i].addr,
-		              o_end = o_start + codemaps[i].len;
-
+		code_map_t map = codemaps[i];
 		del_code_map(i);
 
+		map.jit_addr = NULL;
+		map.jit_len = 0;
+
+		unsigned long start = (unsigned long)addr,
+		              end = start + len,
+		              o_start = (unsigned long)map.addr,
+		              o_end = o_start + map.len;
+
 		if ( start > o_start )
-			add_code_region((char *)o_start, start-o_start);
+		{
+			map.addr = (char *)o_start;
+			map.len = start-o_start;
+			add_code_map(&map);
+		}
 
 		if ( o_end > end )
-			add_code_region((char *)end, o_end-end);
+		{
+			map.addr = (char *)end;
+			map.len = o_end-end;
+			map.pgoffset += (end-o_start)/4096;
+			add_code_map(&map);
+		}
 
 		i = n_codemaps-1;
 	}

@@ -102,7 +102,14 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 	if ( !(ret & PG_MASK) )
 	{
 		if (prot & PROT_EXEC)
-			add_code_region((char *)ret, PAGE_NEXT(length));//, fd, pgoffset);
+		{
+			struct stat64 s;
+			if ( (fd < 0) || (sys_fstat64(fd, &s) != 0) )
+				memset(&s, 0, sizeof(s));
+
+			add_code_region((char *)ret, PAGE_NEXT(length),
+			                s.st_ino, s.st_dev, s.st_mtime, pgoffset);
+		}
 		else
 			del_code_region((char *)ret, PAGE_NEXT(length));
 	}
@@ -133,7 +140,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 	if ( !(ret & PG_MASK) )
 	{
 		if (prot & PROT_EXEC)
-			add_code_region((char *)addr, PAGE_NEXT(length));
+			add_code_region((char *)addr, PAGE_NEXT(length), 0, 0, 0, 0);
 		else
 			del_code_region((char *)addr, PAGE_NEXT(length));
 	}
