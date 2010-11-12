@@ -69,8 +69,8 @@ static void add_code_map(code_map_t *map)
 	n_codemaps++;
 }
 
-void add_code_region(char *addr, unsigned long len, unsigned long long dev,
-                                                    unsigned long long inode,
+void add_code_region(char *addr, unsigned long len, unsigned long long inode,
+                                                    unsigned long long dev,
                                                     unsigned long mtime,
                                                     unsigned long pgoffset)
 {
