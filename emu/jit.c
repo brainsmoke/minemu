@@ -383,7 +383,7 @@ static void jit_fill_mapping(code_map_t *map, unsigned long *mapping,
 
 static char *jit_map_resize(code_map_t *map, unsigned long new_len)
 {
-	char *new_addr = jit_realloc(map->jit_addr, /*new_len*/map->len*6);
+	char *new_addr = jit_realloc(map->jit_addr, new_len);
 
 	if ( (map->jit_addr) && (new_addr != map->jit_addr) )
 		die("jmp mapping resize is not supported");
@@ -536,6 +536,9 @@ char *jit(char *addr)
 		return jit_addr;
 
 	code_map_t *map = find_code_map(addr);
+
+	if (map->jit_addr == NULL)
+		map->jit_addr = jit_realloc(map->jit_addr, map->len*6);
 
 	if (map == NULL)
 {
