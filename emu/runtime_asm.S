@@ -2,7 +2,7 @@
 #include "scratch.h"
 
 #
-# emu_start(): Protect temu memory, load registers, jump to address
+# emu_start(): Protect minemu memory, load registers, jump to address
 #
 .global emu_start
 .type emu_start, @function
@@ -140,8 +140,8 @@ jmp jit_return
 runtime_jit:
 call unshield                       # unprotect jit stack
 movl 4(%esp), %eax
-movl %esp, temu_stack_bottom        # switch to jit stack
-movl $temu_stack_bottom, %esp       #
+movl %esp, minemu_stack_bottom      # switch to jit stack
+movl $minemu_stack_bottom, %esp     #
 push %eax                           # address to be translated
 call jit
 addl $4, %esp

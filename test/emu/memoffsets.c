@@ -22,7 +22,7 @@ int main(void)
 	print_addr("JIT_END", JIT_END);
 	print_addr("TAINT_START", TAINT_START);
 	print_addr("TAINT_END", TAINT_END);
-	print_addr("TEMU_START", TEMU_START);
+	print_addr("MINEMU_START", MINEMU_START);
 	print_addr("HIGH_USER_ADDR", HIGH_USER_ADDR);
 	printf("\n");
 
@@ -32,13 +32,13 @@ int main(void)
 	print_addr("USER_SIZE", USER_SIZE);
 	print_addr("JIT_SIZE", JIT_SIZE);
 	print_addr("TAINT_SIZE", TAINT_SIZE);
-	print_addr("TEMU_SIZE", TEMU_SIZE);
+	print_addr("MINEMU_SIZE", MINEMU_SIZE);
 	printf("\n");
 
 	print_pages("USER_PAGES", USER_PAGES);
 	print_pages("JIT_PAGES", JIT_PAGES);
 	print_pages("TAINT_PAGES", TAINT_PAGES);
-	print_pages("TEMU_PAGES", TEMU_PAGES);
+	print_pages("MINEMU_PAGES", MINEMU_PAGES);
 	printf("\n");
 
 	print_pages("HIGH_USER_PAGE", HIGH_USER_PAGE);

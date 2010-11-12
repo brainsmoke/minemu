@@ -17,7 +17,7 @@ static long argv_count(char *argv[])
 	return i;
 }
 
-extern char *temu_stack_bottom[];
+extern char *minemu_stack_bottom[];
 
 long user_execve(char *filename, char *argv[], char *envp[])
 {
@@ -35,10 +35,10 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	char *cache_dir = get_jit_cache_dir();
 	long args_start = 3 + (cache_dir ? 2 : 0);
 
-	/* abuse our temu stack as allocated memory, our scratch stack is too small
+	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
 	 */
-	char **new_argv = &temu_stack_bottom[- count - args_start - 1];
+	char **new_argv = &minemu_stack_bottom[- count - args_start - 1];
 	new_argv[0] = argv[0];
 	if (cache_dir)
 	{

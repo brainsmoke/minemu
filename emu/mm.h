@@ -12,7 +12,7 @@
 /*
  * Memory layout:
  *                                                         3G              4G
- * [      USER      ] [ JIT ] [    TAINTING    ] <  TEMU  > <    KERNEL   >
+ * [      USER      ] [ JIT ] [    TAINTING    ] < MINEMU > <    KERNEL   >
  * o_______displacement_______o
  *                    o_______displacement_______x
  *                                             o_______displacement_______x
@@ -27,25 +27,24 @@
  *
  * JIT:
  *
- * [ RUNTIME CODE: 0x51555000 - 0x515xxxxx ] = user(r-x) temu(r-x) 
+ * [ RUNTIME CODE: 0x51555000 - 0x515xxxxx ] = user(r-x) minemu(r-x) 
  * [ SCRATCH MEM:  0x515xxxxx - 0x515xxxxx ] = used to save program state.
  *                                             sigaltstack, always writable,
  *                                             should be zeroed out
- * [ RUNTIME DATA: 0x515xxxxx - 0x........ ] = user(r--) temu(rw-) 
- * [ JIT CODE:     0x........ - 0x57555000 ] = user(r-x) temu(rw-)
+ * [ RUNTIME DATA: 0x515xxxxx - 0x........ ] = user(r--) minemu(rw-) 
+ * [ JIT CODE:     0x........ - 0x57555000 ] = user(r-x) minemu(rw-)
  *
  * TAINT:
  *
  * [ TAINT MEM:    0x57555000 - 0xA8AAA000 ] = user memory + 0x57555000
  *
- * TEMU:
+ * MINEMU:
  *
- * [ TEMU CODE:    0xA8AAA000 - 0x........ ] = user(---) temu(r-x) 
- * [ TEMU DATA:    0x........ - 0xC0000000 ] = user(---) temu(rw-) 
+ * [ MINEMU DATA:    0xA8888888 - 0xC0000000 ] = user(---) minemu(rw-) 
  *
  * (KERNEL) HIGH MEM:
  * if 64 bit kernel:
- * [ RUNTIME DATA: 0xC0000000 -            ] = user(---) temu(rw-) 
+ * [ RUNTIME DATA: 0xC0000000 -            ] = user(---) minemu(rw-) 
  */
 
 #define HIGH_PAGE (0x100000UL)
@@ -60,7 +59,7 @@
 #define USER_SIZE (USER_PAGES * PG_SIZE)
 #define JIT_SIZE (JIT_PAGES * PG_SIZE)
 #define TAINT_SIZE (USER_SIZE)
-/*#define TEMU_SIZE (HIGH_USER_ADDR-TAINT_SIZE-JIT_SIZE-USER_SIZE)*/
+/*#define MINEMU_SIZE (HIGH_USER_ADDR-TAINT_SIZE-JIT_SIZE-USER_SIZE)*/
 
 #define USER_START (0x0UL)
 #define USER_END (USER_START+USER_SIZE)
@@ -68,8 +67,8 @@
 #define JIT_END (JIT_START+JIT_SIZE)
 #define TAINT_START (JIT_END)
 #define TAINT_END (TAINT_START+TAINT_SIZE)
-#define TEMU_START (TAINT_END)
-/*#define TEMU_END (TEMU_START+TEMU_SIZE)*/
+#define MINEMU_START (TAINT_END)
+/*#define MINEMU_END (MINEMU_START+MINEMU_SIZE)*/
 
 /* taint offset */
 
@@ -110,9 +109,9 @@ extern char runtime_code_start[], runtime_code_size[],
 #define USER_STACK_PAGES (0x8000UL)
 #define USER_STACK_SIZE (USER_STACK_PAGES * PG_SIZE)
 #define VDSO_SIZE  (PG_SIZE)
-#define TEMU_STACK_BOTTOM (0xBFF70000UL)
+#define MINEMU_STACK_BOTTOM (0xBFF70000UL)
 
-void init_temu_mem(char **envp);
+void init_minemu_mem(char **envp);
 
 unsigned long set_brk_min(unsigned long brk);
 

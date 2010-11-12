@@ -34,7 +34,7 @@ RNR_MAINS=$(patsubst %.c, %.o, $(wildcard rnr/*_main.c))
 RNR_OBJECTS=$(filter-out $(RNR_MAINS), $(patsubst %.c, %.o, $(wildcard rnr/*.c)))
 RNR_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/rnr/*.c))
 
-EMU_TARGETS=temu
+EMU_TARGETS=minemu
 EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard emu/*.c)))
 EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard emu/*.S))
 EMU_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/emu/*.c))
@@ -135,8 +135,8 @@ test/tracer/%: test/tracer/%.o $(TRACER_OBJECTS)
 test/emu/%: test/emu/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
-temu: emu/mm.ld emu/temu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
-	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/temu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
+minemu: emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
+	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
 
 test/emu/shellcode: test/emu/shellcode.o test/emu/debug.o test/emu/codeexec.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline

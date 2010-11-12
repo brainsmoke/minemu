@@ -100,7 +100,7 @@ void heap_init(jmp_heap_t *h, rel_jmp_t *buf, unsigned long buf_len)
 void heap_put(jmp_heap_t *h, rel_jmp_t *jmp)
 {
 	if (h->size >= h->max_size)
-		die("temu: heap overflow");
+		die("minemu: heap overflow");
 
 	unsigned long i = h->size, parent = (i+1)/2-1;
 	rel_jmp_t tmp;
@@ -387,7 +387,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 			heap_put(jmp_heap, &jmp);
 
 			if (TRANSLATED(mapping[trans.jmp_addr-map->addr]))
-				die("temu bug");
+				die("minemu bug");
 			/* mark address as destination of jump
 			 * to know whether to stop translation of code after
 			 * unconditional jumps & returns
@@ -408,7 +408,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 			if (trans.imm != 0)
 				if (!try_resolve_jmp(map, trans.jmp_addr,
 				                     &jit_addr[d_off+trans.imm], mapping))
-					die("temu: assertion failed in jit_translate_chunk()");
+					die("minemu: assertion failed in jit_translate_chunk()");
 
 			d_off += trans.len;
 		}

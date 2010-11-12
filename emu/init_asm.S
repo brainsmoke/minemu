@@ -15,4 +15,4 @@ push %edi                   # push auxv
 push %ebx                   # push envp
 push %eax                   # push argv
 push %edx                   # push argc
-call temu_main
+call minemu_main

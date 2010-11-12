@@ -30,7 +30,7 @@ static mem_map_t shield_maps[] =
 {
 	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ            },
 	{ .start = JIT_CODE_START,     .length = JIT_CODE_SIZE,     .prot = PROT_READ|PROT_EXEC  },
-	/* modified by init_temu: */
+	/* modified by init_minemu: */
 	{ .start = TAINT_END,          .length = 0,                 .prot = PROT_NONE            },
 	{ .start = 0 },
 };
@@ -40,7 +40,7 @@ static mem_map_t unshield_maps[] =
 /*	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ|PROT_WRITE },
 	{ .start = JIT_CODE_START,     .length = JIT_CODE_SIZE,     .prot = PROT_READ|PROT_WRITE },*/
 	{ .start = RUNTIME_DATA_START, .length = JIT_DATA_SIZE,     .prot = PROT_READ|PROT_WRITE },
-	/* modified by init_temu: */
+	/* modified by init_minemu: */
 	{ .start = TAINT_END,          .length = 0,                 .prot = PROT_READ|PROT_WRITE },
 	{ .start = 0 },
 };
@@ -189,7 +189,7 @@ void unshield(void)
 	set_protection(unshield_maps);
 }
 
-void init_temu_mem(char **envp)
+void init_minemu_mem(char **envp)
 {
 	long ret = 0;
 

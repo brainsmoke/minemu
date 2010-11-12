@@ -35,7 +35,7 @@ char **parse_options(char **argv)
 }
 
 /* not called main() to avoid warnings about extra parameters :-(  */
-int temu_main(int argc, char *argv[], char **envp, long *auxv)
+int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);
 
@@ -47,7 +47,7 @@ int temu_main(int argc, char *argv[], char **envp, long *auxv)
 
 	argv = parse_options(&argv[1]);
 
-	init_temu_mem(envp);
+	init_minemu_mem(envp);
 	sigwrap_init();
 	jit_init();
 
