@@ -15,11 +15,11 @@
 #include "runtime.h"
 #include "debug.h"
 #include "syscalls.h"
+#include "jit_cache.h"
 
 #define TRANSLATED_MAX_SIZE (255)
 
 unsigned long min(unsigned long a, unsigned long b) { return a<b ? a:b; }
-
 
 /* jit code block layout:
  * (allocated in the jit code section of the address space)
@@ -43,6 +43,7 @@ unsigned long min(unsigned long a, unsigned long b) { return a<b ? a:b; }
  * absolute pointers into themselves. This way we can move pieces
  * of code more easily. (We only have to update the jump cache.)
  */
+
 typedef struct
 {
 	char *addr; unsigned long len;
@@ -162,73 +163,6 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 
 	return 1;
 }
-
-/**/
-
-#ifdef EMU_DEBUG
-void print_op_pair(char *orig_addr, int orig_size,
-                   char *jit_addr,  int jit_size)
-{
-	int i;
-
-	fd_printf(1, "%8X -> %8X : ", orig_addr, jit_addr);
-
-	for (i=0; i<18; i++)
-		if (i<orig_size)
-			fd_printf(1, "%02X", (unsigned char)orig_addr[i]);
-		else
-			fd_printf(1, "  ");
-
-	for (i=0; i<jit_size; i++)
-		fd_printf(1, "%02X", (unsigned char)jit_addr[i]);
-
-	fd_printf(1, "\n");
-}
-
-void print_chunk(jit_chunk_t *hdr)
-{
-	unsigned long i;
-	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
-	char *jit_addr = (char *)&hdr[1], *orig_addr=hdr->addr;
-
-	fd_printf(1, "CHUNK:\n", hdr->addr);
-
-	for (i=0; sizes[i].orig; i++)
-	{
-		print_op_pair(orig_addr, sizes[i].orig, jit_addr, sizes[i].jit);
-		orig_addr += sizes[i].orig;
-		jit_addr += sizes[i].jit;
-	}
-
-	print_op_pair(orig_addr, &hdr->addr[hdr->len]-orig_addr,
-	              jit_addr, &((char *)&hdr[1])[hdr->tbl_off]-jit_addr);
-}
-
-void print_rel_jumps(rel_jmp_t *jumps, long n_jmps)
-{
-	long i=0;
-
-	for (i=0; i<n_jmps; i++)
-		fd_printf(1, "addr: %8X, offset: %8X\n", jumps[i].addr, jumps[i].off);
-}
-
-void print_map(code_map_t *map)
-{
-	unsigned long off = 0;
-
-	fd_printf(1, "CODEMAP:\n");
-
-	if (map->jit_addr == NULL)
-		fd_printf(1, " = NULL\n");
-
-	else while (off < map->jit_len)
-	{
-		jit_chunk_t *hdr = (jit_chunk_t *)&map->jit_addr[off];
-		print_chunk(hdr);
-		off += hdr->chunk_len;
-	}
-}
-#endif
 
 /* address lookup
  * also called by runtime_ijmp in case of a cache miss (on a small stack)
@@ -538,7 +472,11 @@ char *jit(char *addr)
 	code_map_t *map = find_code_map(addr);
 
 	if (map->jit_addr == NULL)
+	{
 		map->jit_addr = jit_realloc(map->jit_addr, map->len*6);
+
+		try_load_jit_cache(map);
+	}
 
 	if (map == NULL)
 {
@@ -560,6 +498,8 @@ op_len = op_size(op, 16);
 	{
 		jit_translate(map, addr);
 		jit_addr = jit_lookup_addr(addr);
+
+		try_save_jit_cache(map);
 	}
 
 	if (jit_addr == NULL)
@@ -567,5 +507,4 @@ op_len = op_size(op, 16);
 
 	return jit_addr;
 }
-
 

@@ -94,4 +94,7 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_fstat64(fd, stat64) \
 	syscall2(SYS_fstat64, (long)fd, (long)stat64)
 
+#define sys_rename(oldpath, newpath) \
+	syscall2(SYS_rename, (long)oldpath, (long)newpath)
+
 #endif /* SYSCALLS_H */

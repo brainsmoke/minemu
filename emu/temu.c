@@ -11,6 +11,7 @@
 #include "runtime.h"
 #include "scratch.h"
 #include "jit.h"
+#include "jit_cache.h"
 #include "codemap.h"
 #include "sigwrap.h"
 
@@ -24,7 +25,10 @@ char **parse_options(char **argv)
 		if ( strcmp(*argv, "--") == 0 )
 			return argv+1;
 
-		die("unknown option: %s", *argv);
+		if ( strcmp(*argv, "-cache") == 0 )
+			set_jit_cache_dir(*++argv);
+		else
+			die("unknown option: %s", *argv);
 
 		argv++;
 	}
