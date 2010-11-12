@@ -40,7 +40,7 @@ char *get_cache_filename(char *buf, code_map_t *map, int pid)
 	hexcat(buf, map->mtime);
 	strcat(buf, "_addr_");
 	hexcat(buf, (unsigned long)map->addr);
-	strcat(buf, "_jit_arrd_");
+	strcat(buf, "_jit_addr_");
 	hexcat(buf, (unsigned long)map->jit_addr);
 	strcat(buf, "_pgoffset_");
 	hexcat(buf, map->pgoffset);
