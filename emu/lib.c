@@ -203,6 +203,15 @@ long read_at(int fd, off_t off, void *buf, size_t size)
 	return sys_read(fd, buf, size);
 }
 
+char *strcat(char *dest, const char *src)
+{
+	char *p=dest;
+	int i;
+	while (*p) p++;
+	for (i=0; (p[i] = src[i]); i++);
+	return dest;
+}
+
 char *numcat(char *dest, long l)
 {
 	char *p=dest;
@@ -225,6 +234,19 @@ char *numcat(char *dest, long l)
 		*p = (u/dec)%10 + '0';
 
 	*p = '\0';
+	return dest;
+}
+
+char *hexcat(char *dest, unsigned long ul)
+{
+	char *p=dest;
+	while (*p) p++;
+
+	int i;
+	for (i=0; i<8; i++)
+		p[i] = hex[ ( ul >> (28-(i*4)) ) & 0xf ];
+
+	p[8] = '\0';
 	return dest;
 }
 

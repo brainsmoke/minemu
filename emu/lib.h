@@ -12,6 +12,7 @@ int fd_printf(int fd, const char *format, ...);
 
 long read_at(int fd, off_t off, void *buf, size_t size);
 char *numcat(char *dest, long l);
+char *hexcat(char *dest, unsigned long ul);
 
 long memscan(const char *hay, long haylen, const char *needle, long needlelen);
 
