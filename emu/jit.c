@@ -413,9 +413,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 			d_off += trans.len;
 		}
 
-		if (stop)
-			sizes[n_ops] = (size_pair_t) { 0, 0 };
-		
 		n_ops++;
 	}
 

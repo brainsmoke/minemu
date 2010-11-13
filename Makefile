@@ -153,3 +153,6 @@ test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scra
 test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
+test/emu/test_jit_lookup: test/emu/test_jit_lookup.o $(filter-out emu/minemu.o, emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+
+	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld test/emu/test_jit_lookup.o $(filter-out emu/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
