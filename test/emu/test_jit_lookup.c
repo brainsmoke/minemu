@@ -93,8 +93,6 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		}
 	}
 
-	debug("%x %x %x", jnext, jlast, map->addr);
-
 	for (j=jnext; j<jlast; j++)
 	{
 		rev_addr = jit_rev_lookup_addr(&map->jit_addr[j], &op_start, &op_len);
@@ -112,6 +110,10 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 			if (rev_addr && rev_addr != rev_last)
 				die("start address changes in the middle of opcode %x to %x", rev_last, rev_addr);
 		}
+
+		if (rev_addr && user_to_jit[(long)rev_addr-(long)map->addr] != op_start)
+			die("reverse mapping does not match %x to %x",
+			    user_to_jit[(long)rev_addr-(long)map->addr], op_start);
 
 		rev_last = rev_addr;
 	}
