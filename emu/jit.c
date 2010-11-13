@@ -164,35 +164,60 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 	return 1;
 }
 
-void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
-{
-	size_pair_t *map_addr = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
-
-	memcpy(map_addr, sizes, hdr->n_ops*sizeof(size_pair_t));
-	hdr->chunk_len = hdr->tbl_off + hdr->n_ops*sizeof(size_pair_t);
-
-}
-
 /* address lookup
  * also called by runtime_ijmp in case of a cache miss (on a small stack)
  */
+
+#define LOOKUP_FRAME (0x200)
+
+void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
+{
+	int i, j;
+	unsigned long s_off=0, d_off=0;
+
+	size_pair_t *map_addr = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
+
+	j=0;
+	map_addr[j] = (size_pair_t) { .orig = 0, .jit = sizeof(*hdr) };
+	j++;
+
+	for (i=0; i < hdr->n_ops; i++, j++)
+	{
+		map_addr[j] = sizes[i];
+		if ( ( d_off & LOOKUP_FRAME ) != ( (d_off+sizes[i].jit) & LOOKUP_FRAME ) &&
+		     ((d_off+sizes[i].jit)&~(LOOKUP_FRAME-1)) )
+		{
+			j++;
+			map_addr[j] = (size_pair_t) { .orig = 0, .jit = (d_off+sizes[i].jit)&~(LOOKUP_FRAME-1) };
+		}
+		s_off += sizes[i].orig;
+		d_off += sizes[i].jit;
+	}
+
+
+	hdr->chunk_len = hdr->tbl_off + j*sizeof(size_pair_t);
+
+}
 
 static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 {
 	if (!contains(hdr->addr, hdr->len, addr))
 		return NULL;
 
-	unsigned long n_ops=hdr->n_ops, i;
+	unsigned long n_ops=hdr->n_ops, i, j;
 	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
 	char *jit_addr = (char *)&hdr[1], *orig_addr=hdr->addr;
 
-	for (i=0; i<n_ops; i++)
+	for (i=0,j=0; i<n_ops; i++,j++)
 	{
-		if (addr == orig_addr)
+		if ( addr == orig_addr )
 			return jit_addr;
 
-		orig_addr += sizes[i].orig;
-		jit_addr += sizes[i].jit;
+		if ( sizes[j].orig == 0 )
+			j++;
+
+		orig_addr += sizes[j].orig;
+		jit_addr += sizes[j].jit;
 	}
 
 	return NULL;
@@ -240,23 +265,26 @@ static char *jit_chunk_rev_lookup_addr(jit_chunk_t *hdr, char *jit_addr, char **
 	if (!contains((char *)hdr, hdr->chunk_len, jit_addr))
 		return NULL;
 
-	unsigned long n_ops=hdr->n_ops, i;
+	unsigned long n_ops=hdr->n_ops, i, j;
 	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
 	char *jit_addr_iter = (char *)&hdr[1], *addr=hdr->addr;
 
-	for (i=0; i<n_ops; i++)
+	for (i=0, j=0; i<n_ops; i++, j++)
 	{
-		if (contains(jit_addr_iter, sizes[i].jit, jit_addr))
+		if ( sizes[j].orig == 0 )
+			j++;
+
+		if (contains(jit_addr_iter, sizes[j].jit, jit_addr))
 		{
 			if (jit_op_start)
 				*jit_op_start = jit_addr_iter;
 			if (jit_op_len)
-				*jit_op_len = sizes[i].jit;
+				*jit_op_len = sizes[j].jit;
 			return addr;
 		}
 
-		addr += sizes[i].orig;
-		jit_addr_iter += sizes[i].jit;
+		addr += sizes[j].orig;
+		jit_addr_iter += sizes[j].jit;
 	}
 
 	return NULL;
@@ -296,17 +324,20 @@ static void jit_chunk_fill_mapping(code_map_t *map, jit_chunk_t *hdr,
                                    unsigned long *mapping)
 {
 	unsigned long n_ops = hdr->n_ops,
-	              i,
+	              i,j,
 	              jit_off = (char *)&hdr[1] - map->jit_addr,
 	              orig_off = hdr->addr - map->addr;
 
 	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
 
-	for (i=0; i<n_ops; i++)
+	for (i=0,j=0; i<n_ops; i++,j++)
 	{
+		if ( sizes[j].orig == 0 )
+			j++;
+
 		mapping[orig_off] = jit_off;
-		orig_off += sizes[i].orig;
-		jit_off += sizes[i].jit;
+		orig_off += sizes[j].orig;
+		jit_off += sizes[j].jit;
 	}
 }
 
@@ -425,8 +456,6 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		n_ops++;
 	}
 
-	jit_addr=jit_map_resize(map, d_off+n_ops*sizeof(size_pair_t));
-
 	jit_chunk_t *hdr = (jit_chunk_t*)&jit_addr[chunk_base];
 	*hdr = (jit_chunk_t)
 	{
@@ -438,6 +467,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	};
 
 	jit_chunk_create_lookup_mapping(hdr, sizes);
+	jit_map_resize(map, chunk_base+hdr->chunk_len);
 
 	return hdr;
 }
