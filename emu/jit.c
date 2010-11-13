@@ -164,6 +164,15 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 	return 1;
 }
 
+void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
+{
+	size_pair_t *map_addr = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
+
+	memcpy(map_addr, sizes, hdr->n_ops*sizeof(size_pair_t));
+	hdr->chunk_len = hdr->tbl_off + hdr->n_ops*sizeof(size_pair_t);
+
+}
+
 /* address lookup
  * also called by runtime_ijmp in case of a cache miss (on a small stack)
  */
@@ -423,12 +432,12 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	{
 		.addr = &addr[entry],
 		.len = s_off-entry,
-		.chunk_len = d_off+n_ops*sizeof(size_pair_t)-chunk_base,
+		.chunk_len = 0, /* to be filled in by jit_chunk_create_lookup_mapping() */
 		.tbl_off = d_off-chunk_base,
 		.n_ops = n_ops,
 	};
 
-	memcpy(&jit_addr[d_off], sizes, n_ops*sizeof(size_pair_t));
+	jit_chunk_create_lookup_mapping(hdr, sizes);
 
 	return hdr;
 }
