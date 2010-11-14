@@ -181,9 +181,11 @@ typedef struct
 
 } jit_node_t;
 
+#define FRAME_SIZE (0x200)
+
 static long jit_chunk_get_node_count(jit_chunk_t *hdr)
 {
-	unsigned long n_leafs = (hdr->chunk_len+0x200-1)/0x200, n_nodes = 0;
+	unsigned long n_leafs = (hdr->chunk_len+FRAME_SIZE-1)/FRAME_SIZE, n_nodes = 0;
 	hdr->tree_depth = 0;
 
 	while ( n_leafs > 1 )
@@ -251,7 +253,7 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 			};
 		}
 
-		leftover = d_off & (0x200-1);
+		leftover = d_off & (FRAME_SIZE-1);
 		if ( leftover > 0 )
 		{
 			map_addr[i] = (size_pair_t) { .orig = 0, .jit = leftover };
@@ -265,7 +267,7 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 			d_off += sizes[cur_op].jit;
 			cur_op++; i++;
 		}
-		while ( (cur_op < n_ops) && ( (d_off-sizes[cur_op-1].jit) & 0x200 ) == ( d_off & 0x200 ) );
+		while ( (cur_op < n_ops) && ( (d_off-sizes[cur_op-1].jit) & FRAME_SIZE ) == ( d_off & FRAME_SIZE ) );
 	}
 	hdr->chunk_len = CHUNK_OFFSET(ALIGN(&map_addr[i], 64));
 }
@@ -293,7 +295,7 @@ static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 		for (j=0; j<7 && ((unsigned long)addr-(unsigned long)hdr->addr >= node->entry[j+1].offset); j++);
 
 		s_off = node->entry[j].offset;
-		d_off += 0x200 * j;
+		d_off += FRAME_SIZE * j;
 		node = (jit_node_t *)(((long)hdr)+node->entry[j].child);
 	}
 
