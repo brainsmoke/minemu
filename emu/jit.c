@@ -47,7 +47,8 @@ unsigned long min(unsigned long a, unsigned long b) { return a<b ? a:b; }
 typedef struct
 {
 	char *addr; unsigned long len;
-	unsigned long chunk_len, tbl_off, n_ops;
+	unsigned long chunk_len, tree_off, tbl_off, n_ops;
+	int tree_depth;
 
 } jit_chunk_t;
 
@@ -167,57 +168,152 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 /* address lookup
  * also called by runtime_ijmp in case of a cache miss (on a small stack)
  */
-
-#define LOOKUP_FRAME (0x200)
-
-void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
+typedef struct
 {
-	int i, j;
-	unsigned long s_off=0, d_off=0;
+	unsigned long offset;
+	unsigned long child;
 
-	size_pair_t *map_addr = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
+} jit_node_entry_t;
 
-	j=0;
-	map_addr[j] = (size_pair_t) { .orig = 0, .jit = sizeof(*hdr) };
-	j++;
+typedef struct
+{
+	jit_node_entry_t entry[8];
 
-	for (i=0; i < hdr->n_ops; i++, j++)
+} jit_node_t;
+
+static long jit_chunk_get_node_count(jit_chunk_t *hdr)
+{
+	unsigned long n_leafs = (hdr->chunk_len+0x200-1)/0x200, n_nodes = 0;
+	hdr->tree_depth = 0;
+
+	while ( n_leafs > 1 )
 	{
-		map_addr[j] = sizes[i];
-		if ( ( d_off & LOOKUP_FRAME ) != ( (d_off+sizes[i].jit) & LOOKUP_FRAME ) &&
-		     ((d_off+sizes[i].jit)&~(LOOKUP_FRAME-1)) )
-		{
-			j++;
-			map_addr[j] = (size_pair_t) { .orig = 0, .jit = (d_off+sizes[i].jit)&~(LOOKUP_FRAME-1) };
-		}
-		s_off += sizes[i].orig;
-		d_off += sizes[i].jit;
+		n_leafs = (n_leafs+7)/8;
+		n_nodes += n_leafs;
+		hdr->tree_depth++;
 	}
 
-
-	hdr->chunk_len = hdr->tbl_off + j*sizeof(size_pair_t);
-
+	return n_nodes;
 }
+
+#define TREE_BRANCH (tree[path[cur_depth].node].entry[path[cur_depth].branch])
+#define EMPTY ((unsigned long)-1)
+#define ALIGN(x, n) ( ( (long)(x)+(n)-1 ) & ~( (n) -1 ) )
+#define CHUNK_OFFSET(x) ( (long)(x) - (long)(hdr) )
+
+static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
+{
+	long n_nodes = jit_chunk_get_node_count(hdr), nodes_alloc=1, cur_depth=0, leftover;
+
+	jit_node_t *tree = (jit_node_t *)ALIGN((long)hdr+hdr->chunk_len, 64);
+	hdr->tree_off = CHUNK_OFFSET(tree);
+	memset(tree, -1, n_nodes*sizeof(jit_node_t));
+
+	struct { long node, branch; } path[hdr->tree_depth];
+	memset(path, 0, sizeof(path));
+
+	size_pair_t *map_addr = (size_pair_t *)&tree[n_nodes];
+	hdr->tbl_off = CHUNK_OFFSET(map_addr);
+
+	unsigned long n_ops = hdr->n_ops, cur_op=0, i=0,
+	              s_off = 0, d_off = sizeof(*hdr);
+
+	while (cur_op < n_ops)
+	{
+		if ( hdr->tree_depth > 0 )
+		{
+			while ( (cur_depth < hdr->tree_depth-1) || (TREE_BRANCH.child != EMPTY) )
+			{
+				if (TREE_BRANCH.child == EMPTY)
+				{
+					TREE_BRANCH = (jit_node_entry_t)
+					{
+						.offset = s_off,
+						.child = (long)&tree[nodes_alloc]-(long)hdr,
+					};
+
+					cur_depth++;
+					path[cur_depth].node = nodes_alloc;
+					path[cur_depth].branch = 0;
+					nodes_alloc++;
+				
+				}
+				else if (path[cur_depth].branch < 7)
+					path[cur_depth].branch++;
+				else
+					cur_depth--;
+			}
+
+			TREE_BRANCH = (jit_node_entry_t)
+			{
+				.offset = s_off,
+				.child = (long)&map_addr[i]-(long)hdr,
+			};
+		}
+
+		leftover = d_off & (0x200-1);
+		if ( leftover > 0 )
+		{
+			map_addr[i] = (size_pair_t) { .orig = 0, .jit = leftover };
+			i++;
+		}
+
+		do
+		{
+			map_addr[i] = sizes[cur_op];
+			s_off += sizes[cur_op].orig;
+			d_off += sizes[cur_op].jit;
+			cur_op++; i++;
+		}
+		while ( (cur_op < n_ops) && ( (d_off-sizes[cur_op-1].jit) & 0x200 ) == ( d_off & 0x200 ) );
+	}
+	hdr->chunk_len = CHUNK_OFFSET(ALIGN(&map_addr[i], 64));
+}
+
+#undef TREE_BRANCH
+#undef EMPTY
+#undef ALIGN
+#undef CHUNK_OFFSET
 
 static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 {
 	if (!contains(hdr->addr, hdr->len, addr))
 		return NULL;
 
-	unsigned long n_ops=hdr->n_ops, i, j;
-	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
-	char *jit_addr = (char *)&hdr[1], *orig_addr=hdr->addr;
+	long d_off = 0, s_off = 0;
+	jit_node_t *node = (jit_node_t *)((long)hdr+hdr->tree_off);
+	int i, j;
 
-	for (i=0,j=0; i<n_ops; i++,j++)
+	for (i=0; i<hdr->tree_depth; i++)
 	{
-		if ( addr == orig_addr )
-			return jit_addr;
+		d_off *= 8;
+		if ((unsigned long)addr-(unsigned long)hdr->addr < node->entry[0].offset)
+			return NULL;
 
-		if ( sizes[j].orig == 0 )
-			j++;
+		for (j=0; j<7 && ((unsigned long)addr-(unsigned long)hdr->addr >= node->entry[j+1].offset); j++);
 
-		orig_addr += sizes[j].orig;
-		jit_addr += sizes[j].jit;
+		s_off = node->entry[j].offset;
+		d_off += 0x200 * j;
+		node = (jit_node_t *)(((long)hdr)+node->entry[j].child);
+	}
+
+	size_pair_t *sizes = (size_pair_t *)node;
+
+	j=0;
+	if (sizes[j].orig == 0)
+	{
+		d_off += sizes[j].jit;
+		j++;
+	}
+
+	while ((unsigned long)addr >= (unsigned long)&hdr->addr[s_off])
+	{
+		if ((unsigned long)addr == (unsigned long)&hdr->addr[s_off])
+			return (char *)hdr+d_off;
+
+		s_off += sizes[j].orig;
+		d_off += sizes[j].jit;
+		j++;
 	}
 
 	return NULL;
@@ -461,8 +557,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	{
 		.addr = &addr[entry],
 		.len = s_off-entry,
-		.chunk_len = 0, /* to be filled in by jit_chunk_create_lookup_mapping() */
-		.tbl_off = d_off-chunk_base,
+		.chunk_len = d_off-chunk_base, /* to be extrended during lookup map creation */
 		.n_ops = n_ops,
 	};
 
