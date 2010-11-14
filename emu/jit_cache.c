@@ -30,24 +30,24 @@ char *get_cache_filename(char *buf, code_map_t *map, int pid)
 	buf[0] = '\x0';
 
 	strcat(buf, cache_dir);
-	strcat(buf, "/inode_");
+	strcat(buf, "/i");
 	hexcat(buf, map->inode >> 32);
 	hexcat(buf, map->inode & 0xffffffff);
-	strcat(buf, "_dev_");
+	strcat(buf, "d");
 	hexcat(buf, map->dev >> 32);
 	hexcat(buf, map->dev & 0xffffffff);
-	strcat(buf, "_mtime_");
+	strcat(buf, "m");
 	hexcat(buf, map->mtime);
-	strcat(buf, "_addr_");
+	strcat(buf, "a");
 	hexcat(buf, (unsigned long)map->addr);
-	strcat(buf, "_jit_addr_");
+	strcat(buf, "j");
 	hexcat(buf, (unsigned long)map->jit_addr);
-	strcat(buf, "_pgoffset_");
+	strcat(buf, "p");
 	hexcat(buf, map->pgoffset);
 
 	if (pid > 0)
 	{
-		strcat(buf, "_pid_");
+		strcat(buf, "pid");
 		numcat(buf, pid);
 	}
 
