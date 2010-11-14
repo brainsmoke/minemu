@@ -531,6 +531,8 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	return len;
 }
 
+#ifdef CACHE_ON_CALL
+
 static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *retaddr_index)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
@@ -592,6 +594,47 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	*trans = (trans_t){ .len = len };
 	return len;
 }
+
+#else
+
+static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"68 L",               /* push $retaddr                                        */
+
+		&instr->addr[instr->len]
+	);
+	return len;
+}
+
+static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
+{
+	long mrm_len = instr->len - instr->mrm;
+	int mrm;
+
+	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"A3 L"                /* mov %eax, scratch_stack-4                            */
+		"? 8B &$"             /* mov ... ( -> %eax )                                  */
+		"68 L",               /* push $retaddr                                        */
+
+		&scratch_stack[-1],
+		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
+		&instr->addr[instr->len]
+	);
+
+	dest[len_taint+mrm] &= 0xC7; /* -> %eax */
+	len += generate_ijump_tail(&dest[len]);
+	*trans = (trans_t){ .len = len };
+	return len;
+}
+
+#endif
 
 static int generate_ret(char *dest, char *addr, trans_t *trans)
 {
@@ -737,7 +780,9 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 {
 	char *pc = instr->addr+instr->len;
 	long imm=0, imm_len, off;
+#ifdef CACHE_ON_CALL
 	int retaddr_index;
+#endif
 
 	imm_len=instr->len-instr->imm;
 	if (jit_action[instr->op] == JUMP_FAR)
@@ -785,13 +830,19 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			trans->len += off;
 			break;
 		case CALL_RELATIVE:
+#ifdef CACHE_ON_CALL
 			off = generate_call_head(dest, instr, trans, &retaddr_index);
+#else
+			off = generate_call_head(dest, instr, trans);
+#endif
 			generate_jump(&dest[off], pc+imm, trans, map, map_len);
 			if (trans->imm)
 				trans->imm += off;
 			trans->len += off;
+#ifdef CACHE_ON_CALL
 			/* XXX FUGLY */
 			imm_to(&dest[retaddr_index], (long)dest+trans->len);
+#endif
 			break;
 		case JOIN:
 			generate_ill(dest, trans);
