@@ -69,7 +69,7 @@ long get_aux(long *auxv, long id)
 		return 0;
 }
 
-static long strings_count(char **s)
+long strings_count(char **s)
 {
 	long c=0;
 	for (;s[c];c++);
@@ -174,7 +174,7 @@ static long zerofill(unsigned long start, unsigned long end, int prot)
 	                MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
 }
 
-static int open_exec(const char *filename)
+int open_exec(const char *filename)
 {
 	int ret, fd;
 

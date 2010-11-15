@@ -4,7 +4,7 @@
 
 #include "syscalls.h"
 #include "error.h"
-#include "load_elf.h"
+#include "exec.h"
 #include "lib.h"
 #include "error.h"
 #include "mm.h"
@@ -61,9 +61,9 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		.stack_size = USER_STACK_SIZE,
 	};
 
-	int ret = load_elf(&prog);
+	int ret = load_binary(&prog);
 	if (ret < 0)
-		die("load_elf: %d", ret);
+		die("load_binary: %d", ret);
 
 	char *vdso = (char *)get_aux(prog.auxv, AT_SYSINFO_EHDR);
 	long off = memscan(vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);

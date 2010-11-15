@@ -29,7 +29,11 @@ typedef struct
 int load_elf(elf_prog_t *prog);
 int can_load_elf(elf_prog_t *prog);
 
+int open_exec(const char *filename);
+
 void set_aux(long *auxv, long id, long val);
 long get_aux(long *auxv, long id);
+long strings_count(char **s);
+
 
 #endif /* LOAD_ELF_H */

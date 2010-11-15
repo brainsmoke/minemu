@@ -1,20 +1,31 @@
 
 #include <string.h>
+#include <errno.h>
 
 #include "exec.h"
 #include "error.h"
 #include "lib.h"
 #include "syscalls.h"
 #include "load_elf.h"
+#include "load_script.h"
 #include "jit_cache.h"
 
-static long argv_count(char *argv[])
+int can_load_binary(elf_prog_t *prog)
 {
-	long i;
+	int err = can_load_elf(prog);
 
-	for (i=0; argv[i]; i++);
+	if (err)
+		err = can_load_script(prog);
 
-	return i;
+	return err;
+}
+
+int load_binary(elf_prog_t *prog)
+{
+	if ( load_elf(prog) == 0 )
+		return 0;
+	else
+		return load_script(prog);
 }
 
 extern char *minemu_stack_bottom[];
@@ -27,7 +38,7 @@ long user_execve(char *filename, char *argv[], char *envp[])
 		.argv     = argv,
 		.envp     = envp,
 	};
-	long ret = can_load_elf(&prog), count = argv_count(argv);
+	long ret = can_load_binary(&prog), count = strings_count(argv);
 	if (ret)
 		return ret;
 
