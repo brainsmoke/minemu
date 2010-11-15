@@ -607,6 +607,72 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	return len;
 }
 
+#elif PREFETCH_ON_CALL
+
+static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+{
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	/* XXX FUGLY as a speed optimisation, we insert the return address
+	 * directly into the cache, this makes relocating code more messy.
+	 * proposed fix: scan memory for call instructions upon relocation,
+	 * change the address in-place
+	 */
+	/* XXX FUGLY translated address is inserted by caller since we don't know
+	 * yet how long the instruction translation will be
+	 */
+#ifndef NO_TAINT
+	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"68 L"                /* push $retaddr                                        */
+		"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
+
+		&instr->addr[instr->len],
+		&jmp_cache[hash]
+	);
+	return len;
+}
+
+static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
+{
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	long mrm_len = instr->len - instr->mrm;
+	int mrm;
+
+	/* XXX FUGLY as a speed optimisation, we insert the return address
+	 * directly into the cache, this makes relocating code more messy.
+	 * proposed fix: scan memory for call instructions upon relocation,
+	 * change the address in-place
+	 */
+#ifndef NO_TAINT
+	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"A3 L"                /* mov %eax, scratch_stack-4                            */
+		"? 8B &$"             /* mov ... ( -> %eax )                                  */
+		"68 L"                /* push $retaddr                                        */
+		"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
+
+		&scratch_stack[-1],
+		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
+		&instr->addr[instr->len],
+		&jmp_cache[hash]
+	);
+
+	dest[len_taint+mrm] &= 0xC7; /* -> %eax */
+	len += generate_ijump_tail(&dest[len]);
+	*trans = (trans_t){ .len = len };
+	return len;
+}
+
 #else
 
 static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
