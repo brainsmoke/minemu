@@ -515,7 +515,11 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	long mrm_len = instr->len - instr->mrm;
 	int i;
 
+#ifndef NO_TAINT
 	int len_taint = taint_ijmp(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 		"A3 L"           /* mov %eax, scratch_stack-4 */
@@ -544,7 +548,11 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 	/* XXX FUGLY translated address is inserted by caller since we don't know
 	 * yet how long the instruction translation will be
 	 */
+#ifndef NO_TAINT
 	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -571,7 +579,11 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	 * proposed fix: scan memory for call instructions upon relocation,
 	 * change the address in-place
 	 */
+#ifndef NO_TAINT
 	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -599,7 +611,11 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 
 static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
 {
+#ifndef NO_TAINT
 	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -615,7 +631,11 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	long mrm_len = instr->len - instr->mrm;
 	int mrm;
 
+#ifndef NO_TAINT
 	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+#else
+	int len_taint = 0;
+#endif
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -717,10 +737,12 @@ static int generate_cmov(char *dest, instr_t *instr, trans_t *trans)
 
 	if (instr->p[2] == 0) /* we don't do segments (yet?) */
 	{
+#ifndef NO_TAINT
 		if (instr->p[3] == 0x66)
 			taint_len = taint_copy_mem16_to_reg16(&dest[2], &addr[mrm], TAINT_OFFSET);
 		else
 			taint_len = taint_copy_mem32_to_reg32(&dest[2], &addr[mrm], TAINT_OFFSET);
+#endif
 	}
 	dest[0] = '\x70' + ( (addr[mrm-1]&0xf) ^ 1 );
 	dest[1] = taint_len+len-1;
@@ -744,6 +766,8 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 
 	if (instr->p[2]) /* we don't do segments (yet?) */
 		return copy_instr(dest, instr, trans);
+
+#ifndef NO_TAINT
 
 	/* it's 5AM */
 	if (TAINT_MRM_OP(act))
@@ -769,6 +793,8 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 	else if (TAINT_ADDR_OP( act ))
 		len = (op16 && taint_ops[act].addr.f16 ? taint_ops[act].addr.f16 : taint_ops[act].addr.f)
 		      (dest, *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
+
+#endif
 
 	len += copy_instr(&dest[len], instr, trans);
 	*trans = (trans_t){ .len = len };
