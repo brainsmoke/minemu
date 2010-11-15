@@ -91,6 +91,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 			if (j > jlast)
 				jlast = j;
 		}
+debug("%x => %x", i, user_to_jit[i]);
 	}
 
 	for (j=jnext; j<jlast; j++)

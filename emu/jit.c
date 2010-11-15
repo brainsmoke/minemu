@@ -47,7 +47,7 @@ unsigned long min(unsigned long a, unsigned long b) { return a<b ? a:b; }
 typedef struct
 {
 	char *addr; unsigned long len;
-	unsigned long chunk_len, tree_off, tbl_off, n_ops;
+	unsigned long chunk_len, lookup_off, tbl_off, n_ops;
 	int tree_depth;
 
 } jit_chunk_t;
@@ -168,112 +168,57 @@ int heap_get(jmp_heap_t *h, rel_jmp_t *jmp)
 /* address lookup
  * also called by runtime_ijmp in case of a cache miss (on a small stack)
  */
-typedef struct
-{
-	unsigned long offset;
-	unsigned long child;
 
-} jit_node_entry_t;
+#define FRAME_SHIFT (8)
+#define FRAME_SIZE ( 1<<(FRAME_SHIFT) )
 
 typedef struct
 {
-	jit_node_entry_t entry[8];
+	unsigned long d_off;
+	unsigned long tbl_off;
 
-} jit_node_t;
+} jit_lookup_t;
 
-#define FRAME_SIZE (0x200)
-
-static long jit_chunk_get_node_count(jit_chunk_t *hdr)
-{
-	unsigned long n_leafs = (hdr->chunk_len+FRAME_SIZE-1)/FRAME_SIZE, n_nodes = 0;
-	hdr->tree_depth = 0;
-
-	while ( n_leafs > 1 )
-	{
-		n_leafs = (n_leafs+7)/8;
-		n_nodes += n_leafs;
-		hdr->tree_depth++;
-	}
-
-	return n_nodes;
-}
-
-#define TREE_BRANCH (tree[path[cur_depth].node].entry[path[cur_depth].branch])
-#define EMPTY ((unsigned long)-1)
 #define ALIGN(x, n) ( ( (long)(x)+(n)-1 ) & ~( (n) -1 ) )
 #define CHUNK_OFFSET(x) ( (long)(x) - (long)(hdr) )
+#define DIV_CEIL(x, d) ( ( (long)(x)+(long)(d)-1)/(long)(d) )
 
 static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
 {
-	long n_nodes = jit_chunk_get_node_count(hdr), nodes_alloc=1, cur_depth=0, leftover;
+	long n_frames = DIV_CEIL(hdr->len, FRAME_SIZE);
 
-	jit_node_t *tree = (jit_node_t *)ALIGN((long)hdr+hdr->chunk_len, 64);
-	hdr->tree_off = CHUNK_OFFSET(tree);
-	memset(tree, -1, n_nodes*sizeof(jit_node_t));
+	jit_lookup_t *lookup = (jit_lookup_t *)ALIGN((long)hdr+hdr->chunk_len, 64);
+	hdr->lookup_off = CHUNK_OFFSET(lookup);
 
-	struct { long node, branch; } path[hdr->tree_depth];
-	memset(path, 0, sizeof(path));
+	size_pair_t *table = (size_pair_t *)&lookup[n_frames];
+	hdr->tbl_off = CHUNK_OFFSET(table);
 
-	size_pair_t *map_addr = (size_pair_t *)&tree[n_nodes];
-	hdr->tbl_off = CHUNK_OFFSET(map_addr);
-
-	unsigned long n_ops = hdr->n_ops, cur_op=0, i=0,
+	unsigned long n_ops = hdr->n_ops, i, j, cur_lookup = 0,
 	              s_off = 0, d_off = sizeof(*hdr);
 
-	while (cur_op < n_ops)
+	for (i=0, j=0; i < n_ops; i++, j++)
 	{
-		if ( hdr->tree_depth > 0 )
+		if ( ( (s_off-1) ^ (s_off+sizes[i].orig-1) ) & ~(FRAME_SIZE-1) ) 
 		{
-			while ( (cur_depth < hdr->tree_depth-1) || (TREE_BRANCH.child != EMPTY) )
-			{
-				if (TREE_BRANCH.child == EMPTY)
-				{
-					TREE_BRANCH = (jit_node_entry_t)
-					{
-						.offset = s_off,
-						.child = (long)&tree[nodes_alloc]-(long)hdr,
-					};
+			lookup[cur_lookup] = (jit_lookup_t) { .d_off = d_off, .tbl_off = CHUNK_OFFSET(&table[j]) };
+			cur_lookup++;
 
-					cur_depth++;
-					path[cur_depth].node = nodes_alloc;
-					path[cur_depth].branch = 0;
-					nodes_alloc++;
-				
-				}
-				else if (path[cur_depth].branch < 7)
-					path[cur_depth].branch++;
-				else
-					cur_depth--;
+			if ( s_off & (FRAME_SIZE-1) ) /* we use orig == 0 to encode that jit contains */
+			{                             /* a negative s_off in case frame boundaries fall  */
+			                              /* between instructions                            */
+				table[j] = (size_pair_t) { .orig = 0, .jit = -s_off & (FRAME_SIZE-1) };
+				j++;
 			}
-
-			TREE_BRANCH = (jit_node_entry_t)
-			{
-				.offset = s_off,
-				.child = (long)&map_addr[i]-(long)hdr,
-			};
 		}
 
-		leftover = d_off & (FRAME_SIZE-1);
-		if ( leftover > 0 )
-		{
-			map_addr[i] = (size_pair_t) { .orig = 0, .jit = leftover };
-			i++;
-		}
-
-		do
-		{
-			map_addr[i] = sizes[cur_op];
-			s_off += sizes[cur_op].orig;
-			d_off += sizes[cur_op].jit;
-			cur_op++; i++;
-		}
-		while ( (cur_op < n_ops) && ( (d_off-sizes[cur_op-1].jit) & FRAME_SIZE ) == ( d_off & FRAME_SIZE ) );
+		table[j] = sizes[i];
+		s_off   += sizes[i].orig;
+		d_off   += sizes[i].jit;
 	}
-	hdr->chunk_len = CHUNK_OFFSET(ALIGN(&map_addr[i], 64));
+
+	hdr->chunk_len = CHUNK_OFFSET(ALIGN(&table[j], 64));
 }
 
-#undef TREE_BRANCH
-#undef EMPTY
 #undef ALIGN
 #undef CHUNK_OFFSET
 
@@ -282,30 +227,18 @@ static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 	if (!contains(hdr->addr, hdr->len, addr))
 		return NULL;
 
-	long d_off = 0, s_off = 0;
-	jit_node_t *node = (jit_node_t *)((long)hdr+hdr->tree_off);
-	int i, j;
+	jit_lookup_t *lookup = (jit_lookup_t *)((long)hdr+hdr->lookup_off);
+	jit_lookup_t *frame_entry = &lookup[ ((long)addr-(long)hdr->addr) >> FRAME_SHIFT ];
+	size_pair_t *sizes = (size_pair_t *)((long)hdr+frame_entry->tbl_off);
+	unsigned long s_off = ((long)addr-(long)hdr->addr) & ~(FRAME_SIZE-1),
+	              d_off = frame_entry->d_off,
+	              i;
 
-	for (i=0; i<hdr->tree_depth; i++)
+	i=0;
+	if (sizes[i].orig == 0)
 	{
-		d_off *= 8;
-		if ((unsigned long)addr-(unsigned long)hdr->addr < node->entry[0].offset)
-			return NULL;
-
-		for (j=0; j<7 && ((unsigned long)addr-(unsigned long)hdr->addr >= node->entry[j+1].offset); j++);
-
-		s_off = node->entry[j].offset;
-		d_off += FRAME_SIZE * j;
-		node = (jit_node_t *)(((long)hdr)+node->entry[j].child);
-	}
-
-	size_pair_t *sizes = (size_pair_t *)node;
-
-	j=0;
-	if (sizes[j].orig == 0)
-	{
-		d_off += sizes[j].jit;
-		j++;
+		s_off -= sizes[i].jit;
+		i++;
 	}
 
 	while ((unsigned long)addr >= (unsigned long)&hdr->addr[s_off])
@@ -313,9 +246,9 @@ static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 		if ((unsigned long)addr == (unsigned long)&hdr->addr[s_off])
 			return (char *)hdr+d_off;
 
-		s_off += sizes[j].orig;
-		d_off += sizes[j].jit;
-		j++;
+		s_off += sizes[i].orig;
+		d_off += sizes[i].jit;
+		i++;
 	}
 
 	return NULL;
