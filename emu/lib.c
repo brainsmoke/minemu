@@ -152,7 +152,7 @@ int fd_vprintf(int fd, const char *format, va_list ap)
 		{
 			case 'd': case 'u':
 				num = va_arg(ap, unsigned long);
-				if ( (num > LONG_MAX) && (c == 'd') )
+				if ( (num >= LONG_MAX) && (format[i] == 'd') )
 				{
 					num = -num;
 					sys_write(fd, "-", 1);
