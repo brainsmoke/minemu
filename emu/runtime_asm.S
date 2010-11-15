@@ -37,6 +37,7 @@ int $3
 # contains the jump address and that the original
 # eax is stored at scratch_stack-4
 #
+.balign 64
 .global runtime_ijmp
 .type runtime_ijmp, @function
 runtime_ijmp:
