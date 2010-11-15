@@ -220,7 +220,6 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 }
 
 #undef ALIGN
-#undef CHUNK_OFFSET
 
 static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 {
@@ -293,32 +292,57 @@ char *jit_lookup_addr(char *addr)
 
 static char *jit_chunk_rev_lookup_addr(jit_chunk_t *hdr, char *jit_addr, char **jit_op_start, long *jit_op_len)
 {
-	if (!contains((char *)hdr, hdr->chunk_len, jit_addr))
+	if (!contains((char *)hdr, hdr->lookup_off, jit_addr))
 		return NULL;
 
-	unsigned long n_ops=hdr->n_ops, i, j;
-	size_pair_t *sizes = (size_pair_t *)&((char *)hdr)[hdr->tbl_off];
-	char *jit_addr_iter = (char *)&hdr[1], *addr=hdr->addr;
+	long n_frames = DIV_CEIL(hdr->len, FRAME_SIZE), mid;
+	jit_lookup_t *lookup = (jit_lookup_t *)((long)hdr+hdr->lookup_off);
+	unsigned long in_d_off = CHUNK_OFFSET(jit_addr), d_off, s_off = 0, i;
 
-	for (i=0, j=0; i<n_ops; i++, j++)
+	while (n_frames > 1)
 	{
-		if ( sizes[j].orig == 0 )
-			j++;
-
-		if (contains(jit_addr_iter, sizes[j].jit, jit_addr))
+		mid = n_frames/2;
+		d_off = lookup[mid].d_off;
+	
+		if ( in_d_off < d_off )
 		{
-			if (jit_op_start)
-				*jit_op_start = jit_addr_iter;
-			if (jit_op_len)
-				*jit_op_len = sizes[j].jit;
-			return addr;
+			n_frames = mid;
 		}
-
-		addr += sizes[j].orig;
-		jit_addr_iter += sizes[j].jit;
+		else
+		{
+			s_off += mid*FRAME_SIZE;
+			lookup = &lookup[mid];
+			n_frames -= mid;
+		}
 	}
 
-	return NULL;
+	d_off = lookup->d_off;
+
+	if ( in_d_off < d_off )
+		return NULL;
+
+	size_pair_t *sizes = (size_pair_t *)((long)hdr+lookup->tbl_off);
+
+	i=0;
+	if (sizes[i].orig == 0)
+	{
+		s_off -= sizes[i].jit;
+		i++;
+	}
+
+	while ( (unsigned long)(d_off+sizes[i].jit) <= in_d_off )
+	{
+		s_off += sizes[i].orig;
+		d_off += sizes[i].jit;
+		i++;
+	}
+
+	if (jit_op_start)
+		*jit_op_start = &((char *)hdr)[d_off];
+	if (jit_op_len)
+		*jit_op_len = sizes[i].jit;
+
+	return &hdr->addr[s_off];
 }
 
 static char *jit_map_rev_lookup_addr(code_map_t *map, char *jit_addr, char **jit_op_start, long *jit_op_len)

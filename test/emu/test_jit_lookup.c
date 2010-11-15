@@ -76,47 +76,27 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	memset(jit_to_user, 0, map->jit_len*sizeof(long));
 	int i, j=-1, jnext=1000000000, jlast=0;
 	char *rev_addr=NULL, *rev_last=NULL;
-	char *op_start;
-	long op_len;
+	char *op_start, *op_start_2;
+	long op_len, op_len_2;
 
 	for (i=0; i<map->len; i++)
 	{
-		user_to_jit[i] = jit_lookup_addr(&map->addr[i]);
-		if ( user_to_jit[i] )
+		char *jit_addr = jit_lookup_addr(&map->addr[i]);
+		if ( jit_addr )
 		{
-			j = (long)user_to_jit[i]-(long)map->jit_addr;
-			jit_to_user[j] = &map->addr[i];
-			if (j < jnext)
-				jnext = j;
-			if (j > jlast)
-				jlast = j;
+			rev_addr = jit_rev_lookup_addr(jit_addr, &op_start, &op_len);
+			if (rev_addr != &map->addr[i])
+				debug("forward and reverse mapping do not match: reverse: %x expected: %x i=%x",
+				      rev_addr, jit_addr, i);
+			else for (j=1; j<op_len; j++)
+			{
+				rev_addr = jit_rev_lookup_addr(jit_addr+j, &op_start_2, &op_len_2);
+				if (op_start_2 != op_start)
+					debug("jit address changes in the middle of opcode %x to %x", op_start, op_start_2);
+				if (op_len != op_len_2)
+					debug("jit code size changes in the middle of opcode %x to %x", op_len, op_len_2);
+			}
 		}
-debug("%x => %x", i, user_to_jit[i]);
-	}
-
-	for (j=jnext; j<jlast; j++)
-	{
-		rev_addr = jit_rev_lookup_addr(&map->jit_addr[j], &op_start, &op_len);
-
-		if (jit_to_user[j])
-		{
-			if (jit_to_user[j] != rev_addr)
-				debug("reverse mapping bad %x expected %x j=%x", rev_addr, jit_to_user[j], j);
-
-			else if (&map->jit_addr[j] != op_start)
-				die("translation starts before expected address %x %x", rev_addr, op_start);
-		}
-		else
-		{
-			if (rev_addr && rev_addr != rev_last)
-				die("start address changes in the middle of opcode %x to %x", rev_last, rev_addr);
-		}
-
-		if (rev_addr && user_to_jit[(long)rev_addr-(long)map->addr] != op_start)
-			die("reverse mapping does not match %x to %x",
-			    user_to_jit[(long)rev_addr-(long)map->addr], op_start);
-
-		rev_last = rev_addr;
 	}
 
 	sys_exit(0);
