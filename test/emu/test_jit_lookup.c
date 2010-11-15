@@ -74,8 +74,8 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	char *jit_to_user[map->jit_len];
 	memset(user_to_jit, 0, map->len*sizeof(long));
 	memset(jit_to_user, 0, map->jit_len*sizeof(long));
-	int i, j=-1, jnext=1000000000, jlast=0;
-	char *rev_addr=NULL, *rev_last=NULL;
+	int i, j=-1;
+	char *rev_addr=NULL;
 	char *op_start, *op_start_2;
 	long op_len, op_len_2;
 
