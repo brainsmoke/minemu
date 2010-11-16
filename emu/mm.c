@@ -45,6 +45,18 @@ static mem_map_t unshield_maps[] =
 	{ .start = 0 },
 };
 
+static mem_map_t minimal_shield_maps[] =
+{
+	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ            },
+	{ .start = 0 },
+};
+
+static mem_map_t minimal_unshield_maps[] =
+{
+	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ|PROT_WRITE },
+	{ .start = 0 },
+};
+
 
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)
@@ -187,6 +199,16 @@ void shield(void)
 void unshield(void)
 {
 	set_protection(unshield_maps);
+}
+
+void minimal_shield(void)
+{
+	set_protection(minimal_shield_maps);
+}
+
+void minimal_unshield(void)
+{
+	set_protection(minimal_unshield_maps);
 }
 
 void init_minemu_mem(char **envp)

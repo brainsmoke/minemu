@@ -10,7 +10,7 @@
 #include "syscalls.h"
 #include "sigwrap.h"
 #include "exec.h"
-
+#include "taint.h"
 
 long syscall_emu(long call, long arg1, long arg2, long arg3,
                             long arg4, long arg5, long arg6)
@@ -38,9 +38,16 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
 
 		case __NR_read:
+		case __NR_readv:
+		case __NR_open:
+		case __NR_creat:
+		case __NR_dup:
+		case __NR_dup2:
+		case __NR_openat:
+		case __NR_pipe:
+		case __NR_socketcall:
 			ret = syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
-//			if (ret > 0)
-//				memset( (char *)(arg2+TAINT_OFFSET), 0xFF, ret);
+			do_taint(ret,call,arg1,arg2,arg3,arg4,arg5,arg6);
 			return ret;
 		case __NR_vfork:
 			call = __NR_fork;
@@ -52,7 +59,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 	if (!try_block_signals())
 		return ret; /* we have a signal in progress, revert to pre-syscall state */
 
-	unshield();
+	minimal_unshield();
 
 	switch (call)
 	{
@@ -94,14 +101,16 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			user_rt_sigreturn();
 			break;
 		case __NR_execve:
+			unshield();
 			ret = user_execve((char *)arg1, (char **)arg2, (char **)arg3);
+			shield();
 			break;
 		default:
 			die("unimplemented syscall");
 			break;
 	}
 
-	shield();
+	minimal_shield();
 	unblock_signals();
 	return ret;
 }

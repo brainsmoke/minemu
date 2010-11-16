@@ -58,6 +58,10 @@
 .global jit_eip
 .lcomm sysenter_reentry, 4
 .global sysenter_reentry
+
+.lcomm fd_type, 1024
+.global fd_type 
+
 #ifdef EMU_DEBUG
 .lcomm ijmp_misses, 4
 .global ijmp_misses

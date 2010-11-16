@@ -130,4 +130,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot);
 void shield(void);
 void unshield(void);
 
+void minimal_shield(void);
+void minimal_unshield(void);
+
 #endif /* MM_H */
