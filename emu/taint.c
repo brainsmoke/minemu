@@ -83,8 +83,8 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 			set_fd(ret, FD_NO_SOCKET);
 			return;
 		case __NR_pipe:
-			set_fd( ((long *)arg1)[0], FD_NO_SOCKET);
-			set_fd( ((long *)arg1)[1], FD_NO_SOCKET);
+			set_fd( ((long *)arg1)[0], FD_SOCKET);
+			set_fd( ((long *)arg1)[1], FD_SOCKET);
 			return;
 		case __NR_socketcall:
 		{
