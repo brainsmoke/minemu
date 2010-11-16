@@ -47,7 +47,9 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 		case __NR_pipe:
 		case __NR_socketcall:
 			ret = syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
+#ifndef NO_TAINT
 			do_taint(ret,call,arg1,arg2,arg3,arg4,arg5,arg6);
+#endif
 			return ret;
 		case __NR_vfork:
 			call = __NR_fork;
