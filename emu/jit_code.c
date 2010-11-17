@@ -155,7 +155,7 @@ union
 	[TAINT_COPY_STR_TO_STR].off      = { .f = taint_copy_str32_to_str32, .f16 = taint_copy_str16_to_str16 },
 	[TAINT_COPY_AX_TO_STR].off       = { .f = taint_copy_eax_to_str32,   .f16 = taint_copy_ax_to_str16    },
 	[TAINT_COPY_STR_TO_AX].off       = { .f = taint_copy_str32_to_eax,   .f16 = taint_copy_str16_to_ax    },
-	[TAINT_BYTE_COPY_STR_TO_STR].off = { .f = taint_copy_str32_to_str32                                   },
+	[TAINT_BYTE_COPY_STR_TO_STR].off = { .f = taint_copy_str8_to_str8                                     },
 	[TAINT_BYTE_COPY_AL_TO_STR].off  = { .f = taint_copy_al_to_str8                                       },
 	[TAINT_BYTE_COPY_STR_TO_AL].off  = { .f = taint_copy_str8_to_al                                       },
 	[TAINT_ERASE_PUSH].off           = { .f = taint_erase_push32,        .f16 = taint_erase_push16        },
@@ -826,6 +826,43 @@ static int copy_instr(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
+static int taint_rep(char *dest, instr_t *instr, trans_t *trans)
+{
+	int act = jit_action[instr->op]^TAINT, op16 = (instr->p[3] == 0x66);
+
+	if (instr->p[2]) /* we don't do segments (yet?) */
+		return copy_instr(dest, instr, trans);
+
+	int len = 2;
+
+	dest[0] = '\xe3';
+
+#ifndef NO_TAINT
+	len +=(op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
+	      (&dest[len], TAINT_OFFSET);
+#endif
+
+	if ( instr->p[3] )
+	{
+		dest[len] = instr->p[3];
+		len++;
+	}
+	if ( instr->p[4] )
+	{
+		dest[len] = instr->p[4];
+		len++;
+	}
+	dest[len] = instr->op;
+	dest[len+1] = '\xe2';
+	len += 3;
+
+	dest[1] = len-2;
+	dest[len-1] = -len;
+
+	*trans = (trans_t){ .len = len };
+	return len;
+}
+
 static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 {
 	int len = 0, act = jit_action[instr->op]^TAINT, op16 = (instr->p[3] == 0x66);
@@ -835,7 +872,6 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 
 #ifndef NO_TAINT
 
-	/* it's 5AM */
 	if (TAINT_MRM_OP(act))
 		len = (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
 		      (dest, &instr->addr[instr->mrm], TAINT_OFFSET);
@@ -954,6 +990,14 @@ void translate_op(char *dest, instr_t *instr, trans_t *trans,
 
 	if ( (action & CONTROL_MASK) == CONTROL )
 		translate_control(dest, instr, trans, map, map_len);
+	else if ( ( ( action == (TAINT | TAINT_COPY_STR_TO_STR) )        ||
+	            ( action == (TAINT | TAINT_COPY_AX_TO_STR) )         ||
+	            ( action == (TAINT | TAINT_COPY_STR_TO_AX) )         ||
+	            ( action == (TAINT | TAINT_BYTE_COPY_STR_TO_STR ) )  ||
+	            ( action == (TAINT | TAINT_BYTE_COPY_AL_TO_STR ) )   ||
+	            ( action == (TAINT | TAINT_BYTE_COPY_STR_TO_AL ) ) ) &&
+	            ( instr->p[1] == 0xf2 || instr->p[1] == 0xf3 ) )
+		taint_rep(dest, instr, trans);
 	else if ( (action & TAINT_MASK) == TAINT )
 		taint_instr(dest, instr, trans);
 	else if (action == COPY_INSTRUCTION)
