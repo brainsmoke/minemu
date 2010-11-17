@@ -12,14 +12,14 @@
 static code_map_t codemaps[MAX_CODEMAPS];
 static unsigned n_codemaps = 0;
 
-static void clear_code_map(int i)
+static void clear_code_map(unsigned int i)
 {
 	clear_jmp_mappings(codemaps[i].addr, codemaps[i].len);
 	jit_free(codemaps[i].jit_addr);
 	/* */
 }
 
-static void del_code_map(int i)
+static void del_code_map(unsigned int i)
 {
 	clear_code_map(i);
 
@@ -31,7 +31,7 @@ static void del_code_map(int i)
 
 code_map_t *find_code_map(char *addr)
 {
-	int i;
+	unsigned int i;
 
 	for (i=0; i<n_codemaps; i++)
 		if (contains(codemaps[i].addr, codemaps[i].len, addr))
@@ -42,7 +42,7 @@ code_map_t *find_code_map(char *addr)
 
 code_map_t *find_jit_code_map(char *jit_addr)
 {
-	int i;
+	unsigned int i;
 
 	for (i=0; i<n_codemaps; i++)
 		if (contains(codemaps[i].jit_addr, codemaps[i].jit_len, jit_addr))

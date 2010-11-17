@@ -20,7 +20,7 @@ call_data_t *call_data(trace_t *t)
 /* Make accessing call data uniform
  *
  */
-long get_call_data(trace_t *t, long which)
+long get_call_data(trace_t *t, unsigned long which)
 {
 	if ( which >= ARG_BASE && which < ARG_BASE+8 )
 		return get_arg(t, which-ARG_BASE);

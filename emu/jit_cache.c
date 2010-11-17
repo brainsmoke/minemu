@@ -110,7 +110,7 @@ int try_save_jit_cache(code_map_t *map)
 	if (fd < 0)
 		return fd;
 
-	if ( sys_write(fd, map->jit_addr, map->jit_len) == map->jit_len )
+	if ( sys_write(fd, map->jit_addr, map->jit_len) == (long)map->jit_len )
 		ret = sys_rename(tmpfile, finalfile);
 
 	sys_close(fd);

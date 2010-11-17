@@ -548,7 +548,7 @@ static int high_fd(int fd)
 
 			fd = newfd;
 
-			if (lim.rlim_cur > fd)
+			if ((int)lim.rlim_cur > fd)
 				lim.rlim_cur = fd;
 
 			break;

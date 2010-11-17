@@ -12,7 +12,8 @@
 #include "runtime.h"
 
 static short blocks[2000];
-static unsigned long n_blocks, block_size;
+static long n_blocks;
+static unsigned long block_size;
 
 void jit_mm_init(void)
 {
@@ -24,7 +25,7 @@ void jit_mm_init(void)
 
 void *jit_alloc(unsigned long size)
 {
-	int i, blocks_needed = size/block_size+1;
+	long i, blocks_needed = size/block_size+1;
 
 	if (blocks_needed < 1)
 		blocks_needed = 1;

@@ -236,7 +236,6 @@ static const char *syscall_names[] =
 	[__NR_pivot_root] = "pivot_root",
 	[__NR_mincore] = "mincore",
 	[__NR_madvise] = "madvise",
-	[__NR_madvise1] = "madvise1",
 	[__NR_getdents64] = "getdents64",
 	[__NR_fcntl64] = "fcntl64",
 /* 223 is unused */
@@ -351,7 +350,7 @@ const char *syscall_name(long no)
 	if ( no == -1 )
 		return "-1";
 
-	if ( (no < N_SYSCALLS) || (syscall_names[no]) )
+	if ( (no < (long)N_SYSCALLS) && (syscall_names[no]) )
 		return syscall_names[no];
 
 	return "UNKNOWN SYSCALL";
@@ -381,7 +380,7 @@ static const char *socketcall_names[] =
 
 const char *socketcall_name(long no)
 {
-	if ( ( no >= 0 ) && ( no < N_SOCKETCALLS ) && ( socketcall_names[no] ) )
+	if ( ( no >= 0 ) && ( no < (long)N_SOCKETCALLS ) && ( socketcall_names[no] ) )
 		return socketcall_names[no];
 
 	return "UNKNOWN SOCKETCALL";
@@ -460,7 +459,7 @@ void print_flags(int flags)
 		{ COPY_RESULT, "COPY_RESULT" },
 	};
 
-	int i;
+	unsigned int i;
 
 	for (i=0; i<sizeof(flagnames)/sizeof(*flagnames); i++)
 		if ( (flagnames[i].number & flags) || (flagnames[i].number == flags) )

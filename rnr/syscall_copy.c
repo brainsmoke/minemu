@@ -25,7 +25,7 @@ static void copy_iov_from_uspace(out_stream_t *out, trace_t *t, uspace_buf_t *b)
 	size_t size;
 	void *raddr;
 	call_data_t *d = call_data(t);
-	int i;
+	unsigned int i;
 
 	for (i=0; i<d->iovcnt && total_size > 0; i++)
 	{

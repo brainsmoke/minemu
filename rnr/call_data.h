@@ -28,7 +28,7 @@ void load_pre_call_data(trace_t *t);
 void load_post_call_data(trace_t *t);
 void save_post_call_data(trace_t *t);
 
-long get_call_data(trace_t *t, long which);
+long get_call_data(trace_t *t, unsigned long which);
 
 call_data_t *add_call_data(trace_t *t);
 void del_call_data(trace_t *t);

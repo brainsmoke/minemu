@@ -219,7 +219,7 @@ static int read_elf_header(int fd, Elf32_Ehdr *hdr)
 	return 0;
 }
 
-static int find_interp_name(elf_bin_t *bin, char *buf, long max_size)
+static int find_interp_name(elf_bin_t *bin, char *buf, unsigned long max_size)
 {
 	long i;
 	Elf32_Phdr *p;
@@ -233,7 +233,8 @@ static int find_interp_name(elf_bin_t *bin, char *buf, long max_size)
 			if ( (p->p_filesz > max_size) || (p->p_filesz < 2) ) 
 				return -ENOEXEC;
 
-			if ( read_at(bin->fd, p->p_offset, buf, p->p_filesz) != p->p_filesz )
+			if ( read_at(bin->fd, p->p_offset, buf,
+			             p->p_filesz) != (long)p->p_filesz )
 				return -EIO;
 
 			if ( buf[p->p_filesz-1] != '\0' )
@@ -266,7 +267,7 @@ int open_elf(const char *filename, elf_bin_t *bin)
 static Elf32_Phdr *mapped_phdr(elf_bin_t *bin)
 {
 	int i;
-	long offset;
+	unsigned long offset;
 	Elf32_Phdr *p;
 
 	for (i=0; i<bin->hdr.e_phnum; i++) 
@@ -285,7 +286,7 @@ static Elf32_Phdr *mapped_phdr(elf_bin_t *bin)
 
 static unsigned long set_brk(elf_bin_t *bin)
 {
-	long new_brk = 0, v_end, i;
+	unsigned long new_brk = 0, v_end, i;
 
 	for (i=0; i<bin->hdr.e_phnum; i++) 
 		if ( bin->phdr[i].p_type == PT_LOAD)
@@ -424,8 +425,8 @@ static int try_load_elf(elf_prog_t *prog, long bailout)
 	bin->phdr = phdr_bin_tmp; /* point to mmapped region later if any */
 
 	if (read_at(bin->fd, bin->hdr.e_phoff, bin->phdr,
-			sizeof(*bin->phdr)*bin->hdr.e_phnum) !=
-			sizeof(*bin->phdr)*bin->hdr.e_phnum)
+	            sizeof(*bin->phdr)*bin->hdr.e_phnum) !=
+	      (long)sizeof(*bin->phdr)*bin->hdr.e_phnum)
 		return -EIO;
 
 	if ( (err = find_interp_name(bin, i_filename, PATH_MAX)) < 0 )
@@ -445,8 +446,8 @@ static int try_load_elf(elf_prog_t *prog, long bailout)
 		interp->phdr = phdr_interp_tmp; /* point to mmapped region later */
 
 		if (read_at(interp->fd, interp->hdr.e_phoff, interp->phdr,
-				sizeof(*interp->phdr)*interp->hdr.e_phnum) !=
-				sizeof(*interp->phdr)*interp->hdr.e_phnum)
+		            sizeof(*interp->phdr)*interp->hdr.e_phnum) !=
+		      (long)sizeof(*interp->phdr)*interp->hdr.e_phnum)
 			return -EIO;
 	}
 

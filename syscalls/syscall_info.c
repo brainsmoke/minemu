@@ -763,13 +763,13 @@ syscall_info_t *syscall_info(trace_t *t)
 {
 	long callno = t->syscall;
 
-	if ( (callno < 0) || (callno >= N_SYSCALLS) )
+	if ( (callno < 0) || (callno >= (long)N_SYSCALLS) )
 		return &unknown_call_info;
 
 	if ( callno == __NR_socketcall )
 	{
 		callno = get_arg(t, 0);
-		if ( (callno < 0) || (callno >= N_SOCKETCALLS) )
+		if ( (callno < 0) || (callno >= (long)N_SOCKETCALLS) )
 			return &unknown_call_info;
 
 		return &socketcall_info_array[callno];

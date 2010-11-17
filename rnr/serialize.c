@@ -42,7 +42,7 @@ static const char *message_type(int type)
 
 static void try_write(int fd, void *buf, size_t count)
 {
-	if ( write(fd, buf, count) != count )
+	if ( write(fd, buf, count) != (ssize_t)count )
 		fatal_error("write failed: %s", strerror(errno));
 }
 
@@ -168,7 +168,7 @@ static ssize_t read_message(in_stream_t *s, msg_type_t type)
 
 	ssize_t total = 0, n_read;
 
-	while (total < s->hdr.payload_len)
+	while (total < (ssize_t)s->hdr.payload_len)
 	{
 		n_read = read(s->fd, s->buf+total, s->hdr.payload_len-total);
 
@@ -360,7 +360,7 @@ static void write_hdr_region(out_stream_t *s,
 		{ .iov_base = &hdr, .iov_len = sizeof(hdr) },
 		{ .iov_base = data, .iov_len = len }
 	};
-	if ( writev(s->fd, vec, 2) != sizeof(hdr)+len )
+	if ( writev(s->fd, vec, 2) != (ssize_t)(sizeof(hdr)+len) )
 		fatal_error("error while writing message: %s",
 		            strerror(errno));
 }
@@ -433,7 +433,7 @@ void write_call(out_stream_t *s, long call, long *args, size_t argc)
 		{ .iov_base = &msg, .iov_len = sizeof(msg) },
 		{ .iov_base = args, .iov_len = argc*sizeof(long) }
 	};
-	if ( writev(s->fd, vec, 2) != sizeof(msg)+argc*sizeof(long) )
+	if ( writev(s->fd, vec, 2) != (ssize_t)(sizeof(msg)+argc*sizeof(long)) )
 		fatal_error("error while writing message: %s",
 		            strerror(errno));
 }
@@ -450,7 +450,7 @@ void write_uspace(out_stream_t *s, long argno, void *buf, size_t len, msg_type_t
 		{ .iov_base = &msg, .iov_len = sizeof(msg) },
 		{ .iov_base = buf, .iov_len = len }
 	};
-	if ( writev(s->fd, vec, 2) != sizeof(msg)+len )
+	if ( writev(s->fd, vec, 2) != (ssize_t)(sizeof(msg)+len) )
 		fatal_error("error while writing message: %s",
 		            strerror(errno));
 }

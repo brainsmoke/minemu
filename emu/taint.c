@@ -51,7 +51,7 @@ void taint_mem(void *mem, unsigned long size, int type)
 void taint_iov(struct iovec *iov, int iocnt, unsigned long size, int type)
 {
 	unsigned long v_size;
-	while (size < 0)
+	while (size > 0)
 	{
 		v_size = iov->iov_len;
 		if (v_size > size)
