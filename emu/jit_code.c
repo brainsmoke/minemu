@@ -17,6 +17,7 @@
 #define TAINT_REG_OFF          (0x20)
 #define TAINT_REG              (0x30)
 #define TAINT_OFF              (0x40)
+#define TAINT_STRING           (0x48)
 #define TAINT_IMPL             (0x50)
 #define TAINT_ADDR             (0x60)
 
@@ -26,6 +27,8 @@
 #define TAINT_OFF_OP( action )       ( (action&~0x0f) == TAINT_OFF     )
 #define TAINT_IMPL_OP( action )      ( (action&~0x0f) == TAINT_IMPL    )
 #define TAINT_ADDR_OP( action )      ( (action&~0x0f) == TAINT_ADDR    )
+
+#define TAINT_STRING_OP( action )    ( (action&~0x07) == (TAINT|TAINT_STRING)  )
 
 enum
 {
@@ -72,17 +75,17 @@ enum
 
 	/* arguments: offset */
 
-	TAINT_COPY_STR_TO_STR = TAINT_OFF,
+	TAINT_ERASE_PUSH = TAINT_OFF,
+	TAINT_PUSHA,
+	TAINT_POPA,
+	TAINT_LEAVE,
+	TAINT_ENTER,
+	TAINT_COPY_STR_TO_STR = TAINT_STRING,
 	TAINT_COPY_AX_TO_STR,
 	TAINT_COPY_STR_TO_AX,
 	TAINT_BYTE_COPY_STR_TO_STR,
 	TAINT_BYTE_COPY_AL_TO_STR,
 	TAINT_BYTE_COPY_STR_TO_AL,
-	TAINT_ERASE_PUSH,
-	TAINT_PUSHA,
-	TAINT_POPA,
-	TAINT_LEAVE,
-	TAINT_ENTER,
 
 	/* no arguments */
 
@@ -990,13 +993,8 @@ void translate_op(char *dest, instr_t *instr, trans_t *trans,
 
 	if ( (action & CONTROL_MASK) == CONTROL )
 		translate_control(dest, instr, trans, map, map_len);
-	else if ( ( ( action == (TAINT | TAINT_COPY_STR_TO_STR) )        ||
-	            ( action == (TAINT | TAINT_COPY_AX_TO_STR) )         ||
-	            ( action == (TAINT | TAINT_COPY_STR_TO_AX) )         ||
-	            ( action == (TAINT | TAINT_BYTE_COPY_STR_TO_STR ) )  ||
-	            ( action == (TAINT | TAINT_BYTE_COPY_AL_TO_STR ) )   ||
-	            ( action == (TAINT | TAINT_BYTE_COPY_STR_TO_AL ) ) ) &&
-	            ( instr->p[1] == 0xf2 || instr->p[1] == 0xf3 ) )
+	else if ( TAINT_STRING_OP(action) &&
+	          ( instr->p[1] == 0xf2 || instr->p[1] == 0xf3 ) )
 		taint_rep(dest, instr, trans);
 	else if ( (action & TAINT_MASK) == TAINT )
 		taint_instr(dest, instr, trans);
