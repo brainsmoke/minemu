@@ -207,7 +207,7 @@ union
 
 #define XXX (C) /* todo */
 #define PRIV (C)
-#define MM (C)
+#define MM (U)
 
 #define TOMR ( TAINT | TAINT_OR_MEM_TO_REG           )
 #define TORM ( TAINT | TAINT_OR_REG_TO_MEM           )
@@ -298,42 +298,42 @@ const unsigned char jit_action[] =
 /* F? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
 
 	[G38_OPTABLE] =
-/*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
-/* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 3? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 5? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 6? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 7? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 8? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 9? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* A? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* C? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?MM ?D  ?E  ?F */
+/* 0? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 1? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 2? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 3? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 4? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 5? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 6? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 7? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 8? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 9? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* A? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* B? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* C? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* D? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* E? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* F? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
 
 	[G3A_OPTABLE] =
 /*        ?0  ?1  ?2  ?3  ?4  ?5  ?6  ?7  ?8  ?9  ?A  ?B  ?C  ?D  ?E  ?F */
-/* 0? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 1? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 2? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 3? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 4? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 5? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 6? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 7? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 8? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* 9? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* A? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* B? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* C? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* D? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* E? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
-/* F? */  C , C , C , C , C , C , C , C , C , C , C , C , C , C , C , C ,
+/* 0? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 1? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 2? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 3? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 4? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 5? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 6? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 7? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 8? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* 9? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* A? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* B? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* C? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* D? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* E? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
+/* F? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
 
 	[GF6_OPTABLE] =
           C , U , C , C ,XXX,XXX,XXX,XXX,
