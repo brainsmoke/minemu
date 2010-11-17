@@ -77,10 +77,12 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 			return;
 		case __NR_open:
 		case __NR_creat:
-		case __NR_dup:
-		case __NR_dup2:
 		case __NR_openat:
 			set_fd(ret, FD_NO_SOCKET);
+			return;
+		case __NR_dup:
+		case __NR_dup2:
+			set_fd( ret, fd_type[arg1]);
 			return;
 		case __NR_pipe:
 			set_fd( ((long *)arg1)[0], FD_SOCKET);
