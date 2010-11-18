@@ -40,6 +40,9 @@
 .global taint_tmp
 .lcomm taint_tmp, 4
 
+.global ijmp_taint
+.lcomm ijmp_taint, 4
+
 .lcomm jit_fragment_running, 4
 .global jit_fragment_running
 .lcomm jit_fragment_restartsys, 4

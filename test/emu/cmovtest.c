@@ -31,6 +31,9 @@ void runtime_ijmp(void) { die("calling placeholder"); }
 void runtime_ret_cleanup(void) { die("calling placeholder"); }
 void int80_emu(void) { die("calling placeholder"); }
 void linux_sysenter_emu(void) { die("calling placeholder"); }
+void jit_rev_lookup_addr(void) { die("calling placeholder"); }
+void unshield(void) { die("calling placeholder"); }
+char *hexcat(char *dest, unsigned long ul) { die("calling placeholder"); return NULL; }
 
 typedef long (*func_t)(long flags, long orig, long condval);
 

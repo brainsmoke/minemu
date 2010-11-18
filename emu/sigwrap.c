@@ -238,9 +238,11 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 		context->esp = (long)rt_sigframe;
 		context->ecx = (long)&rt_sigframe->uc;
 		context->edx = (long)&rt_sigframe->info;
+//print_rt_sigframe(rt_sigframe);
 	}
 	else
 	{
+//print_sigframe(sigframe);
 		context->esp = (long)sigframe;
 		context->ecx = 0;
 		context->edx = 0;

@@ -571,14 +571,7 @@ char *jit(char *addr)
 	if (map == NULL)
 {
 #ifdef EMU_DEBUG
-char *jit_op, *op;
-long jit_op_len, op_len;
-op = jit_rev_lookup_addr(last_jit, &jit_op, &jit_op_len);
-op_len = op_size(op, 16);
-		debug("last opcode at: %X %d", op, op_len);
-		printhex(op, op_len);
-		debug("last jit opcode at: %X ", last_jit);
-		printhex(jit_op, jit_op_len);
+print_last_gencode_opcode();
 #endif
 		die("attempting to jump in non-executable code addr: %X ", addr);
 }

@@ -25,7 +25,10 @@ movl %ecx, scratch_stack-4   # cleared eax
 jmp runtime_ijmp
 
 taint_fault:
-int $3
+call unshield
+call do_taint_dump
+#int $3
+ud2
 
 #
 # RET / ICALL / IJMP FAST PATH:

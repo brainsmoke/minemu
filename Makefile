@@ -12,15 +12,16 @@ RM=$(SILENT)rm -r
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
 
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG
+#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG -DCACHE_ON_CALL
 #CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -g
 #CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DEMU_DEBUG
 #CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DPREFETCH_ON_CALL
-CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DCACHE_ON_CALL
+#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DCACHE_ON_CALL
+CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DEMU_DEBUG -DCACHE_ON_CALL
 #CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os
 
-#EMU_EXCLUDE=
-EMU_EXCLUDE=emu/debug.o
+EMU_EXCLUDE=
+#EMU_EXCLUDE=emu/debug.o
 
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
 TRACER_CFLAGS=$(CFLAGS) -Itracer

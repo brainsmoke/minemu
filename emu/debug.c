@@ -3,12 +3,16 @@
 #include <ctype.h>
 #include <signal.h>
 #include <stddef.h>
+#include <fcntl.h>
 
 #include "debug.h"
 #include "lib.h"
+#include "mm.h"
+#include "jit.h"
 #include "scratch.h"
 #include "error.h"
 #include "sigwrap.h"
+#include "syscalls.h"
 
 static int out = 2;
 
@@ -198,10 +202,10 @@ void printhex_off(const void *data, int len)
 	printhex_descr(data, len, 1, 1, NULL);
 }
 
-void printhex_taint_highlight(const void *data, int len, const void *taint,
+void printhex_taint_highlight(const void *data, int len, const void *taint, int offset,
                               const void *highlight, int highlight_len)
 {
-	size_t row, i;
+	ssize_t row, i;
 	int d[16];
 	const char *color[] =
 	{
@@ -218,13 +222,18 @@ void printhex_taint_highlight(const void *data, int len, const void *taint,
 				d[i] |= 2;
 		}
 
-		printhex_line((char*)data+row*16, min(16, len-row*16), 1, 1, d, color);
+		printhex_line((char*)data+row*16, min(16, len-row*16), offset, 1, d, color);
 	}
 }
 
 void printhex_taint(const void *data, int len, const void *taint)
 {
-	printhex_taint_highlight(data, len, taint, NULL, 0);
+	printhex_taint_highlight(data, len, taint, 0, NULL, 0);
+}
+
+void printhex_taint_off(const void *data, int len, const void *taint)
+{
+	printhex_taint_highlight(data, len, taint, 1, NULL, 0);
 }
 
 static void printhex_diff_descr(const void *data1, ssize_t len1,
@@ -281,7 +290,105 @@ void print_debug_data(void)
 {
 	debug("counts/misses ijmp: %u/%u", ijmp_count, ijmp_misses);
 }
+
+void print_last_gencode_opcode(void)
+{
+	char *jit_op, *op;
+	long jit_op_len, op_len;
+	op = jit_rev_lookup_addr(last_jit, &jit_op, &jit_op_len);
+	op_len = op_size(op, 16);
+	debug("last opcode at: %X %d", op, op_len);
+	printhex(op, op_len);
+	debug("last jit opcode at: %X ", last_jit);
+	printhex(jit_op, jit_op_len);
+}
+
 #endif
+
+static unsigned long read_addr(char *s)
+{
+	unsigned long addr = 0;
+	int i;
+	for(i=0; i<8; i++)
+	{
+		addr *= 16;
+		switch (s[i])
+		{
+			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+				addr += 9;
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+				addr += (s[i]&0xf);
+				continue;
+			default:
+				die("not an address");
+		}
+	}
+	return addr;
+}
+
+void dump_map(char *addr, unsigned long len)
+{
+	long *laddr;
+	unsigned long i,j, last=-1;
+	int t;
+	fd_printf(out, "in map: %x (size %u)\n", addr, len);
+	for (i=0; i<len; i+=PG_SIZE)
+	{
+		t=0;
+		laddr = (long *)&addr[i+TAINT_OFFSET];
+		for (j=0; j<PG_SIZE/sizeof(long); j++)
+			if (laddr[j])
+				t=1;
+
+		if (t)
+		{
+			if (i != last+PG_SIZE)
+				fd_printf(out, "...\n");
+
+			printhex_taint_off(&addr[i], PG_SIZE, &addr[i+TAINT_OFFSET]);
+			last = i;
+		}
+	}
+}
+
+void do_taint_dump(void)
+{
+	unsigned long s_addr, e_addr;
+	char buf[8];
+	int fd = sys_open("/proc/self/maps", O_RDONLY, 0);
+	char name[64] = "taint_hexdump_";
+	hexcat(name, sys_gettid());
+	strcat(name, ".dump");
+	int fd_out = sys_open(name, O_RDWR|O_CREAT, 0600), old_out;
+
+	old_out = out;
+	out = fd_out;
+
+	do
+	{
+		sys_read(fd, buf, 8);
+		s_addr = read_addr(buf);
+		sys_read(fd, buf, 1);
+		sys_read(fd, buf, 8);
+		e_addr = read_addr(buf);
+		sys_read(fd, buf, 2);
+		sys_read(fd, buf, 1);
+		if (buf[0] == 'w')
+		{
+			if (e_addr > USER_END)
+				e_addr = USER_END;
+			dump_map((char *)s_addr, e_addr-s_addr);
+		}
+		while (sys_read(fd, buf, 1) && buf[0] != '\n');
+	}
+	while (e_addr < USER_END);
+
+	out = old_out;
+
+	sys_close(fd);
+}
 
 void print_sigcontext(struct sigcontext *sc)
 {
