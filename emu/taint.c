@@ -96,7 +96,7 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 			{
 				case SYS_SOCKET:
 				case SYS_ACCEPT:
-					set_fd(sockargs[0], FD_SOCKET);
+					set_fd(ret, FD_SOCKET);
 					return;
 				case SYS_RECV:
 				case SYS_RECVFROM:

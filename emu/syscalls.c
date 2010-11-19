@@ -52,10 +52,6 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			do_taint(ret,call,arg1,arg2,arg3,arg4,arg5,arg6);
 #endif
 			return ret;
-		case __NR_exit_group:
-			unshield();
-			do_taint_dump();
-			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 		case __NR_vfork:
 			call = __NR_fork;
 		default:

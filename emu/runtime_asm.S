@@ -25,6 +25,8 @@ movl %ecx, scratch_stack-4   # cleared eax
 jmp runtime_ijmp
 
 taint_fault:
+movl %eax, user_eip
+pextrd $0, %xmm5, ijmp_taint
 call unshield
 call do_taint_dump
 #int $3

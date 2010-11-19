@@ -28,6 +28,8 @@ extern long user_eip;
 extern long jit_eip;
 extern long sysenter_reentry;
 
+extern long ijmp_taint;
+
 #ifdef EMU_DEBUG
 extern char *last_jit;
 extern long ijmp_misses;

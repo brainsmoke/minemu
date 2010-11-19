@@ -103,6 +103,29 @@ enum
 	TAINT_BYTE_COPY_OFFSET_TO_AL,
 };
 
+static const char segment_prefix_mapping[] =
+{
+	[TAINT_COPY_MEM_TO_REG] = TAINT_ERASE_REG,
+	[TAINT_BYTE_COPY_MEM_TO_REG] = TAINT_BYTE_ERASE_REG,
+	[TAINT_COPY_ZX_MEM_TO_REG] = TAINT_ERASE_REG,
+	[TAINT_BYTE_COPY_ZX_MEM_TO_REG] = TAINT_ERASE_REG,
+	[TAINT_SWAP_REG_MEM] = TAINT_ERASE_REG,
+	[TAINT_BYTE_SWAP_REG_MEM] = TAINT_BYTE_ERASE_REG,
+	[TAINT_COPY_POP_TO_REG] = TAINT_ERASE_REG,
+	[TAINT_SWAP_AX_REG] = TAINT_ERASE_REG,
+	[TAINT_ERASE_REG] = TAINT_ERASE_REG,
+	[TAINT_BYTE_ERASE_REG] = TAINT_BYTE_ERASE_REG,
+	[TAINT_COPY_STR_TO_AX] = TAINT_ERASE_AX,
+	[TAINT_BYTE_COPY_STR_TO_AL] = TAINT_BYTE_ERASE_AL,
+	[TAINT_ERASE_AX] = TAINT_ERASE_AX,
+	[TAINT_ERASE_DX] = TAINT_ERASE_DX,
+	[TAINT_ERASE_AX_DX] = TAINT_ERASE_AX_DX,
+	[TAINT_ERASE_AXH] = TAINT_ERASE_AXH,
+	[TAINT_BYTE_ERASE_AL] = TAINT_BYTE_ERASE_AL,
+	[TAINT_COPY_OFFSET_TO_AX] = TAINT_BYTE_ERASE_AL,
+	[TAINT_BYTE_COPY_OFFSET_TO_AL] = TAINT_BYTE_ERASE_AL,
+};
+
 union
 {
 	struct { int (*f)(char *, char *, long); int (*f16)(char *, char *, long); } mrm;
@@ -463,7 +486,13 @@ int jump_to(char *dest, char *jmp_addr)
 
 static int generate_linux_sysenter(char *dest, trans_t *trans)
 {
-	int len = jump_to(dest, (void *)(long)linux_sysenter_emu);
+	int len = gen_code(
+		dest,
+
+		"66 0f ef ed"    /* clear ijmp taint register (pxor %xmm5,%xmm5 */
+	);
+
+	len += jump_to(&dest[len], (void *)(long)linux_sysenter_emu);
 	*trans = (trans_t){ .len=len };
 	return len;
 }
@@ -472,6 +501,8 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 {
 	int len = gen_code(
 		dest,
+
+		"66 0f ef ed"    /* clear ijmp taint register (pxor %xmm5,%xmm5 */
 		"C7 05 L L",     /* movl $post_addr, user_eip */
 
 		&user_eip, &instr->addr[instr->len]
@@ -871,7 +902,11 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 	int len = 0, act = jit_action[instr->op]^TAINT, op16 = (instr->p[3] == 0x66);
 
 	if (instr->p[2]) /* we don't do segments (yet?) */
-		return copy_instr(dest, instr, trans);
+	{
+		act = segment_prefix_mapping[act];
+		if ( !act )
+			return copy_instr(dest, instr, trans);
+	}
 
 #ifndef NO_TAINT
 

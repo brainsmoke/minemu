@@ -297,9 +297,9 @@ void print_last_gencode_opcode(void)
 	long jit_op_len, op_len;
 	op = jit_rev_lookup_addr(last_jit, &jit_op, &jit_op_len);
 	op_len = op_size(op, 16);
-	debug("last opcode at: %X %d", op, op_len);
+	fd_printf(out, "last opcode at: %X %d\n", op, op_len);
 	printhex(op, op_len);
-	debug("last jit opcode at: %X ", last_jit);
+	fd_printf(out, "last jit opcode at: %X\n", last_jit);
 	printhex(jit_op, jit_op_len);
 }
 
@@ -365,6 +365,12 @@ void do_taint_dump(void)
 
 	old_out = out;
 	out = fd_out;
+
+	printhex_taint(&user_eip, 4, &ijmp_taint);
+
+#ifdef EMU_DEBUG
+	print_last_gencode_opcode();
+#endif
 
 	do
 	{
