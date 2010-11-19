@@ -13,6 +13,7 @@
 #include "error.h"
 #include "sigwrap.h"
 #include "syscalls.h"
+#include "jit_fragment.h"
 
 static int out = 2;
 
@@ -55,6 +56,12 @@ const char *sigcontext_desc[] =
 	"           [  trapno ] [   err   ]  [   eip   ] [ cs] [csh]",
 	"           [  eflags ] [ esp@sig ]  [ ss] [ssh] [ *fpstate]",
 	"           [  oldmask] [   cr2   ]",
+};
+
+const char *regs_desc[] =
+{
+	"           [   eax   ] [   ecx   ]  [   edx   ] [   ebx   ]",
+	"           [   esp   ] [   ebp   ]  [   esi   ] [   edi   ]",
 };
 
 const char *stat64_desc[] =
@@ -203,7 +210,7 @@ void printhex_off(const void *data, int len)
 }
 
 void printhex_taint_highlight(const void *data, int len, const void *taint, int offset,
-                              const void *highlight, int highlight_len)
+                              const void *highlight, int highlight_len, const char *descriptions[])
 {
 	ssize_t row, i;
 	int d[16];
@@ -215,6 +222,9 @@ void printhex_taint_highlight(const void *data, int len, const void *taint, int 
 
 	for (row=0; row*16<len; row++)
 	{
+		if ( descriptions != NULL )
+			fd_printf(out, "%s%s%s\n", hi, descriptions[row], reset);
+
 		for (i=0; i<min(len-row,16); i++)
 		{
 			d[i] = ((char *)taint)[row*16+i] ? 1 : 0;
@@ -228,12 +238,12 @@ void printhex_taint_highlight(const void *data, int len, const void *taint, int 
 
 void printhex_taint(const void *data, int len, const void *taint)
 {
-	printhex_taint_highlight(data, len, taint, 0, NULL, 0);
+	printhex_taint_highlight(data, len, taint, 0, NULL, 0, NULL);
 }
 
 void printhex_taint_off(const void *data, int len, const void *taint)
 {
-	printhex_taint_highlight(data, len, taint, 1, NULL, 0);
+	printhex_taint_highlight(data, len, taint, 1, NULL, 0, NULL);
 }
 
 static void printhex_diff_descr(const void *data1, ssize_t len1,
@@ -353,7 +363,7 @@ void dump_map(char *addr, unsigned long len)
 	}
 }
 
-void do_taint_dump(void)
+void do_taint_dump(long *regs)
 {
 	unsigned long s_addr, e_addr;
 	char buf[8];
@@ -365,6 +375,13 @@ void do_taint_dump(void)
 
 	old_out = out;
 	out = fd_out;
+
+	char xmm5[16], regs_taint[32];
+	get_xmm5(xmm5);
+	get_xmm6(&regs_taint[0]);
+	get_xmm7(&regs_taint[16]);
+	printhex(xmm5,16);
+	printhex_taint_highlight(regs, 32, regs_taint, 0, NULL, 0, regs_desc);
 
 	printhex_taint(&user_eip, 4, &ijmp_taint);
 

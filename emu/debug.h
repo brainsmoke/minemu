@@ -8,7 +8,7 @@ void printhex_off(const void *data, int len);
 void printhex_taint(const void *data, int len, const void *taint);
 void printhex_taint_off(const void *data, int len, const void *taint);
 void printhex_taint_highlight(const void *data, int len, const void *taint, int offset,
-                              const void *highlight, int highlight_len);
+                              const void *highlight, int highlight_len, const char *descriptions[]);
 void printhex_diff(const void *data1, ssize_t len1,
                    const void *data2, ssize_t len2, int grane);
 
@@ -32,7 +32,7 @@ void print_debug_data(void);
 void print_last_gencode_opcode(void);
 
 #endif
-void do_taint_dump(void);
+void do_taint_dump(long *regs);
 
 struct stat64;
 void print_stat(const struct stat64 *s);

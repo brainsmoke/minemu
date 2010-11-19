@@ -25,6 +25,15 @@ movl %ecx, scratch_stack-4   # cleared eax
 jmp runtime_ijmp
 
 taint_fault:
+push %edi
+push %esi
+push %ebp
+push scratch_stack   # user %esp
+push %ebx
+push %edx
+push %ecx
+push scratch_stack-4 # user %eax
+push %esp
 movl %eax, user_eip
 pextrd $0, %xmm5, ijmp_taint
 call unshield
