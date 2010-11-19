@@ -341,9 +341,8 @@ static unsigned long read_addr(char *s)
 void dump_map(char *addr, unsigned long len)
 {
 	long *laddr;
-	unsigned long i,j, last=-1;
+	unsigned long i,j, last=0xFFFFFFFF;
 	int t;
-	fd_printf(out, "in map: %x (size %u)\n", addr, len);
 	for (i=0; i<len; i+=PG_SIZE)
 	{
 		t=0;
@@ -354,7 +353,9 @@ void dump_map(char *addr, unsigned long len)
 
 		if (t)
 		{
-			if (i != last+PG_SIZE)
+			if (last == 0xFFFFFFFF)
+				fd_printf(out, "in map: %x (size %u)\n", addr, len);
+			else if (i != last+PG_SIZE)
 				fd_printf(out, "...\n");
 
 			printhex_taint_off(&addr[i], PG_SIZE, &addr[i+TAINT_OFFSET]);
