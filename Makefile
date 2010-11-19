@@ -12,14 +12,18 @@ RM=$(SILENT)rm -r
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack #-static
 
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -g -DEMU_DEBUG -DCACHE_ON_CALL
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -g
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DEMU_DEBUG
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DPREFETCH_ON_CALL
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DCACHE_ON_CALL
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DEMU_DEBUG -DCACHE_ON_CALL
-CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os -DCACHE_ON_CALL
-#CFLAGS=-MMD -MF .dep/$@.d -Wall -Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -Os
+#OPT=-g
+OPT=-Os
+WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99
+#SETTINGS=-DEMU_DEBUG -DCACHE_ON_CALL
+#SETTINGS=-DEMU_DEBUG -DPREFETCH_ON_CALL
+#SETTINGS=-DEMU_DEBUG
+#SETTINGS=-DPREFETCH_ON_CALL
+#SETTINGS=-DCACHE_ON_CALL -DNO_TAINT
+#SETTINGS=
+SETTINGS=-DCACHE_ON_CALL
+
+CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(OPT) $(SETTINGS)
 
 EMU_EXCLUDE=
 #EMU_EXCLUDE=emu/debug.o
