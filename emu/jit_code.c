@@ -111,7 +111,6 @@ static const char segment_prefix_mapping[] =
 	[TAINT_BYTE_COPY_ZX_MEM_TO_REG] = TAINT_ERASE_REG,
 	[TAINT_SWAP_REG_MEM] = TAINT_ERASE_REG,
 	[TAINT_BYTE_SWAP_REG_MEM] = TAINT_BYTE_ERASE_REG,
-	[TAINT_COPY_POP_TO_REG] = TAINT_ERASE_REG,
 	[TAINT_SWAP_AX_REG] = TAINT_ERASE_REG,
 	[TAINT_ERASE_REG] = TAINT_ERASE_REG,
 	[TAINT_BYTE_ERASE_REG] = TAINT_BYTE_ERASE_REG,
@@ -916,7 +915,7 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 
 	else if (TAINT_REG_OFF_OP( act ))
 		len = (op16 && taint_ops[act].reg_off.f16 ? taint_ops[act].reg_off.f16 : taint_ops[act].reg_off.f)
-		      (dest, (instr->addr[instr->mrm-1]>>3)&7, TAINT_OFFSET);
+		      (dest, instr->addr[instr->mrm-1]&7, TAINT_OFFSET);
 
 	else if (TAINT_REG_OP( act ))
 		len = (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
