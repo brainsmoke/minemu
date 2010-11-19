@@ -187,6 +187,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
 	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
 	struct kernel_sigaction *action = &user_sigaction_list[sig];
+	struct _fpstate *fpstate;
 	struct sigcontext *context;
 	unsigned long *sigmask, *extramask;
 
@@ -198,15 +199,21 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 		context = &rt_sigframe->uc.uc_mcontext;
 		sigmask = &rt_sigframe->uc.uc_sigmask.bitmask[0];
 		extramask = &rt_sigframe->uc.uc_sigmask.bitmask[1];
+		fpstate = &rt_sigframe->fpstate;
 	}
 	else
 	{
 		context = &sigframe->sc;
 		sigmask = &sigframe->sc.oldmask;
 		extramask = &sigframe->extramask[0];
+		fpstate = &sigframe->fpstate;
 	}
 
 	finish_instruction(context);
+
+	get_xmm5((char *)&fpstate->_xmm[5]);
+	get_xmm6((char *)&fpstate->_xmm[6]);
+	get_xmm7((char *)&fpstate->_xmm[7]);
 
 	if ( action->flags & SA_ONESHOT )
 	{

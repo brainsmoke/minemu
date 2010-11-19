@@ -62,3 +62,21 @@ popa
 decl jit_fragment_running
 ret
 
+.global get_xmm5
+.type get_xmm5, @function
+get_xmm5:
+movups %xmm5, 4(%esp)
+ret
+
+.global get_xmm6
+.type get_xmm6, @function
+get_xmm6:
+movups %xmm6, 4(%esp)
+ret
+
+.global get_xmm7
+.type get_xmm7, @function
+get_xmm7:
+movups %xmm7, 4(%esp)
+ret
+
