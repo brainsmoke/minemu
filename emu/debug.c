@@ -376,12 +376,17 @@ void do_taint_dump(long *regs)
 	old_out = out;
 	out = fd_out;
 
+	fd_printf(out, "tainted jump address:\n");
+
+	printhex_taint(&user_eip, 4, &ijmp_taint);
+
+	fd_printf(out, "registers:\n");
+
 	char regs_taint[32];
 	get_xmm6(&regs_taint[0]);
 	get_xmm7(&regs_taint[16]);
 	printhex_taint_highlight(regs, 32, regs_taint, 0, NULL, 0, regs_desc);
 
-	printhex_taint(&user_eip, 4, &ijmp_taint);
 
 #ifdef EMU_DEBUG
 	print_last_gencode_opcode();
