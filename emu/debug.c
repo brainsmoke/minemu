@@ -376,11 +376,9 @@ void do_taint_dump(long *regs)
 	old_out = out;
 	out = fd_out;
 
-	char xmm5[16], regs_taint[32];
-	get_xmm5(xmm5);
+	char regs_taint[32];
 	get_xmm6(&regs_taint[0]);
 	get_xmm7(&regs_taint[16]);
-	printhex(xmm5,16);
 	printhex_taint_highlight(regs, 32, regs_taint, 0, NULL, 0, regs_desc);
 
 	printhex_taint(&user_eip, 4, &ijmp_taint);
