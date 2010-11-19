@@ -919,7 +919,7 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 
 	else if (TAINT_REG_OP( act ))
 		len = (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
-		      (dest, (instr->addr[instr->mrm-1]>>3)&7);
+		      (dest, instr->addr[instr->mrm-1]&7);
 
 	else if (TAINT_OFF_OP( act ))
 		len = (op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
