@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <linux/personality.h>
 #include <string.h>
+#include <errno.h>
 
 #include "syscalls.h"
 #include "error.h"
@@ -69,18 +70,47 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		.stack_size = USER_STACK_SIZE,
 	};
 
+	int ret;
+
 	if (progname)
 	{
 		prog.filename = progname;
-		int ret = load_binary(&prog);
-		if (ret < 0)
-			die("load_binary: %d", ret);
+		ret = load_binary(&prog);
 	}
 	else
 	{
-		die("unimplemented");
+		ret = -ENOENT;
+		char *path = getenve("PATH", envp);
+		while ( (ret < 0) && (path != NULL) )
+		{
+			long len;
+			char *next = strchr(path, ':');
+
+			if (next)
+			{
+				len = (long)next-(long)path;
+				next += 1;
+			}
+			else
+				len = strlen(path);
+
+			{
+				char progname_buf[len + 1 + strlen(argv[0]) + 1];
+				strncpy(progname_buf, path, len);
+				progname_buf[len] = '/';
+				progname_buf[len+1] = '\0';
+				strcat(progname_buf, argv[0]);
+				prog.filename = progname_buf;
+				int ret_tmp = load_binary(&prog);
+				if ( (ret != -EACCES) || (ret_tmp >= 0) )
+					ret = ret_tmp;
+			}
+			path = next;
+		}
 	}
 
+	if (ret < 0)
+		die("unable to execute binary: %d", -ret);
 
 	char *vdso = (char *)get_aux(prog.auxv, AT_SYSINFO_EHDR);
 	long off = memscan(vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);

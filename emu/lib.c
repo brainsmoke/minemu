@@ -35,12 +35,29 @@ size_t strlen(const char *s)
 	return i;
 }
 
+int strncmp(const char *s1, const char *s2, size_t n)
+{
+	size_t i;
+	int c=0;
+	for (i=0; i<n && ((c=s1[i]-s2[i]) == 0) && s1[i]; i++);
+		return c;
+}
+
 int strcmp(const char *s1, const char *s2)
 {
 	size_t i;
 	int c;
 	for (i=0; ((c=s1[i]-s2[i]) == 0) && s1[i]; i++);
 		return c;
+}
+
+char *strchr(const char *s, int c)
+{
+	for (; *s && *s != c; s++);
+	if (*s)
+		return (char *)s; /* hrmmr :-) */
+	else
+		return NULL;
 }
 
 int memcmp(const void *v1, const void *v2, size_t n)
@@ -189,6 +206,18 @@ int fd_printf(int fd, const char *format, ...)
 	ret=fd_vprintf(fd, format, ap);
 	va_end(ap);
 	return ret;
+}
+
+char *getenve(const char *name, char **environment)
+{
+	int namelen = strlen(name);
+	char **e = environment;
+
+	for (e=environment; *e; e++)
+		if ( (strncmp(*e, name, namelen) == 0) && ( (*e)[namelen] == '=') )
+			return &(*e)[namelen+1];
+
+	return NULL;
 }
 
 /* custom functions */

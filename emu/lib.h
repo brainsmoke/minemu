@@ -10,12 +10,15 @@ int isprint(int c);
 int fd_vprintf(int fd, const char *format, va_list ap);
 int fd_printf(int fd, const char *format, ...);
 
+char *getenve(const char *name, char **environment);
+
 long read_at(int fd, off_t off, void *buf, size_t size);
 char *numcat(char *dest, long l);
 char *hexcat(char *dest, unsigned long ul);
 
 /* dest is assumed to be a buffer of at least PATH_MAX+1 bytes */
 int absdir(char *dest, const char *dir);
+
 
 long memscan(const char *hay, long haylen, const char *needle, long needlelen);
 
