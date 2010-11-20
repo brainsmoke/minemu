@@ -60,12 +60,6 @@ const char *sigcontext_desc[] =
 	"[  oldmask] [   cr2   ]",
 };
 
-const char *regs_desc[] =
-{
-	"[   eax   ] [   ecx   ]  [   edx   ] [   ebx   ]",
-	"[   esp   ] [   ebp   ]  [   esi   ] [   edi   ]",
-};
-
 const char *stat64_desc[] =
 {
 	"[        st_dev       ]  [xxxxxxxxxxx __st_ino ]",
@@ -121,40 +115,6 @@ const char *fpstate_desc[] =
 };
 static inline long min(long a, long b) { return a<b ? a:b; }
 
-void printhex_taint_highlight(const void *data, int len, const void *taint, int offset,
-                              const void *highlight, int highlight_len, const char *description[])
-{
-	ssize_t row, i;
-	char d[16];
-	const char *color[] =
-	{
-		[0] = "\033[0;37m", [1] = "\033[0;31m",
-		[2] = "\033[1;37m", [3] = "\033[1;31m"
-	};
-
-	for (row=0; row*16<len; row++)
-	{
-		for (i=0; i<min(len-row,16); i++)
-		{
-			d[i] = ((char *)taint)[row*16+i] ? 1 : 0;
-			if (contains(highlight, highlight_len, &((const char *)data)[row*16+i]) )
-				d[i] |= 2;
-		}
-
-		hexdump_line(out, (char*)data+row*16, min(16, len-row*16), offset, 1, description ? description[row] : NULL, d, color);
-	}
-}
-
-void printhex_taint(const void *data, int len, const void *taint)
-{
-	printhex_taint_highlight(data, len, taint, 0, NULL, 0, NULL);
-}
-
-void printhex_taint_off(const void *data, int len, const void *taint)
-{
-	printhex_taint_highlight(data, len, taint, 1, NULL, 0, NULL);
-}
-
 #ifdef EMU_DEBUG
 void print_debug_data(void)
 {
@@ -174,108 +134,6 @@ void print_last_gencode_opcode(void)
 }
 
 #endif
-
-static unsigned long read_addr(char *s)
-{
-	unsigned long addr = 0;
-	int i;
-	for(i=0; i<8; i++)
-	{
-		addr *= 16;
-		switch (s[i])
-		{
-			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-				addr += 9;
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
-				addr += (s[i]&0xf);
-				continue;
-			default:
-				die("not an address");
-		}
-	}
-	return addr;
-}
-
-void dump_map(char *addr, unsigned long len)
-{
-	long *laddr;
-	unsigned long i,j, last=0xFFFFFFFF;
-	int t;
-	for (i=0; i<len; i+=PG_SIZE)
-	{
-		t=0;
-		laddr = (long *)&addr[i+TAINT_OFFSET];
-		for (j=0; j<PG_SIZE/sizeof(long); j++)
-			if (laddr[j])
-				t=1;
-
-		if (t)
-		{
-			if (last == 0xFFFFFFFF)
-				fd_printf(out, "in map: %x (size %u)\n", addr, len);
-			else if (i != last+PG_SIZE)
-				fd_printf(out, "...\n");
-
-			printhex_taint_off(&addr[i], PG_SIZE, &addr[i+TAINT_OFFSET]);
-			last = i;
-		}
-	}
-}
-
-void do_taint_dump(long *regs)
-{
-	unsigned long s_addr, e_addr;
-	char buf[8];
-	int fd = sys_open("/proc/self/maps", O_RDONLY, 0);
-	char name[64] = "taint_hexdump_";
-	hexcat(name, sys_gettid());
-	strcat(name, ".dump");
-	int fd_out = sys_open(name, O_RDWR|O_CREAT, 0600), old_out;
-
-	old_out = out;
-	out = fd_out;
-
-	fd_printf(out, "tainted jump address:\n");
-
-	printhex_taint(&user_eip, 4, &ijmp_taint);
-
-	fd_printf(out, "registers:\n");
-
-	char regs_taint[32];
-	get_xmm6(&regs_taint[0]);
-	get_xmm7(&regs_taint[16]);
-	printhex_taint_highlight(regs, 32, regs_taint, 0, NULL, 0, regs_desc);
-
-
-#ifdef EMU_DEBUG
-	print_last_gencode_opcode();
-#endif
-
-	do
-	{
-		sys_read(fd, buf, 8);
-		s_addr = read_addr(buf);
-		sys_read(fd, buf, 1);
-		sys_read(fd, buf, 8);
-		e_addr = read_addr(buf);
-		sys_read(fd, buf, 2);
-		sys_read(fd, buf, 1);
-		if (buf[0] == 'w')
-		{
-			if (e_addr > USER_END)
-				e_addr = USER_END;
-			dump_map((char *)s_addr, e_addr-s_addr);
-		}
-		while (sys_read(fd, buf, 1) && buf[0] != '\n');
-	}
-	while (e_addr < USER_END);
-
-	out = old_out;
-
-	sys_close(fd);
-}
 
 void print_sigcontext(struct sigcontext *sc)
 {

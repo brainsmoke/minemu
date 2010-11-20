@@ -9,13 +9,13 @@
 void hexdump_line(int fd, const void *data, ssize_t len,
                   int offset, int ascii,
                   const char *description,
-                  const char *indices,
+                  const unsigned char *indices,
                   const char *colors[]);
 
 void hexdump(int fd, const void *data, ssize_t len,
              int offset, int ascii,
              const char *description[],
-             const char *indices,
+             const unsigned char *indices,
              const char *colors[]);
 
 void hexdump_diff(int fd, const void *data1, ssize_t len1,

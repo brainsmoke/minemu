@@ -3,11 +3,6 @@
 
 #include "sigwrap.h"
 
-void printhex_taint(const void *data, int len, const void *taint);
-void printhex_taint_off(const void *data, int len, const void *taint);
-void printhex_taint_highlight(const void *data, int len, const void *taint, int offset,
-                              const void *highlight, int highlight_len, const char *descriptions[]);
-
 void print_sigcontext(struct sigcontext *sc);
 void print_fpstate(struct _fpstate *fpstate);
 void print_siginfo(siginfo_t *info);
@@ -22,15 +17,14 @@ void print_ucontext_diff(struct kernel_ucontext *uc1, struct kernel_ucontext *uc
 void print_rt_sigframe_diff(struct kernel_rt_sigframe *frame1, struct kernel_rt_sigframe *frame2);
 void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe *frame2);
 
+struct stat64;
+void print_stat(const struct stat64 *s);
+
 #ifdef EMU_DEBUG
 void print_debug_data(void);
 
 void print_last_gencode_opcode(void);
 
 #endif
-void do_taint_dump(long *regs);
-
-struct stat64;
-void print_stat(const struct stat64 *s);
 
 #endif /* DEBUG_H */

@@ -211,9 +211,9 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	finish_instruction(context);
 
-	get_xmm5((char *)&fpstate->_xmm[5]);
-	get_xmm6((char *)&fpstate->_xmm[6]);
-	get_xmm7((char *)&fpstate->_xmm[7]);
+	get_xmm5((unsigned char *)&fpstate->_xmm[5]);
+	get_xmm6((unsigned char *)&fpstate->_xmm[6]);
+	get_xmm7((unsigned char *)&fpstate->_xmm[7]);
 
 	if ( action->flags & SA_ONESHOT )
 	{

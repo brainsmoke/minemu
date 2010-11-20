@@ -13,7 +13,7 @@ static const char *desc_color = "\033[0;34m", *reset = "\033[m";
 void hexdump_line(int fd, const void *data, ssize_t len,
                   int offset, int ascii,
                   const char *description,
-                  const char *indices,
+                  const unsigned char *indices,
                   const char *colors[])
 {
 	int i, cur = -1;
@@ -77,7 +77,7 @@ void hexdump_line(int fd, const void *data, ssize_t len,
 void hexdump(int fd, const void *data, ssize_t len,
              int offset, int ascii,
              const char *description[],
-             const char *indices,
+             const unsigned char *indices,
              const char *colors[])
 {
 	ssize_t row;
@@ -98,7 +98,7 @@ void hexdump_diff(int fd, const void *data1, ssize_t len1,
 	ssize_t row, i;
 
 	enum { NODIFF=0, DIFF=1 };
-	char d[16];
+	unsigned char d[16];
 	int diff = 0;
 
 	const char *color1[] = { [DIFF]="\033[1;33m", [NODIFF]="\033[0;37m" };
@@ -141,10 +141,10 @@ void hexdump_diff3(int fd, const void *old, ssize_t old_len,
 	ssize_t row, i;
 
 	enum { NODIFF=0, DIFF1=1, DIFF2=2, SAMEDIFF=4 };
-	char d[16];
+	unsigned char d[16];
+	unsigned char dold[16] = { 0, };
 	int diff = 0;
 
-	char dold[16] = { 0, };
 	const char *oldcolor[] = { [0]="\033[0;32m" };
 
 	const char *color1[] =
