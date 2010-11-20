@@ -1,3 +1,5 @@
+#include <linux/limits.h>
+
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
@@ -82,14 +84,43 @@ void dump_map(int fd, char *addr, unsigned long len)
 	}
 }
 
+static char taint_dump_dir_buf[PATH_MAX+1] = { 0, };
+
+static char *taint_dump_dir = NULL;
+
+void set_taint_dump_dir(const char *dir)
+{
+	if ( absdir(taint_dump_dir_buf, dir) == 0 )
+		taint_dump_dir = taint_dump_dir_buf;
+	else
+		taint_dump_dir = NULL;
+}
+
+char *get_taint_dump_dir(void)
+{
+	return taint_dump_dir;
+}
+
+static char *get_taint_dump_filename(char *buf)
+{
+	buf[0] = '\x0';
+	strcat(buf, taint_dump_dir);
+	strcat(buf, "/taint_hexdump_");
+	numcat(buf, sys_gettid());
+	strcat(buf, ".dump");
+	return buf;
+}
+
 void do_taint_dump(long *regs)
 {
+	if ( taint_dump_dir == NULL )
+		return;
+
 	unsigned long s_addr, e_addr;
 	char buf[8];
 	int fd = sys_open("/proc/self/maps", O_RDONLY, 0);
-	char name[64] = "taint_hexdump_";
-	hexcat(name, sys_gettid());
-	strcat(name, ".dump");
+	char name[PATH_MAX+1+64];
+	get_taint_dump_filename(name);
 	int fd_out = sys_open(name, O_RDWR|O_CREAT, 0600), old_out;
 
 	fd_printf(fd_out, "tainted jump address:\n");

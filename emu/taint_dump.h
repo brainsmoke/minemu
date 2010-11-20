@@ -3,6 +3,9 @@
 
 #include "lib.h"
 
+void set_taint_dump_dir(const char *dir);
+char *get_taint_dump_dir(void);
+
 void hexdump_taint(int fd, const void *data, ssize_t len,
                            const unsigned char *taint, int offset, int ascii,
                            const char *descriptions[]);

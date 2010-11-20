@@ -14,6 +14,7 @@
 #include "jit_cache.h"
 #include "codemap.h"
 #include "sigwrap.h"
+#include "taint_dump.h"
 
 char **parse_options(char **argv)
 {
@@ -25,8 +26,10 @@ char **parse_options(char **argv)
 		if ( strcmp(*argv, "--") == 0 )
 			return argv+1;
 
-		if ( strcmp(*argv, "-cache") == 0 )
+		     if ( strcmp(*argv, "-cache") == 0 )
 			set_jit_cache_dir(*++argv);
+		else if ( strcmp(*argv, "-dump") == 0 )
+			set_taint_dump_dir(*++argv);
 		else
 			die("unknown option: %s", *argv);
 

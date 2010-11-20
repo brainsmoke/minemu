@@ -9,6 +9,7 @@
 #include "load_elf.h"
 #include "load_script.h"
 #include "jit_cache.h"
+#include "taint_dump.h"
 
 int can_load_binary(elf_prog_t *prog)
 {
@@ -44,7 +45,8 @@ long user_execve(char *filename, char *argv[], char *envp[])
 
 
 	char *cache_dir = get_jit_cache_dir();
-	long args_start = 3 + (cache_dir ? 2 : 0);
+	char *taint_dump_dir = get_taint_dump_dir();
+	long args_start = 3 + (cache_dir ? 2 : 0) + (taint_dump_dir ? 2 : 0);
 
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
@@ -56,6 +58,12 @@ long user_execve(char *filename, char *argv[], char *envp[])
 		new_argv[1] = "-cache";
 		new_argv[2] = cache_dir;
 	}
+	if (taint_dump_dir)
+	{
+		new_argv[(cache_dir ? 2 : 0) + 1] = "-dump";
+		new_argv[(cache_dir ? 2 : 0) + 2] = taint_dump_dir;
+	}
+
 	new_argv[args_start-2] = "--";
 	new_argv[args_start-1] = filename;
 	memcpy(&new_argv[args_start], argv, sizeof(char *)*(count+1));

@@ -25,7 +25,7 @@ unsigned long fd_filesize(int fd)
 	return s.st_size;
 }
 
-char *get_cache_filename(char *buf, code_map_t *map, int pid)
+static char *get_cache_filename(char *buf, code_map_t *map, int pid)
 {
 	buf[0] = '\x0';
 
