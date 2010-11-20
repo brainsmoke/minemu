@@ -6,6 +6,7 @@
 #include "syscalls.h"
 #include "error.h"
 #include "debug.h"
+#include "hexdump.h"
 #include "jit_code.h"
 
 char *jit_fragment_exit_eip;
@@ -187,8 +188,8 @@ int main(void)
 		jit_len = common_len(diff_hack, jit_fragment_page);
 
 		debug("entry %d -> %d, start/end %x/%x", entry_off, entry-jit_fragment_page, code, &code[len]);
-		printhex(code, len);
-		printhex(jit_fragment_page, jit_len);
+		hexdump(2, code, len, 0, 0, NULL, NULL, NULL);
+		hexdump(2, jit_fragment_page, jit_len, 0, 0, NULL, NULL, NULL);
 		debug("");
 	}
 }

@@ -158,12 +158,14 @@ test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o emu/taint_code.o
 test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o emu/taint_code.o test/emu/debug.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o emu/sigwrap_asm.o
+test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o emu/sigwrap_asm.o emu/hexdump.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o emu/sigwrap_asm.o
+test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o emu/sigwrap_asm.o emu/hexdump.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/test_jit_lookup: test/emu/test_jit_lookup.o $(filter-out emu/minemu.o, emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
-
 	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld test/emu/test_jit_lookup.o $(filter-out emu/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+
+test/emu/test_hexdump: test/emu/test_hexdump.o $(filter-out emu/minemu.o, emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld test/emu/test_hexdump.o $(filter-out emu/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))

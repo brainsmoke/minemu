@@ -3,14 +3,10 @@
 
 #include "sigwrap.h"
 
-void printhex(const void *data, int len);
-void printhex_off(const void *data, int len);
 void printhex_taint(const void *data, int len, const void *taint);
 void printhex_taint_off(const void *data, int len, const void *taint);
 void printhex_taint_highlight(const void *data, int len, const void *taint, int offset,
                               const void *highlight, int highlight_len, const char *descriptions[]);
-void printhex_diff(const void *data1, ssize_t len1,
-                   const void *data2, ssize_t len2, int grane);
 
 void print_sigcontext(struct sigcontext *sc);
 void print_fpstate(struct _fpstate *fpstate);
