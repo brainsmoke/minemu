@@ -46,26 +46,28 @@ long user_execve(char *filename, char *argv[], char *envp[])
 
 	char *cache_dir = get_jit_cache_dir();
 	char *taint_dump_dir = get_taint_dump_dir();
-	long args_start = 3 + (cache_dir ? 2 : 0) + (taint_dump_dir ? 2 : 0);
+	long args_start = 4 + (cache_dir ? 2 : 0) + (taint_dump_dir ? 2 : 0);
 
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
 	 */
 	char **new_argv = &minemu_stack_bottom[- count - args_start - 1];
 	new_argv[0] = argv[0];
+	new_argv[1] = "-exec";
+	new_argv[2] = filename;
+
 	if (cache_dir)
 	{
-		new_argv[1] = "-cache";
-		new_argv[2] = cache_dir;
+		new_argv[3] = "-cache";
+		new_argv[4] = cache_dir;
 	}
 	if (taint_dump_dir)
 	{
-		new_argv[(cache_dir ? 2 : 0) + 1] = "-dump";
-		new_argv[(cache_dir ? 2 : 0) + 2] = taint_dump_dir;
+		new_argv[(cache_dir ? 2 : 0) + 3] = "-dump";
+		new_argv[(cache_dir ? 2 : 0) + 4] = taint_dump_dir;
 	}
 
-	new_argv[args_start-2] = "--";
-	new_argv[args_start-1] = filename;
+	new_argv[args_start-1] = "--";
 	memcpy(&new_argv[args_start], argv, sizeof(char *)*(count+1));
 	sys_execve("/proc/self/exe", new_argv, envp);
 	die("user_execve failed");

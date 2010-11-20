@@ -16,6 +16,8 @@
 #include "sigwrap.h"
 #include "taint_dump.h"
 
+char *progname = NULL;
+
 char **parse_options(char **argv)
 {
 	for (;;)
@@ -30,6 +32,8 @@ char **parse_options(char **argv)
 			set_jit_cache_dir(*++argv);
 		else if ( strcmp(*argv, "-dump") == 0 )
 			set_taint_dump_dir(*++argv);
+		else if ( strcmp(*argv, "-exec") == 0 )
+			progname = *++argv;
 		else
 			die("unknown option: %s", *argv);
 
@@ -49,6 +53,8 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	}
 
 	argv = parse_options(&argv[1]);
+	if ( (progname == NULL) && (argv[0][0] == '/') )
+		progname = argv[0];
 
 	init_minemu_mem(envp);
 	sigwrap_init();
@@ -56,17 +62,25 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 
 	elf_prog_t prog =
 	{
-		.filename = argv[0],
-		.argv = &argv[1],
+		.argv = argv,
 		.envp = envp,
 		.auxv = auxv,
 		.task_size = USER_END,
 		.stack_size = USER_STACK_SIZE,
 	};
 
-	int ret = load_binary(&prog);
-	if (ret < 0)
-		die("load_binary: %d", ret);
+	if (progname)
+	{
+		prog.filename = progname;
+		int ret = load_binary(&prog);
+		if (ret < 0)
+			die("load_binary: %d", ret);
+	}
+	else
+	{
+		die("unimplemented");
+	}
+
 
 	char *vdso = (char *)get_aux(prog.auxv, AT_SYSINFO_EHDR);
 	long off = memscan(vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);
