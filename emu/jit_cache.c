@@ -73,7 +73,7 @@ int try_load_jit_cache(code_map_t *map)
 	if ( (map->inode == 0) || (cache_dir == NULL) )
 		return 0;
 	
-	char buf[PATH_MAX+1];
+	char buf[PATH_MAX+1+1024];
 	int fd = sys_open(get_cache_filename(buf, map, -1), O_RDONLY, 0);
 	if (fd < 0)
 		return -1;
