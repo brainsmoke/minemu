@@ -57,9 +57,10 @@ char *get_cache_filename(char *buf, code_map_t *map, int pid)
 
 void set_jit_cache_dir(const char *dir)
 {
-	strncpy(cache_dir_buf, dir, PATH_MAX);
-	cache_dir_buf[PATH_MAX] = '\0';
-	cache_dir = cache_dir_buf;
+	if ( absdir(cache_dir_buf, dir) == 0 )
+		cache_dir = cache_dir_buf;
+	else
+		cache_dir = NULL;
 }
 
 char *get_jit_cache_dir(void)

@@ -250,6 +250,36 @@ char *hexcat(char *dest, unsigned long ul)
 	return dest;
 }
 
+/* dest is assumed to be a buffer of at least PATH_MAX+1 bytes */
+int absdir(char *dest, const char *dir)
+{
+	int len = 0, ret = 0;
+
+	dest[0] = '\0';
+
+	if ( dir[0] != '/' )
+	{
+		ret = sys_getcwd(dest, PATH_MAX+1)+1;
+		if ( ret >= 0 )
+		{
+			len = strlen(dest)+1;
+			dest[len-1] = '/';
+			dest[len] = '\0';
+		}
+	}
+
+	len += strlen(dir);
+
+	if ( ret < 0 || len > PATH_MAX )
+	{
+		dest[0] = '\0';
+		return -1;
+	}
+
+	strcat(dest, dir);
+	return 0;
+}
+
 /*
 static void swap(void *a, void *b, size_t size)
 {

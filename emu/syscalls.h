@@ -97,4 +97,7 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_rename(oldpath, newpath) \
 	syscall2(SYS_rename, (long)oldpath, (long)newpath)
 
+#define sys_getcwd(buf, bufsize) \
+	syscall2(SYS_getcwd, (long)buf, (long)bufsize)
+
 #endif /* SYSCALLS_H */
