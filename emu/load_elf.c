@@ -484,6 +484,8 @@ static int try_load_elf(elf_prog_t *prog, long bailout)
 
 static int load_elf_cleanup(elf_prog_t *prog, long bailout)
 {
+	prog->bin.fd = prog->interp.fd = -1;
+
 	int err = try_load_elf(prog, bailout);
 
 	if (prog->bin.fd != -1)
