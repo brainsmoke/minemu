@@ -84,6 +84,8 @@ char **parse_options(char **argv)
 			call_strategy = PRESEED_ON_CALL;
 		else if ( strcmp(*argv, "-prefetch") == 0 )
 			call_strategy = PREFETCH_ON_CALL;
+		else if ( strcmp(*argv, "-lazy") == 0 )
+			call_strategy = LAZY_CALL;
 		else if ( strcmp(*argv, "-taint") == 0 )
 			taint_flag = TAINT_ON;
 		else if ( strcmp(*argv, "-notaint") == 0 )
