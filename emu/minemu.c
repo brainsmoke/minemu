@@ -30,9 +30,17 @@ void usage(char *arg0)
 	"  -dump DIR           Dump taint info in DIR when a program gets killed\n"
 	"                      because of a tainted jump\n"
 	"  -exec EXECUTABLE    Use EXECUTABLE as executable filename, instead of\n"
-	"                      doing path resolution on command\n",
+	"                      doing path resolution on command\n"
+	"  -help               Show this message and exit\n"
+	"  -version            Print version number and exit\n",
 	arg0
 	);
+	sys_exit(0);
+}
+
+void version(void)
+{
+	debug("minemu version 0.1");
 	sys_exit(0);
 }
 
@@ -57,6 +65,9 @@ char **parse_options(char **argv)
 			progname = *++argv;
 		else if ( strcmp(*argv, "-help") == 0 )
 			usage(arg0);
+		else if ( strcmp(*argv, "-version") == 0 ||
+		          strcmp(*argv, "-v") == 0 )
+			version();
 		else
 			die("unknown option: %s", *argv);
 
