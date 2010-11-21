@@ -10,7 +10,7 @@ MKDIR=$(SILENT)mkdir
 RM=$(SILENT)rm -r
 
 LDFLAGS=
-EMU_LDFLAGS=-z noexecstack #-static
+EMU_LDFLAGS=-z noexecstack
 
 #SETTINGS=-g -DEMU_DEBUG
 #SETTINGS=-Os -DEMU_DEBUG
