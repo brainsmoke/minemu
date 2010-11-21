@@ -570,9 +570,12 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 
 #ifdef CACHE_ON_CALL
 
-static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *retaddr_index)
+static int generate_call(char *dest, char *jmp_addr,
+                         instr_t *instr, trans_t *trans,
+                         char *map, unsigned long map_len)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	int retaddr_index;
 	/* XXX FUGLY as a speed optimisation, we insert the return address
 	 * directly into the cache, this makes relocating code more messy.
 	 * proposed fix: scan memory for call instructions upon relocation,
@@ -595,10 +598,15 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans, int *r
 
 		&instr->addr[instr->len],
 		&jmp_cache[hash].addr,       &instr->addr[instr->len],
-		&jmp_cache[hash].jit_addr,   retaddr_index
+		&jmp_cache[hash].jit_addr,   &retaddr_index
 	);
-	*retaddr_index += len_taint;
-	return len;
+	retaddr_index += len_taint;
+	generate_jump(&dest[len], jmp_addr, trans, map, map_len);
+	if (trans->imm)
+		trans->imm += len;
+		trans->len += len;
+	imm_to(&dest[retaddr_index], (long)dest+trans->len);
+	return trans->len;
 }
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
@@ -642,7 +650,9 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 
 #elif PREFETCH_ON_CALL
 
-static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+static int generate_call(char *dest, char *jmp_addr,
+                         instr_t *instr, trans_t *trans,
+                         char *map, unsigned long map_len)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
 	/* XXX FUGLY as a speed optimisation, we insert the return address
@@ -667,7 +677,11 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
 		&instr->addr[instr->len],
 		&jmp_cache[hash]
 	);
-	return len;
+	generate_jump(&dest[len], jmp_addr, trans, map, map_len);
+	if (trans->imm)
+		trans->imm += len;
+		trans->len += len;
+	return trans->len;
 }
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
@@ -708,7 +722,9 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 
 #else
 
-static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
+static int generate_call(char *dest, char *jmp_addr,
+                         instr_t *instr, trans_t *trans,
+                         char *map, unsigned long map_len)
 {
 #ifndef NO_TAINT
 	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
@@ -722,7 +738,11 @@ static int generate_call_head(char *dest, instr_t *instr, trans_t *trans)
 
 		&instr->addr[instr->len]
 	);
-	return len;
+	generate_jump(&dest[len], jmp_addr, trans, map, map_len);
+	if (trans->imm)
+		trans->imm += len;
+		trans->len += len;
+	return trans->len;
 }
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
@@ -945,9 +965,6 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 {
 	char *pc = instr->addr+instr->len;
 	long imm=0, imm_len, off;
-#ifdef CACHE_ON_CALL
-	int retaddr_index;
-#endif
 
 	imm_len=instr->len-instr->imm;
 	if (jit_action[instr->op] == JUMP_FAR)
@@ -995,19 +1012,7 @@ static void translate_control(char *dest, instr_t *instr, trans_t *trans,
 			trans->len += off;
 			break;
 		case CALL_RELATIVE:
-#ifdef CACHE_ON_CALL
-			off = generate_call_head(dest, instr, trans, &retaddr_index);
-#else
-			off = generate_call_head(dest, instr, trans);
-#endif
-			generate_jump(&dest[off], pc+imm, trans, map, map_len);
-			if (trans->imm)
-				trans->imm += off;
-			trans->len += off;
-#ifdef CACHE_ON_CALL
-			/* XXX FUGLY */
-			imm_to(&dest[retaddr_index], (long)dest+trans->len);
-#endif
+			generate_call(dest, pc+imm, instr, trans, map, map_len);
 			break;
 		case JOIN:
 			generate_ill(dest, trans);
