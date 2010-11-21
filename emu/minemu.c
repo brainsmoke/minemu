@@ -19,11 +19,31 @@
 
 char *progname = NULL;
 
+void usage(char *arg0)
+{
+	debug(
+	"Usage: %s [options] [--] command arg1 ...\n"
+	"\n"
+	"Options:\n"
+	"\n"
+	"  -cache DIR          Cache jit code in DIR\n"
+	"  -dump DIR           Dump taint info in DIR when a program gets killed\n"
+	"                      because of a tainted jump\n"
+	"  -exec EXECUTABLE    Use EXECUTABLE as executable filename, instead of\n"
+	"                      doing path resolution on command\n",
+	arg0
+	);
+	sys_exit(0);
+}
+
 char **parse_options(char **argv)
 {
-	for (;;)
+	char *arg0 = *argv;
+	argv++;
+
+	while (*argv)
 	{
-		if ( (*argv == NULL) || (**argv != '-') )
+		if (**argv != '-')
 			return argv;
 
 		if ( strcmp(*argv, "--") == 0 )
@@ -35,11 +55,14 @@ char **parse_options(char **argv)
 			set_taint_dump_dir(*++argv);
 		else if ( strcmp(*argv, "-exec") == 0 )
 			progname = *++argv;
+		else if ( strcmp(*argv, "-help") == 0 )
+			usage(arg0);
 		else
 			die("unknown option: %s", *argv);
 
 		argv++;
 	}
+	usage(arg0);
 }
 
 /* not called main() to avoid warnings about extra parameters :-(  */
@@ -53,7 +76,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		sys_execve("/proc/self/exe", argv, envp);
 	}
 
-	argv = parse_options(&argv[1]);
+	argv = parse_options(argv);
 	if ( (progname == NULL) && (argv[0][0] == '/') )
 		progname = argv[0];
 
@@ -80,7 +103,12 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	else
 	{
 		ret = -ENOENT;
-		char *path = getenve("PATH", envp);
+		char *path;
+		if ( strchr(argv[0], '/') )
+			path = getenve("PWD", envp);
+		else
+			path = getenve("PATH", envp);
+
 		while ( (ret < 0) && (path != NULL) )
 		{
 			long len;
