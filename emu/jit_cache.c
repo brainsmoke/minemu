@@ -9,6 +9,7 @@
 #include "syscalls.h"
 #include "error.h"
 #include "jit_code.h"
+#include "taint.h"
 
 static char cache_dir_buf[PATH_MAX+1] = { 0, };
 
@@ -51,6 +52,9 @@ static char *get_cache_filename(char *buf, code_map_t *map, int pid)
 		strcat(buf, "P");
 	else if ( call_strategy == PRESEED_ON_CALL )
 		strcat(buf, "S");
+
+	if ( taint_flag == TAINT_OFF )
+		strcat(buf, "N");
 
 	if (pid > 0)
 	{

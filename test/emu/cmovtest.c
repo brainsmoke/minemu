@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "error.h"
 #include "taint_code.h"
+#include "taint.h"
 #include "opcodes.h"
 #include "jit_code.h"
 
@@ -34,6 +35,7 @@ void linux_sysenter_emu(void) { die("calling placeholder"); }
 void jit_rev_lookup_addr(void) { die("calling placeholder"); }
 void unshield(void) { die("calling placeholder"); }
 char *hexcat(char *dest, unsigned long ul) { die("calling placeholder"); return NULL; }
+int taint_flag = TAINT_ON;
 
 typedef long (*func_t)(long flags, long orig, long condval);
 

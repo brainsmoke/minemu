@@ -10,8 +10,11 @@
 #include "syscalls.h"
 #include "lib.h"
 #include "mm.h"
+#include "taint.h"
 
 extern char fd_type[1024];
+
+int taint_flag = TAINT_ON;
 
 enum
 {

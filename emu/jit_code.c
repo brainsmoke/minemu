@@ -7,6 +7,7 @@
 #include "runtime.h"
 #include "error.h"
 #include "taint_code.h"
+#include "taint.h"
 #include "debug.h"
 #include "mm.h"
 
@@ -548,13 +549,11 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 {
 	long mrm_len = instr->len - instr->mrm;
-	int i;
+	int len_taint=0, i;
 
-#ifndef NO_TAINT
-	int len_taint = taint_ijmp(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
+	if ( taint_flag == TAINT_ON )
+		len_taint = taint_ijmp(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 		"A3 L"           /* mov %eax, scratch_stack-4 */
@@ -575,12 +574,10 @@ static int generate_call(char *dest, char *jmp_addr,
                          char *map, unsigned long map_len)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
-	int retaddr_index, len;
-#ifndef NO_TAINT
-	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
+	int len_taint=0, retaddr_index, len;
+
+	if ( taint_flag == TAINT_ON )
+		len_taint = taint_erase_push32(dest, TAINT_OFFSET);
 
 	if ( call_strategy == PRESEED_ON_CALL )
 	{
@@ -638,18 +635,15 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 {
 	int hash = HASH_INDEX(&instr->addr[instr->len]);
 	long mrm_len = instr->len - instr->mrm;
-	int mrm, retaddr_index, len;
+	int len_taint=0, mrm, retaddr_index, len;
 
 	/* XXX FUGLY as a speed optimisation, we insert the return address
 	 * directly into the cache, this makes relocating code more messy.
 	 * proposed fix: scan memory for call instructions upon relocation,
 	 * change the address in-place
 	 */
-#ifndef NO_TAINT
-	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
+	if ( taint_flag == TAINT_ON )
+		len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
 
 	if ( call_strategy == PRESEED_ON_CALL )
 	{
@@ -789,14 +783,12 @@ static int generate_cmov(char *dest, instr_t *instr, trans_t *trans)
 	int taint_len = 0, mrm = instr->mrm, len = instr->len;
 	char *addr = instr->addr;
 
-	if (instr->p[2] == 0) /* we don't do segments (yet?) */
+	if ( (instr->p[2] == 0) && (taint_flag == TAINT_ON) ) /* we don't do segments (yet?) */
 	{
-#ifndef NO_TAINT
 		if (instr->p[3] == 0x66)
 			taint_len = taint_copy_mem16_to_reg16(&dest[2], &addr[mrm], TAINT_OFFSET);
 		else
 			taint_len = taint_copy_mem32_to_reg32(&dest[2], &addr[mrm], TAINT_OFFSET);
-#endif
 	}
 	dest[0] = '\x70' + ( (addr[mrm-1]&0xf) ^ 1 );
 	dest[1] = taint_len+len-1;
@@ -825,10 +817,9 @@ static int taint_rep(char *dest, instr_t *instr, trans_t *trans)
 
 	dest[0] = '\xe3';
 
-#ifndef NO_TAINT
-	len +=(op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
-	      (&dest[len], TAINT_OFFSET);
-#endif
+	if ( taint_flag == TAINT_ON )
+		len +=(op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
+		      (&dest[len], TAINT_OFFSET);
 
 	if ( instr->p[3] )
 	{
@@ -862,33 +853,32 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 			return copy_instr(dest, instr, trans);
 	}
 
-#ifndef NO_TAINT
+	if ( taint_flag == TAINT_ON )
+	{
+		if (TAINT_MRM_OP(act))
+			len = (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
+			      (dest, &instr->addr[instr->mrm], TAINT_OFFSET);
 
-	if (TAINT_MRM_OP(act))
-		len = (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
-		      (dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+		else if (TAINT_REG_OFF_OP( act ))
+			len = (op16 && taint_ops[act].reg_off.f16 ? taint_ops[act].reg_off.f16 : taint_ops[act].reg_off.f)
+			      (dest, instr->addr[instr->mrm-1]&7, TAINT_OFFSET);
 
-	else if (TAINT_REG_OFF_OP( act ))
-		len = (op16 && taint_ops[act].reg_off.f16 ? taint_ops[act].reg_off.f16 : taint_ops[act].reg_off.f)
-		      (dest, instr->addr[instr->mrm-1]&7, TAINT_OFFSET);
+		else if (TAINT_REG_OP( act ))
+			len = (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
+			      (dest, instr->addr[instr->mrm-1]&7);
 
-	else if (TAINT_REG_OP( act ))
-		len = (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
-		      (dest, instr->addr[instr->mrm-1]&7);
+		else if (TAINT_OFF_OP( act ))
+			len = (op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
+			      (dest, TAINT_OFFSET);
 
-	else if (TAINT_OFF_OP( act ))
-		len = (op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
-		      (dest, TAINT_OFFSET);
+		else if (TAINT_IMPL_OP( act ))
+			len = (op16 && taint_ops[act].impl.f16 ? taint_ops[act].impl.f16 : taint_ops[act].impl.f)
+			      (dest);
 
-	else if (TAINT_IMPL_OP( act ))
-		len = (op16 && taint_ops[act].impl.f16 ? taint_ops[act].impl.f16 : taint_ops[act].impl.f)
-		      (dest);
-
-	else if (TAINT_ADDR_OP( act ))
-		len = (op16 && taint_ops[act].addr.f16 ? taint_ops[act].addr.f16 : taint_ops[act].addr.f)
-		      (dest, *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
-
-#endif
+		else if (TAINT_ADDR_OP( act ))
+			len = (op16 && taint_ops[act].addr.f16 ? taint_ops[act].addr.f16 : taint_ops[act].addr.f)
+			      (dest, *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
+	}
 
 	len += copy_instr(&dest[len], instr, trans);
 	*trans = (trans_t){ .len = len };

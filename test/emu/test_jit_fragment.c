@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "hexdump.h"
 #include "jit_code.h"
+#include "taint.h"
 
 char *jit_fragment_exit_eip;
 char *jit_fragment_exit_addr;
@@ -38,7 +39,7 @@ void linux_sysenter_emu(void) { die("calling placeholder"); }
 void jit_fragment_exit(void) { die("calling placeholder"); }
 void jit_rev_lookup_addr(void) { die("calling placeholder"); }
 char *hexcat(char *dest, unsigned long ul) { die("calling placeholder"); return NULL; }
-
+int taint_flag = TAINT_ON;
 
 char *tests[] =
 {

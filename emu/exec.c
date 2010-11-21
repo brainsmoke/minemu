@@ -11,6 +11,7 @@
 #include "jit_cache.h"
 #include "taint_dump.h"
 #include "jit_code.h"
+#include "taint.h"
 
 int can_load_binary(elf_prog_t *prog)
 {
@@ -49,7 +50,8 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	char *taint_dump_dir = get_taint_dump_dir();
 	long args_start = 4 + (cache_dir ? 2 : 0) +
 	                      (taint_dump_dir ? 2 : 0) +
-	                      (call_strategy!=PRESEED_ON_CALL ? 1 : 0), i;
+	                      (call_strategy!=PRESEED_ON_CALL ? 1 : 0) +
+	                      (taint_flag == TAINT_OFF ? 1 : 0), i;
 
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
@@ -71,6 +73,11 @@ long user_execve(char *filename, char *argv[], char *envp[])
 		new_argv[i  ] = "-dump";
 		new_argv[i+1] = taint_dump_dir;
 		i += 2;
+	}
+	if ( taint_flag == TAINT_OFF )
+	{
+		new_argv[i] = "-notaint";
+		i++;
 	}
 	if ( call_strategy == PREFETCH_ON_CALL )
 		new_argv[i] = "-prefetch";

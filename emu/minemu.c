@@ -17,6 +17,7 @@
 #include "sigwrap.h"
 #include "taint_dump.h"
 #include "jit_code.h"
+#include "taint.h"
 
 char *progname = NULL;
 
@@ -38,6 +39,9 @@ void usage(char *arg0)
 	"  -prefetch           for call instructions: prefetch the emulator's jump cache\n"
 	"                      in anticipation of the return\n"
 	"  -lazy               do not seed or prefetch caches for call instructions\n"
+	"\n"
+	"  -taint              do tainting (default)\n"
+	"  -notaint            disable tainting\n"
 	"\n"
 	"  -help               Show this message and exit\n"
 	"  -version            Print version number and exit\n",
@@ -80,8 +84,10 @@ char **parse_options(char **argv)
 			call_strategy = PRESEED_ON_CALL;
 		else if ( strcmp(*argv, "-prefetch") == 0 )
 			call_strategy = PREFETCH_ON_CALL;
-		else if ( strcmp(*argv, "-lazy") == 0 )
-			call_strategy = LAZY_CALL;
+		else if ( strcmp(*argv, "-taint") == 0 )
+			taint_flag = TAINT_ON;
+		else if ( strcmp(*argv, "-notaint") == 0 )
+			taint_flag = TAINT_OFF;
 		else
 			die("unknown option: %s", *argv);
 
