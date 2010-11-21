@@ -7,6 +7,15 @@
 #include "lib.h"
 #include "opcodes.h"
 
+enum
+{
+	LAZY_CALL,
+	PREFETCH_ON_CALL,
+	PRESEED_ON_CALL,
+};
+
+extern int call_strategy;
+
 typedef struct
 {
 	char *jmp_addr;

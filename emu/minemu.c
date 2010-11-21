@@ -16,6 +16,7 @@
 #include "codemap.h"
 #include "sigwrap.h"
 #include "taint_dump.h"
+#include "jit_code.h"
 
 char *progname = NULL;
 
@@ -27,10 +28,17 @@ void usage(char *arg0)
 	"Options:\n"
 	"\n"
 	"  -cache DIR          Cache jit code in DIR\n"
-	"  -dump DIR           Dump taint info in DIR when a program gets killed\n"
-	"                      because of a tainted jump\n"
+	"  -dump DIR           Dump taint info in DIR when a program gets\n"
+	"                      terminated because of a tainted jump\n"
 	"  -exec EXECUTABLE    Use EXECUTABLE as executable filename, instead of\n"
 	"                      doing path resolution on command\n"
+	"\n"
+	"  -preseed            for call instructions: seed the emulator's jump cache\n"
+	"                      with the return address of the call (default)\n"
+	"  -prefetch           for call instructions: prefetch the emulator's jump cache\n"
+	"                      in anticipation of the return\n"
+	"  -lazy               do not seed or prefetch caches for call instructions\n"
+	"\n"
 	"  -help               Show this message and exit\n"
 	"  -version            Print version number and exit\n",
 	arg0
@@ -68,6 +76,12 @@ char **parse_options(char **argv)
 		else if ( strcmp(*argv, "-version") == 0 ||
 		          strcmp(*argv, "-v") == 0 )
 			version();
+		else if ( strcmp(*argv, "-preseed") == 0 )
+			call_strategy = PRESEED_ON_CALL;
+		else if ( strcmp(*argv, "-prefetch") == 0 )
+			call_strategy = PREFETCH_ON_CALL;
+		else if ( strcmp(*argv, "-lazy") == 0 )
+			call_strategy = LAZY_CALL;
 		else
 			die("unknown option: %s", *argv);
 

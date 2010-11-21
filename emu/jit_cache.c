@@ -8,6 +8,7 @@
 #include "lib.h"
 #include "syscalls.h"
 #include "error.h"
+#include "jit_code.h"
 
 static char cache_dir_buf[PATH_MAX+1] = { 0, };
 
@@ -44,6 +45,12 @@ static char *get_cache_filename(char *buf, code_map_t *map, int pid)
 	hexcat(buf, (unsigned long)map->jit_addr);
 	strcat(buf, "p");
 	hexcat(buf, map->pgoffset);
+	if ( call_strategy == LAZY_CALL )
+		strcat(buf, "L");
+	else if ( call_strategy == PREFETCH_ON_CALL )
+		strcat(buf, "P");
+	else if ( call_strategy == PRESEED_ON_CALL )
+		strcat(buf, "S");
 
 	if (pid > 0)
 	{

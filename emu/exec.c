@@ -10,6 +10,7 @@
 #include "load_script.h"
 #include "jit_cache.h"
 #include "taint_dump.h"
+#include "jit_code.h"
 
 int can_load_binary(elf_prog_t *prog)
 {
@@ -46,7 +47,9 @@ long user_execve(char *filename, char *argv[], char *envp[])
 
 	char *cache_dir = get_jit_cache_dir();
 	char *taint_dump_dir = get_taint_dump_dir();
-	long args_start = 4 + (cache_dir ? 2 : 0) + (taint_dump_dir ? 2 : 0);
+	long args_start = 4 + (cache_dir ? 2 : 0) +
+	                      (taint_dump_dir ? 2 : 0) +
+	                      (call_strategy!=PRESEED_ON_CALL ? 1 : 0), i;
 
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
@@ -56,16 +59,23 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	new_argv[1] = "-exec";
 	new_argv[2] = filename;
 
+	i = 3;
 	if (cache_dir)
 	{
-		new_argv[3] = "-cache";
-		new_argv[4] = cache_dir;
+		new_argv[i  ] = "-cache";
+		new_argv[i+1] = cache_dir;
+		i += 2;
 	}
 	if (taint_dump_dir)
 	{
-		new_argv[(cache_dir ? 2 : 0) + 3] = "-dump";
-		new_argv[(cache_dir ? 2 : 0) + 4] = taint_dump_dir;
+		new_argv[i  ] = "-dump";
+		new_argv[i+1] = taint_dump_dir;
+		i += 2;
 	}
+	if ( call_strategy == PREFETCH_ON_CALL )
+		new_argv[i] = "-prefetch";
+	else if ( call_strategy == LAZY_CALL )
+		new_argv[i] = "-lazy";
 
 	new_argv[args_start-1] = "--";
 	memcpy(&new_argv[args_start], argv, sizeof(char *)*(count+1));
