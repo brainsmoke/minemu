@@ -568,8 +568,6 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	return len;
 }
 
-#ifdef CACHE_ON_CALL
-
 static int generate_call(char *dest, char *jmp_addr,
                          instr_t *instr, trans_t *trans,
                          char *map, unsigned long map_len)
@@ -589,6 +587,8 @@ static int generate_call(char *dest, char *jmp_addr,
 #else
 	int len_taint = 0;
 #endif
+
+#ifdef CACHE_ON_CALL
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -601,11 +601,32 @@ static int generate_call(char *dest, char *jmp_addr,
 		&jmp_cache[hash].jit_addr,   &retaddr_index
 	);
 	retaddr_index += len_taint;
+#elif defined PREFETCH_ON_CALL
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"68 L"                /* push $retaddr                                        */
+		"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
+
+		&instr->addr[instr->len],
+		&jmp_cache[hash]
+	);
+#else
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"68 L",               /* push $retaddr                                        */
+
+		&instr->addr[instr->len]
+	);
+#endif
 	generate_jump(&dest[len], jmp_addr, trans, map, map_len);
 	if (trans->imm)
 		trans->imm += len;
 		trans->len += len;
+#ifdef CACHE_ON_CALL
 	imm_to(&dest[retaddr_index], (long)dest+trans->len);
+#endif
 	return trans->len;
 }
 
@@ -625,6 +646,8 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 #else
 	int len_taint = 0;
 #endif
+
+#ifdef CACHE_ON_CALL
 	int len = len_taint+gen_code(
 		&dest[len_taint],
 
@@ -640,140 +663,41 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 		&jmp_cache[hash].addr,       &instr->addr[instr->len],
 		&jmp_cache[hash].jit_addr,   &retaddr_index
 	);
+#elif defined PREFETCH_ON_CALL
+	int len = len_taint+gen_code(
+		&dest[len_taint],
 
+		"A3 L"                /* mov %eax, scratch_stack-4                            */
+		"? 8B &$"             /* mov ... ( -> %eax )                                  */
+		"68 L"                /* push $retaddr                                        */
+		"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
+
+		&scratch_stack[-1],
+		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
+		&instr->addr[instr->len],
+		&jmp_cache[hash]
+	);
+#else
+	int len = len_taint+gen_code(
+		&dest[len_taint],
+
+		"A3 L"                /* mov %eax, scratch_stack-4                            */
+		"? 8B &$"             /* mov ... ( -> %eax )                                  */
+		"68 L",               /* push $retaddr                                        */
+
+		&scratch_stack[-1],
+		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
+		&instr->addr[instr->len]
+	);
+#endif
 	dest[len_taint+mrm] &= 0xC7; /* -> %eax */
 	len += generate_ijump_tail(&dest[len]);
+#ifdef CACHE_ON_CALL
 	imm_to(&dest[len_taint+retaddr_index], ((long)dest)+len);
+#endif
 	*trans = (trans_t){ .len = len };
 	return len;
 }
-
-#elif PREFETCH_ON_CALL
-
-static int generate_call(char *dest, char *jmp_addr,
-                         instr_t *instr, trans_t *trans,
-                         char *map, unsigned long map_len)
-{
-	int hash = HASH_INDEX(&instr->addr[instr->len]);
-	/* XXX FUGLY as a speed optimisation, we insert the return address
-	 * directly into the cache, this makes relocating code more messy.
-	 * proposed fix: scan memory for call instructions upon relocation,
-	 * change the address in-place
-	 */
-	/* XXX FUGLY translated address is inserted by caller since we don't know
-	 * yet how long the instruction translation will be
-	 */
-#ifndef NO_TAINT
-	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
-	int len = len_taint+gen_code(
-		&dest[len_taint],
-
-		"68 L"                /* push $retaddr                                        */
-		"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
-
-		&instr->addr[instr->len],
-		&jmp_cache[hash]
-	);
-	generate_jump(&dest[len], jmp_addr, trans, map, map_len);
-	if (trans->imm)
-		trans->imm += len;
-		trans->len += len;
-	return trans->len;
-}
-
-static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
-{
-	int hash = HASH_INDEX(&instr->addr[instr->len]);
-	long mrm_len = instr->len - instr->mrm;
-	int mrm;
-
-	/* XXX FUGLY as a speed optimisation, we insert the return address
-	 * directly into the cache, this makes relocating code more messy.
-	 * proposed fix: scan memory for call instructions upon relocation,
-	 * change the address in-place
-	 */
-#ifndef NO_TAINT
-	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
-	int len = len_taint+gen_code(
-		&dest[len_taint],
-
-		"A3 L"                /* mov %eax, scratch_stack-4                            */
-		"? 8B &$"             /* mov ... ( -> %eax )                                  */
-		"68 L"                /* push $retaddr                                        */
-		"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
-
-		&scratch_stack[-1],
-		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
-		&instr->addr[instr->len],
-		&jmp_cache[hash]
-	);
-
-	dest[len_taint+mrm] &= 0xC7; /* -> %eax */
-	len += generate_ijump_tail(&dest[len]);
-	*trans = (trans_t){ .len = len };
-	return len;
-}
-
-#else
-
-static int generate_call(char *dest, char *jmp_addr,
-                         instr_t *instr, trans_t *trans,
-                         char *map, unsigned long map_len)
-{
-#ifndef NO_TAINT
-	int len_taint = taint_erase_push32(dest, TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
-	int len = len_taint+gen_code(
-		&dest[len_taint],
-
-		"68 L",               /* push $retaddr                                        */
-
-		&instr->addr[instr->len]
-	);
-	generate_jump(&dest[len], jmp_addr, trans, map, map_len);
-	if (trans->imm)
-		trans->imm += len;
-		trans->len += len;
-	return trans->len;
-}
-
-static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
-{
-	long mrm_len = instr->len - instr->mrm;
-	int mrm;
-
-#ifndef NO_TAINT
-	int len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
-#else
-	int len_taint = 0;
-#endif
-	int len = len_taint+gen_code(
-		&dest[len_taint],
-
-		"A3 L"                /* mov %eax, scratch_stack-4                            */
-		"? 8B &$"             /* mov ... ( -> %eax )                                  */
-		"68 L",               /* push $retaddr                                        */
-
-		&scratch_stack[-1],
-		instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
-		&instr->addr[instr->len]
-	);
-
-	dest[len_taint+mrm] &= 0xC7; /* -> %eax */
-	len += generate_ijump_tail(&dest[len]);
-	*trans = (trans_t){ .len = len };
-	return len;
-}
-
-#endif
 
 static int generate_ret(char *dest, char *addr, trans_t *trans)
 {
