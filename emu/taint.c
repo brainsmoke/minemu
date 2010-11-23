@@ -23,21 +23,22 @@ enum
 	FD_NO_SOCKET,
 };
 
+
+#define _LARGEFILE64_SOURCE 1
+#include <asm/stat.h>
+#define __S_IFREG   0100000 /* Regular file.  */
+#define __S_IFMT    0170000 /* These bits determine file type.  */
+
 int is_socket(int fd)
 {
 	if ( (fd > 1023) || (fd < 0) )
 		return 0;
 
-	if ( fd_type[fd] == FD_UNKNOWN )
-	{
-		long len=0;
-		char buf[1];
-		long args[] = { fd, (long)buf, (long)&len };
-		long ret = syscall2(__NR_socketcall, SYS_GETSOCKNAME, (long)args);
-		fd_type[fd] = ( (ret == -EBADF) || (ret == -ENOTSOCK) ) ? FD_NO_SOCKET : FD_SOCKET;
-	}
+	struct stat64 s;
+	if ( sys_fstat64(fd, &s) < 0 )
+		return 0;
 
-	return fd_type[fd] == FD_SOCKET;
+	return (s.st_mode & __S_IFMT) != __S_IFREG;
 }
 
 void set_fd(int fd, int type)
