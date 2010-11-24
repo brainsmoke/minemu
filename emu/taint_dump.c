@@ -13,6 +13,8 @@
 #include "taint_dump.h"
 #include "hexdump.h"
 
+int dump_on_exit = 0;
+
 const char *regs_desc[] =
 {
 	"[   eax   ] [   ecx   ]  [   edx   ] [   ebx   ]",
@@ -123,7 +125,7 @@ void do_taint_dump(long *regs)
 	get_taint_dump_filename(name);
 	int fd_out = sys_open(name, O_RDWR|O_CREAT, 0600), old_out;
 
-	fd_printf(fd_out, "tainted jump address:\n");
+	fd_printf(fd_out, "jump address:\n");
 
 	hexdump_taint(fd_out, &user_eip, 4,
 	              (unsigned char *)&ijmp_taint, 0,0, NULL);

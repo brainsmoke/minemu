@@ -50,6 +50,7 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	char *taint_dump_dir = get_taint_dump_dir();
 	long args_start = 4 + (cache_dir ? 2 : 0) +
 	                      (taint_dump_dir ? 2 : 0) +
+	                      (dump_on_exit ? 1 : 0) +
 	                      (call_strategy!=PRESEED_ON_CALL ? 1 : 0) +
 	                      (taint_flag == TAINT_OFF ? 1 : 0), i;
 
@@ -77,6 +78,11 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	if ( taint_flag == TAINT_OFF )
 	{
 		new_argv[i] = "-notaint";
+		i++;
+	}
+	if ( dump_on_exit )
+	{
+		new_argv[i] = "-dumponexit";
 		i++;
 	}
 	if ( call_strategy == PREFETCH_ON_CALL )

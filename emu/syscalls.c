@@ -12,16 +12,11 @@
 #include "exec.h"
 #include "taint.h"
 #include "debug.h"
+#include "taint_dump.h"
 
 long syscall_emu(long call, long arg1, long arg2, long arg3,
                             long arg4, long arg5, long arg6)
 {
-/*
-	debug("eax %08x ebx %08x ecx %08x edx %08x esi %08x edi %08x "
-          "ebp %08x esp %08x eip %08x",
-	      call, arg1, arg2, arg3, arg4, arg5, arg6);
-*/
-
 	long ret;
 	switch (call)
 	{
@@ -36,6 +31,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_rt_sigaction:
 		case __NR_rt_sigreturn:
 		case __NR_execve:
+		case __NR_exit_group:
 			break;
 
 		case __NR_read:
@@ -109,6 +105,13 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			ret = user_execve((char *)arg1, (char **)arg2, (char **)arg3);
 			shield();
 			break;
+		case __NR_exit_group:
+			if (dump_on_exit)
+			{
+				long regs[] = { call, arg2, arg3, arg1, scratch_stack[0], arg6, arg4, arg5 };
+				do_taint_dump(regs);
+			}
+			sys_exit_group(arg1);
 		default:
 			die("unimplemented syscall");
 			break;

@@ -31,6 +31,8 @@ void usage(char *arg0)
 	"  -cache DIR          Cache jit code in DIR.\n"
 	"  -dump DIR           Dump taint info in DIR when a program gets\n"
 	"                      terminated because of a tainted jump.\n"
+	"  -dumponexit         Also dump taint info when a program exits normally\n"
+	"  -nodumponexit       Don't dump taint info when a program exits normally (default)\n"
 	"  -exec EXECUTABLE    Use EXECUTABLE as executable filename, instead of\n"
 	"                      doing path resolution on command.\n"
 	"\n"
@@ -90,6 +92,10 @@ char **parse_options(char **argv)
 			taint_flag = TAINT_ON;
 		else if ( strcmp(*argv, "-notaint") == 0 )
 			taint_flag = TAINT_OFF;
+		else if ( strcmp(*argv, "-dumponexit") == 0 )
+			dump_on_exit = 1;
+		else if ( strcmp(*argv, "-nodumponexit") == 0 )
+			dump_on_exit = 0;
 		else
 			die("unknown option: %s", *argv);
 
