@@ -1,17 +1,12 @@
-
 #include <string.h>
 #include <errno.h>
 
 #include "exec.h"
 #include "error.h"
-#include "lib.h"
 #include "syscalls.h"
 #include "load_elf.h"
 #include "load_script.h"
-#include "jit_cache.h"
-#include "taint_dump.h"
-#include "jit_code.h"
-#include "taint.h"
+#include "options.h"
 
 int can_load_binary(elf_prog_t *prog)
 {
@@ -45,53 +40,13 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	if (ret)
 		return ret;
 
-
-	char *cache_dir = get_jit_cache_dir();
-	char *taint_dump_dir = get_taint_dump_dir();
-	long args_start = 4 + (cache_dir ? 2 : 0) +
-	                      (taint_dump_dir ? 2 : 0) +
-	                      (dump_on_exit ? 1 : 0) +
-	                      (call_strategy!=PRESEED_ON_CALL ? 1 : 0) +
-	                      (taint_flag == TAINT_OFF ? 1 : 0), i;
-
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
 	 */
-	char **new_argv = &minemu_stack_bottom[- count - args_start - 1];
+	char **new_argv = &minemu_stack_bottom[- count - option_args_count() - 2], **user_argv;
 	new_argv[0] = argv[0];
-	new_argv[1] = "-exec";
-	new_argv[2] = filename;
-
-	i = 3;
-	if (cache_dir)
-	{
-		new_argv[i  ] = "-cache";
-		new_argv[i+1] = cache_dir;
-		i += 2;
-	}
-	if (taint_dump_dir)
-	{
-		new_argv[i  ] = "-dump";
-		new_argv[i+1] = taint_dump_dir;
-		i += 2;
-	}
-	if ( taint_flag == TAINT_OFF )
-	{
-		new_argv[i] = "-notaint";
-		i++;
-	}
-	if ( dump_on_exit )
-	{
-		new_argv[i] = "-dumponexit";
-		i++;
-	}
-	if ( call_strategy == PREFETCH_ON_CALL )
-		new_argv[i] = "-prefetch";
-	else if ( call_strategy == LAZY_CALL )
-		new_argv[i] = "-lazy";
-
-	new_argv[args_start-1] = "--";
-	memcpy(&new_argv[args_start], argv, sizeof(char *)*(count+1));
+	user_argv = option_args_setup(&new_argv[1], filename);
+	memcpy(user_argv, argv, sizeof(char *)*(count+1));
 	sys_execve("/proc/self/exe", new_argv, envp);
 	die("user_execve failed");
 	return 0xdeadbeef;

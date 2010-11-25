@@ -93,3 +93,64 @@ char **parse_options(char **argv)
 	usage(arg0);
 }
 
+long option_args_count(void)
+{
+	return 2 + /* -exec ... */
+	       (get_jit_cache_dir()              ? 2 : 0) +
+	       (get_taint_dump_dir()             ? 2 : 0) +
+	       (dump_on_exit                     ? 1 : 0) +
+	       (call_strategy != PRESEED_ON_CALL ? 1 : 0) +
+	       (taint_flag == TAINT_OFF          ? 1 : 0) +
+	       1; /* -- */
+}
+
+char **option_args_setup(char **argv, char *filename)
+{
+	char *taint_dump_dir = get_taint_dump_dir();
+	char *cache_dir = get_jit_cache_dir();
+
+	long i=0;
+
+	argv[i  ] = "-exec";
+	argv[i+1] = filename;
+	i += 2;
+
+	if (cache_dir)
+	{
+		argv[i  ] = "-cache";
+		argv[i+1] = cache_dir;
+		i += 2;
+	}
+	if (taint_dump_dir)
+	{
+		argv[i  ] = "-dump";
+		argv[i+1] = taint_dump_dir;
+		i += 2;
+	}
+	if ( taint_flag == TAINT_OFF )
+	{
+		argv[i] = "-notaint";
+		i++;
+	}
+	if ( dump_on_exit )
+	{
+		argv[i] = "-dumponexit";
+		i++;
+	}
+	if ( call_strategy == PREFETCH_ON_CALL )
+	{
+		argv[i] = "-prefetch";
+		i++;
+	}
+	if ( call_strategy == LAZY_CALL )
+	{
+		argv[i] = "-lazy";
+		i++;
+	}
+
+	argv[i] = "--";
+	i++;
+
+	return &argv[i];
+}
+
