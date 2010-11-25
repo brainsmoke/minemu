@@ -14,25 +14,7 @@
 #include "jit_cache.h"
 #include "codemap.h"
 #include "sigwrap.h"
-
-char **parse_options(char **argv)
-{
-	for (;;)
-	{
-		if ( (*argv == NULL) || (**argv != '-') )
-			return argv;
-
-		if ( strcmp(*argv, "--") == 0 )
-			return argv+1;
-
-		if ( strcmp(*argv, "-cache") == 0 )
-			set_jit_cache_dir(*++argv);
-		else
-			die("unknown option: %s", *argv);
-
-		argv++;
-	}
-}
+#include "options.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
 int minemu_main(int argc, char *argv[], char **envp, long *auxv)
