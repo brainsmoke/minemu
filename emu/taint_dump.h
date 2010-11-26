@@ -4,6 +4,7 @@
 #include "lib.h"
 
 extern int dump_on_exit;
+extern int dump_all;
 
 void set_taint_dump_dir(const char *dir);
 char *get_taint_dump_dir(void);

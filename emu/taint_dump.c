@@ -14,6 +14,7 @@
 #include "hexdump.h"
 
 int dump_on_exit = 0;
+int dump_all = 0;
 
 const char *regs_desc[] =
 {
@@ -67,12 +68,16 @@ void dump_map(int fd, char *addr, unsigned long len)
 	for (i=0; i<len; i+=PG_SIZE)
 	{
 		t=0;
-		laddr = (long *)&addr[i+TAINT_OFFSET];
-		for (j=0; j<PG_SIZE/sizeof(long); j++)
-			if (laddr[j])
-				t=1;
 
-		if (t)
+		if (dump_all)
+		{
+			laddr = (long *)&addr[i+TAINT_OFFSET];
+			for (j=0; j<PG_SIZE/sizeof(long); j++)
+				if (laddr[j])
+					t=1;
+		}
+
+		if (t || dump_all)
 		{
 			if (last == 0xFFFFFFFF)
 				fd_printf(fd, "in map: %x (size %u)\n", addr, len);

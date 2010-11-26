@@ -20,10 +20,13 @@ void usage(char *arg0)
 	"  -cache DIR          Cache jit code in DIR.\n"
 	"  -dump DIR           Dump taint info in DIR when a program gets\n"
 	"                      terminated because of a tainted jump.\n"
-	"  -dumponexit         Also dump taint info when a program exits normally\n"
-	"  -nodumponexit       Don't dump taint info when a program exits normally (default)\n"
 	"  -exec EXECUTABLE    Use EXECUTABLE as executable filename, instead of\n"
 	"                      doing path resolution on command.\n"
+	"\n"
+	"  -dumponexit         Also dump taint info when a program exits normally\n"
+	"  -nodumponexit       Don't dump taint info when a program exits normally (default)\n"
+	"  -dumpall            Dump all pages\n"
+	"  -dumptainted        Only dump tainted pages (default)\n"
 	"\n"
 	"  -preseed            For call instructions: seed the emulator's jump cache\n"
 	"                      with the return address of the call. (default)\n"
@@ -85,6 +88,10 @@ char **parse_options(char **argv)
 			dump_on_exit = 1;
 		else if ( strcmp(*argv, "-nodumponexit") == 0 )
 			dump_on_exit = 0;
+		else if ( strcmp(*argv, "-dumpall") == 0 )
+			dump_all = 1;
+		else if ( strcmp(*argv, "-dumptainted") == 0 )
+			dump_all = 0;
 		else
 			die("unknown option: %s", *argv);
 
@@ -99,6 +106,7 @@ long option_args_count(void)
 	       (get_jit_cache_dir()              ? 2 : 0) +
 	       (get_taint_dump_dir()             ? 2 : 0) +
 	       (dump_on_exit                     ? 1 : 0) +
+	       (dump_all                         ? 1 : 0) +
 	       (call_strategy != PRESEED_ON_CALL ? 1 : 0) +
 	       (taint_flag == TAINT_OFF          ? 1 : 0) +
 	       1; /* -- */
@@ -135,6 +143,11 @@ char **option_args_setup(char **argv, char *filename)
 	if ( dump_on_exit )
 	{
 		argv[i] = "-dumponexit";
+		i++;
+	}
+	if ( dump_all )
+	{
+		argv[i] = "-dumpall";
 		i++;
 	}
 	if ( call_strategy == PREFETCH_ON_CALL )
