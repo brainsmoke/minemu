@@ -67,9 +67,10 @@ void dump_map(int fd, char *addr, unsigned long len)
 	int t;
 	for (i=0; i<len; i+=PG_SIZE)
 	{
-		t=0;
+		/* do not dump the whole pre-allocated stack */
+		t = dump_all && (long)addr != (long)(USER_END-USER_STACK_SIZE);
 
-		if (dump_all)
+		if (!t)
 		{
 			laddr = (long *)&addr[i+TAINT_OFFSET];
 			for (j=0; j<PG_SIZE/sizeof(long); j++)
@@ -77,7 +78,7 @@ void dump_map(int fd, char *addr, unsigned long len)
 					t=1;
 		}
 
-		if (t || dump_all)
+		if (t)
 		{
 			if (last == 0xFFFFFFFF)
 				fd_printf(fd, "in map: %x (size %u)\n", addr, len);
