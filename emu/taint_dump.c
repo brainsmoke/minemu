@@ -65,10 +65,27 @@ void dump_map(int fd, char *addr, unsigned long len)
 	long *laddr;
 	unsigned long i,j, last=0xFFFFFFFF;
 	int t;
-	for (i=0; i<len; i+=PG_SIZE)
+
+	i=0;
+
+	/* trim the stack a bit */
+	if ( dump_all && (long)addr == (long)(USER_END-USER_STACK_SIZE) )
 	{
-		/* do not dump the whole pre-allocated stack */
-		t = dump_all && (long)addr != (long)(USER_END-USER_STACK_SIZE);
+		for (; i<len; i++)
+			if ( addr[i] || addr[i+TAINT_OFFSET] )
+				break;
+
+		for (; len>0; len--)
+			if ( addr[len-1] || addr[len-1+TAINT_OFFSET] )
+				break;
+
+		i = PAGE_BASE(i);
+		len = PAGE_NEXT(len);
+	}
+
+	for (; i<len; i+=PG_SIZE)
+	{
+		t = dump_all;
 
 		if (!t)
 		{
