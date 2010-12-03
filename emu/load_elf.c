@@ -401,7 +401,7 @@ static long mmap_binary(elf_bin_t *elf, int is_interp)
 	if (elf->base & PG_MASK) /* not on page boundary -> error code */
 		return -1;
 
-	if (!is_interp)
+	if ( !is_interp && !elf->base )
 		set_brk(elf); /* do this before mapping, memory gets scrubbed */
 
 	for (i=0; i<elf->hdr.e_phnum; i++) 
