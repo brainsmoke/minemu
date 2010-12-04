@@ -13,6 +13,7 @@
 #include "jit_code.h"
 #include "jit_fragment.h"
 #include "debug.h"
+#include "taint.h"
 
 /*
  * wrapper around signals, preventing signals being delivered on the
@@ -223,9 +224,15 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	}
 
 	if ( action->flags & SA_SIGINFO )
+	{
 		rt_sigframe = copy_rt_sigframe(rt_sigframe, action, context);
+		taint_mem(rt_sigframe, sizeof(*rt_sigframe), 0x00);
+	}
 	else
+	{
 		sigframe = copy_sigframe(sigframe, action, context);
+		taint_mem(sigframe, sizeof(*sigframe), 0x00);
+	}
 
 	/* Most evil hack ever! We 'deliver' the user's signal by modifying our own sigframe
 	 * to match the user process' state at signal delivery, and call sigreturn.
