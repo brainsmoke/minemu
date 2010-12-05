@@ -29,7 +29,7 @@ EMU_TARGETS=minemu
 EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard src/*.c)))
 EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard src/*.S))
 EMU_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/emu/*.c))
-EMU_GEN_OBJECTS=$(patsubst %.c, %.o, $(wildcard src/gen/*.c))
+EMU_GEN_OBJECTS=$(patsubst %.c, %.o, $(wildcard gen/*.c))
 
 TESTCASES_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/testcases/*.c))
 TESTCASES_ASM_OBJECTS=$(patsubst %_asm.S, %.o, $(wildcard test/testcases/*_asm.S))
@@ -60,12 +60,12 @@ CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) .dep
 all: depend $(TARGETS)
 
 depend:
-	$(MKDIR) -p .dep/test{/testcases,/emu} .dep/src/gen/
+	$(MKDIR) -p .dep/test{/testcases,/emu} .dep{/src,/gen/,/test}
 
 clean:
 	-$(RM) $(CLEAN)
 
--include .dep/*/*.d .dep/test/*/*.d .dep/src/gen/*.d
+-include .dep/*/*.d .dep/test/*/*.d
 
 strip: $(TARGETS)
 	$(STRIP) $(TARGETS)
@@ -86,8 +86,8 @@ $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 
 # Linking
 
-src/mm.ld: src/gen/gen_mm_ld
-	src/gen/gen_mm_ld > src/mm.ld
+src/mm.ld: gen/gen_mm_ld
+	gen/gen_mm_ld > src/mm.ld
 
 test/testcases/%: test/testcases/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
