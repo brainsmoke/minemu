@@ -23,21 +23,7 @@ CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS)
 EMU_EXCLUDE=emu/debug.o
 
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
-TRACER_CFLAGS=$(CFLAGS) -Itracer
-SYSCALLS_CFLAGS=$(CFLAGS) -Itracer -Isyscalls
-RNR_CFLAGS=$(CFLAGS) -Itracer -Isyscalls -Irnr
 EMU_CFLAGS=$(CFLAGS) -Iemu
-
-TRACER_TARGETS=record replay
-TRACER_OBJECTS=$(patsubst %.c, %.o, $(wildcard tracer/*.c))
-TRACER_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/tracer/*.c))
-
-SYSCALLS_OBJECTS=$(patsubst %.c, %.o, $(wildcard syscalls/*.c))
-SYSCALLS_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/syscalls/*.c))
-
-RNR_MAINS=$(patsubst %.c, %.o, $(wildcard rnr/*_main.c))
-RNR_OBJECTS=$(filter-out $(RNR_MAINS), $(patsubst %.c, %.o, $(wildcard rnr/*.c)))
-RNR_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/rnr/*.c))
 
 EMU_TARGETS=minemu
 EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard emu/*.c)))
@@ -58,18 +44,12 @@ TEST_OBJECTS_COMMON=\
 TEST_TARGETS=$(patsubst %.o, %, $(filter-out $(TEST_OBJECTS_COMMON), \
 	$(TESTCASES_OBJECTS) \
 	$(TESTCASES_ASM_OBJECTS) \
-	$(TRACER_TEST_OBJECTS) \
-	$(SYSCALLS_TEST_OBJECTS) \
-	$(RNR_TEST_OBJECTS) \
 	$(EMU_TEST_OBJECTS)))
 
-TARGETS=$(TEST_TARGETS) $(TRACER_TARGETS) $(EMU_TARGETS)
+TARGETS=$(TEST_TARGETS) $(EMU_TARGETS)
 
 OBJECTS=\
 	$(TESTCASES_OBJECTS) $(TESTCASES_ASM_OBJECTS)\
-	$(TRACER_OBJECTS) $(TRACER_TEST_OBJECTS)\
-	$(SYSCALLS_OBJECTS) $(SYSCALLS_TEST_OBJECTS)\
-	$(RNR_MAINS) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS)\
 	$(EMU_OBJECTS) $(EMU_ASM_OBJECTS) $(EMU_TEST_OBJECTS)\
 	$(EMU_GEN_OBJECTS)
 
@@ -93,15 +73,6 @@ strip: $(TARGETS)
 
 # Compiling
 
-$(TRACER_OBJECTS) $(TRACER_TEST_OBJECTS): %.o: %.c
-	$(CC) $(TRACER_CFLAGS) -c -o $@ $<
-
-$(SYSCALLS_OBJECTS) $(SYSCALLS_TEST_OBJECTS): %.o: %.c
-	$(CC) $(SYSCALLS_CFLAGS) -c -o $@ $<
-
-$(RNR_MAINS) $(RNR_OBJECTS) $(RNR_TEST_OBJECTS): %.o: %.c
-	$(CC) $(RNR_CFLAGS) -c -o $@ $<
-
 $(TESTCASES_OBJECTS): %.o: %.c
 	$(CC) $(TESTCASES_CFLAGS) -c -o $@ $<
 
@@ -124,18 +95,6 @@ test/testcases/%: test/testcases/%.o
 
 test/testcases/intint: test/testcases/intint.o
 	$(LINK) -nostdlib -o $@ $^
-
-$(TRACER_TARGETS): %: rnr/%_main.o $(RNR_OBJECTS) $(SYSCALLS_OBJECTS) $(TRACER_OBJECTS)
-	$(LINK) -o $@ $^ $(LDFLAGS)
-
-test/rnr/%: test/rnr/%.o $(RNR_OBJECTS) $(SYSCALLS_OBJECTS) $(TRACER_OBJECTS)
-	$(LINK) -o $@ $^ $(LDFLAGS)
-
-test/syscalls/%: test/syscalls/%.o $(TRACER_OBJECTS) $(SYSCALLS_OBJECTS)
-	$(LINK) -o $@ $^ $(LDFLAGS)
-
-test/tracer/%: test/tracer/%.o $(TRACER_OBJECTS)
-	$(LINK) -o $@ $^ $(LDFLAGS)
 
 test/emu/%: test/emu/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
