@@ -53,7 +53,7 @@ OBJECTS=\
 	$(EMU_GEN_OBJECTS)
 
 
-CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) .dep
+CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) gen/gen_mm_ld .dep
 
 .PHONY: depend clean strip
 
