@@ -19,6 +19,7 @@
 
 #include "lib.h"
 #include "mm.h"
+#include "jit_mm.h"
 
 #include "jit.h"
 #include "error.h"

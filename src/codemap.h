@@ -19,8 +19,6 @@
 #ifndef CODEMAP_H
 #define CODEMAP_H
 
-#include "jitmm.h"
-
 typedef struct
 {
     char *addr; 

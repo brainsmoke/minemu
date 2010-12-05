@@ -24,7 +24,7 @@
 #include "mm.h"
 
 #include "jit.h"
-#include "jitmm.h"
+#include "jit_mm.h"
 #include "codemap.h"
 #include "jmp_cache.h"
 #include "opcodes.h"
