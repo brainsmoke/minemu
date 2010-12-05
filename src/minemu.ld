@@ -1,7 +1,7 @@
 ENTRY(start);
 
 /* see mm.h for a description of the memory layout */
-INCLUDE "emu/mm.ld";
+INCLUDE "src/mm.ld";
 
 PHDRS
 {

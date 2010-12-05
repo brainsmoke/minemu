@@ -20,16 +20,16 @@ WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99
 CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS)
 
 #EMU_EXCLUDE=
-EMU_EXCLUDE=emu/debug.o
+EMU_EXCLUDE=src/debug.o
 
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
-EMU_CFLAGS=$(CFLAGS) -Iemu
+EMU_CFLAGS=$(CFLAGS) -Isrc
 
 EMU_TARGETS=minemu
-EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard emu/*.c)))
-EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard emu/*.S))
+EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard src/*.c)))
+EMU_ASM_OBJECTS=$(patsubst %.S, %.o, $(wildcard src/*.S))
 EMU_TEST_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/emu/*.c))
-EMU_GEN_OBJECTS=$(patsubst %.c, %.o, $(wildcard emu/gen/*.c))
+EMU_GEN_OBJECTS=$(patsubst %.c, %.o, $(wildcard src/gen/*.c))
 
 TESTCASES_OBJECTS=$(patsubst %.c, %.o, $(wildcard test/testcases/*.c))
 TESTCASES_ASM_OBJECTS=$(patsubst %_asm.S, %.o, $(wildcard test/testcases/*_asm.S))
@@ -38,8 +38,7 @@ TEST_OBJECTS_COMMON=\
 	test/emu/code_offset.o\
 	test/emu/debug.o\
 	test/emu/codeexec.o\
-	test/emu/memoffsets.o\
-	test/syscalls/raise.o
+	test/emu/memoffsets.o
 
 TEST_TARGETS=$(patsubst %.o, %, $(filter-out $(TEST_OBJECTS_COMMON), \
 	$(TESTCASES_OBJECTS) \
@@ -61,12 +60,12 @@ CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) .dep
 all: depend $(TARGETS)
 
 depend:
-	$(MKDIR) -p .dep{/test,}/{tracer,rnr,syscalls,emu,testcases}/ .dep/emu/gen/
+	$(MKDIR) -p .dep/test{/testcases,/emu} .dep/src/gen/
 
 clean:
 	-$(RM) $(CLEAN)
 
--include .dep/*/*.d .dep/test/*/*.d .dep/emu/gen/*.d
+-include .dep/*/*.d .dep/test/*/*.d .dep/src/gen/*.d
 
 strip: $(TARGETS)
 	$(STRIP) $(TARGETS)
@@ -87,8 +86,8 @@ $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 
 # Linking
 
-emu/mm.ld: emu/gen/gen_mm_ld
-	emu/gen/gen_mm_ld > emu/mm.ld
+src/mm.ld: src/gen/gen_mm_ld
+	src/gen/gen_mm_ld > src/mm.ld
 
 test/testcases/%: test/testcases/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
@@ -99,26 +98,26 @@ test/testcases/intint: test/testcases/intint.o
 test/emu/%: test/emu/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
-minemu: emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
-	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
+minemu: src/mm.ld src/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
+	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T src/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
 
 test/emu/shellcode: test/emu/shellcode.o test/emu/debug.o test/emu/codeexec.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o emu/taint_code.o
+test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o src/taint_code.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o emu/taint_code.o test/emu/debug.o
+test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o src/taint_code.o test/emu/debug.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/cmovtest: test/emu/cmovtest.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o emu/sigwrap_asm.o emu/hexdump.o
+test/emu/cmovtest: test/emu/cmovtest.o src/opcodes.o src/syscalls_asm.o src/scratch_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/test_jit_fragment: test/emu/test_jit_fragment.o emu/jit_fragment.o emu/opcodes.o emu/syscalls_asm.o emu/scratch_asm.o emu/jit_code.o emu/debug.o emu/error.o emu/taint_code.o emu/sigwrap_asm.o emu/hexdump.o
+test/emu/test_jit_fragment: test/emu/test_jit_fragment.o src/jit_fragment.o src/opcodes.o src/syscalls_asm.o src/scratch_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/test_jit_lookup: test/emu/test_jit_lookup.o $(filter-out emu/minemu.o, emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
-	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld test/emu/test_jit_lookup.o $(filter-out emu/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+test/emu/test_jit_lookup: test/emu/test_jit_lookup.o $(filter-out src/minemu.o, src/mm.ld src/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T src/minemu.ld test/emu/test_jit_lookup.o $(filter-out src/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
 
-test/emu/test_hexdump: test/emu/test_hexdump.o $(filter-out emu/minemu.o, emu/mm.ld emu/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
-	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T emu/minemu.ld test/emu/test_hexdump.o $(filter-out emu/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+test/emu/test_hexdump: test/emu/test_hexdump.o $(filter-out src/minemu.o, src/mm.ld src/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
+	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T src/minemu.ld test/emu/test_hexdump.o $(filter-out src/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
