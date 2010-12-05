@@ -27,7 +27,7 @@
 
 static long get_stack_random_shift(char **envp)
 {
-	char *max = 0;
+	char *max = (char *)envp;
 	for ( ; *envp ; envp++ )
 		if ( *envp > max )
 			max = *envp;

@@ -163,7 +163,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 
 unsigned long stack_top(char **envp)
 {
-	unsigned long max = 0;
+	unsigned long max = (long)envp;
 	for ( ; *envp ; envp++ )
 		if ( (unsigned long)*envp > max )
 			max = (unsigned long)*envp;
