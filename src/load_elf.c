@@ -357,7 +357,7 @@ static unsigned long get_mmap_base(elf_bin_t *elf)
 	if (addr & PG_MASK) /* not on page boundary -> error code */
 		return addr;
 
-	sys_munmap(mmap_min, mmap_max-mmap_min);
+	sys_munmap(addr, mmap_max-mmap_min);
 
 	return addr-mmap_min;
 }
