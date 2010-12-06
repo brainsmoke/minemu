@@ -127,11 +127,15 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 	if ( (addr > USER_END) || (addr+length > USER_END) )
 		return -EFAULT;
 
-	unsigned long ret = sys_mmap2(addr, length, prot&~PROT_EXEC, flags, fd, pgoffset);
+	int new_prot = prot; /* make sure we don't strip implied read permission */
+	if (prot & PROT_EXEC)
+		new_prot = (prot & ~PROT_EXEC) | PROT_READ;
+
+	unsigned long ret = sys_mmap2(addr, length, new_prot, flags, fd, pgoffset);
 
 	if ( !(ret & PG_MASK) )
 	{
-		sys_mmap2(ret+TAINT_OFFSET, length, prot&~PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+		sys_mmap2(ret+TAINT_OFFSET, length, new_prot, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
 		if (prot & PROT_EXEC)
 		{
 			struct stat64 s;
