@@ -543,6 +543,7 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 	int len = gen_code(
 		dest,
 
+		"66 0F 3A 21 AC 24 L 0E" /* insertps $0xe,TAINT_OFFSET(%esp),%xmm5 */
 		"A3 L"           /* mov %eax, scratch_stack-4 */
 		"58"             /* pop %eax                  */
 		"89 25 L"        /* mov %esp, scratch_stack   */
@@ -551,6 +552,7 @@ static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
 		"81 44 24 08"    /* add ??, 8(%esp)           */
 		"S 00 00",
 
+		TAINT_OFFSET,
 		&scratch_stack[-1],
 		scratch_stack,
 		&scratch_stack[-1],
