@@ -171,6 +171,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 		return -EFAULT;
 
 	unsigned long ret = sys_mprotect(addr, length, prot&~PROT_EXEC);
+	                    sys_mprotect(TAINT_OFFSET+addr, length, prot&~PROT_EXEC);
 
 	if ( !(ret & PG_MASK) )
 	{
