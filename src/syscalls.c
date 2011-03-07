@@ -40,6 +40,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 	{
  		case __NR_brk:
  		case __NR_mmap2:
+ 		case __NR_mmap:
  		case __NR_mprotect:
 
  		case __NR_sigaltstack:
@@ -89,6 +90,9 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
  		case __NR_mmap2:
 			ret = user_mmap2(arg1,arg2,arg3,arg4,arg5,arg6);
+			break;
+ 		case __NR_mmap:
+			ret = user_old_mmap((struct kernel_mmap_args *)arg1);
 			break;
  		case __NR_mprotect:
 			ret = user_mprotect(arg1,arg2,arg3);

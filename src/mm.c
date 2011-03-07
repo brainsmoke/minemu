@@ -121,6 +121,14 @@ unsigned long user_brk(unsigned long new_brk)
 #define _LARGEFILE64_SOURCE 1
 #include <asm/stat.h>
 
+unsigned long user_old_mmap(struct kernel_mmap_args *a)
+{
+	if (a->offset & PG_MASK)
+		return -EINVAL;
+
+	return user_mmap2(a->addr, a->len, a->prot, a->flags, a->fd, a->offset >> PG_SHIFT);
+}
+
 unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
                          int flags, int fd, off_t pgoffset)
 {

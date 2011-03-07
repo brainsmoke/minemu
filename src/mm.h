@@ -23,6 +23,7 @@
 
 #define PG_SIZE (0x1000UL)
 #define PG_MASK (PG_SIZE-1)
+#define PG_SHIFT (12)
 
 #define PAGE_BASE(a) ((long)(a)&~PG_MASK)
 #define PAGE_NEXT(a) (PAGE_BASE((a)-1UL)+PG_SIZE)
@@ -137,6 +138,18 @@ unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset);
 
 unsigned long user_brk(unsigned long brk);
+
+struct kernel_mmap_args
+{
+    unsigned long addr;
+    unsigned long len;
+    unsigned long prot;
+    unsigned long flags;
+    unsigned long fd;
+    unsigned long offset;
+};
+
+unsigned long user_old_mmap(struct kernel_mmap_args *a);
 
 unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
                          int flags, int fd, off_t pgoffset);
