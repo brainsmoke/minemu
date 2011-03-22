@@ -27,7 +27,7 @@
 #include "codemap.h"
 #include "runtime.h"
 
-#define MAX_CODEMAPS (1024)
+#define MAX_CODEMAPS (32768)
 static code_map_t codemaps[MAX_CODEMAPS];
 static unsigned n_codemaps = 0;
 
