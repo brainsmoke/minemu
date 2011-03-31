@@ -87,10 +87,11 @@ incl ijmp_count
 ptest  %xmm5, %xmm5
 push   %ecx
 jne,pn taint_fault
-movzwl %ax, %ecx
-cmpl jmp_cache(,%ecx,8), %eax
-jne,pn cache_lookup_loop
-movl jmp_cache+4(, %ecx, 8), %eax
+movl %eax, %ecx
+andl $0x3ff, %ecx
+cmpl jmp_fastcache(,%ecx,8), %eax
+jne,pn cache_lookup
+movl jmp_fastcache+4(, %ecx, 8), %eax
 
 jit_return: # %eax contains jump address
 pop %ecx
@@ -122,12 +123,19 @@ runtime_exit_jmpaddr:
 # %eax: user jmp address
 # %ecx: %ax
 #
-cache_lookup_loop:
+cache_lookup:
 
 #ifdef EMU_DEBUG
 incl ijmp_misses
 #endif
 
+movzwl %ax, %ecx
+cmpl %eax, jmp_cache(, %ecx, 8)   # jmp_cache.addr[%ecx]
+je,pt cache_hit
+testl $-1, jmp_cache(, %ecx, 8)   # jmp_cache.addr[%ecx]
+jz,pn cache_miss
+
+cache_lookup_loop:
 inc %cx                          # %ecx = (%ecx+1) % 0x10000 (next cache entry)
 cmpl %eax, jmp_cache(, %ecx, 8)   # jmp_cache.addr[%ecx]
 je,pt cache_hit

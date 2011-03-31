@@ -593,7 +593,7 @@ static int generate_call(char *dest, char *jmp_addr,
                          instr_t *instr, trans_t *trans,
                          char *map, unsigned long map_len)
 {
-	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	int hash = FASTHASH_INDEX(&instr->addr[instr->len]);
 	int len_taint=0, retaddr_index, len;
 
 	if ( taint_flag == TAINT_ON )
@@ -612,8 +612,8 @@ static int generate_call(char *dest, char *jmp_addr,
 			"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 			&instr->addr[instr->len],
-			&jmp_cache[hash].addr,       &instr->addr[instr->len],
-			&jmp_cache[hash].jit_addr,   &retaddr_index
+			&jmp_fastcache[hash].addr,       &instr->addr[instr->len],
+			&jmp_fastcache[hash].jit_addr,   &retaddr_index
 		);
 		retaddr_index += len_taint;
 	}
@@ -626,7 +626,7 @@ static int generate_call(char *dest, char *jmp_addr,
 			"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
 
 			&instr->addr[instr->len],
-			&jmp_cache[hash]
+			&jmp_fastcache[hash]
 		);
 	}
 	else
@@ -653,7 +653,7 @@ static int generate_call(char *dest, char *jmp_addr,
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 {
-	int hash = HASH_INDEX(&instr->addr[instr->len]);
+	int hash = FASTHASH_INDEX(&instr->addr[instr->len]);
 	long mrm_len = instr->len - instr->mrm;
 	int len_taint=0, mrm, retaddr_index, len;
 
@@ -679,8 +679,8 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 			&scratch_stack[-1],
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_cache[hash].addr,       &instr->addr[instr->len],
-			&jmp_cache[hash].jit_addr,   &retaddr_index
+			&jmp_fastcache[hash].addr,       &instr->addr[instr->len],
+			&jmp_fastcache[hash].jit_addr,   &retaddr_index
 		);
 	}
 	else if ( call_strategy == PREFETCH_ON_CALL )
@@ -696,7 +696,7 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 			&scratch_stack[-1],
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_cache[hash]
+			&jmp_fastcache[hash]
 		);
 	}
 	else

@@ -30,6 +30,9 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
 
+	jmp_fastcache[FASTHASH_INDEX(addr)] =
+		(jmp_map_t) { .addr = addr, .jit_addr = jit_addr };
+
 	for (i=hash; i<JMP_CACHE_SIZE; i++)
 		if ( jmp_cache[i].addr == NULL )
 		{
@@ -53,6 +56,10 @@ static void jmp_cache_clear(char *addr, unsigned long len)
 {
 	int i, last=-1 /* make compiler happy */ ;
 	char *tmp_addr, *tmp_jit_addr;
+
+	for (i=0; i<JMP_FASTCACHE_SIZE; i++)
+		if ( contains(addr, len, jmp_fastcache[i].addr) )
+			jmp_fastcache[i] = (jmp_map_t) { .addr = NULL, .jit_addr = NULL };
 
 	for (i=0; i<JMP_CACHE_SIZE; i++)
 	{

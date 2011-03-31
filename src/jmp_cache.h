@@ -24,5 +24,6 @@ char *find_jmp_mapping(char *addr);
 void clear_jmp_mappings(char *addr, unsigned long len);
 
 #define HASH_INDEX(addr) ((unsigned long)(addr)&0xfffful)
+#define FASTHASH_INDEX(addr) ((unsigned long)(addr)&0x3fful)
 
 #endif /* JMP_CACHE_H */
