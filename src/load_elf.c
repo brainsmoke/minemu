@@ -30,6 +30,7 @@
 #include "load_elf.h"
 #include "lib.h"
 #include "mm.h"
+#include "taint.h"
 
 #ifndef AT_EXECFN
 #define AT_EXECFN 31
@@ -137,8 +138,11 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 
 	sp -= sizeof(long);
 	sp = prog->filename = stack_push_string(sp, prog->filename);
+
+	char *untrusted_data_end=sp;
 	sp = stack_push_strings(sp, tmp_envp, prog->envp);
 	sp = stack_push_strings(sp, tmp_argv, prog->argv);
+	taint_mem(sp, untrusted_data_end-sp, 0xff);
 	sp = (char *)(((long)sp-0x100)&~0xf);
 
 	if (platform)
