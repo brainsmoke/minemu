@@ -52,11 +52,16 @@ int is_socket(int fd)
 	if ( (fd > 1023) || (fd < 0) )
 		return 0;
 
-	struct stat64 s;
-	if ( sys_fstat64(fd, &s) < 0 )
-		return 0;
+	if ( fd_type[fd] == FD_UNKNOWN )
+	{
+		struct stat64 s;
+		if ( ( sys_fstat64(fd, &s) < 0 ) || (s.st_mode & __S_IFMT) != __S_IFREG )
+			fd_type[fd] = FD_SOCKET;
+		else
+			fd_type[fd] = FD_NO_SOCKET;
+	}
 
-	return (s.st_mode & __S_IFMT) != __S_IFREG;
+	return fd_type[fd] == FD_SOCKET;;
 }
 
 void set_fd(int fd, int type)
