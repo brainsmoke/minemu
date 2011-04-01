@@ -612,7 +612,7 @@ static int generate_call(char *dest, char *jmp_addr,
 			"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 			&instr->addr[instr->len],
-			&jmp_fastcache[hash].addr,       &instr->addr[instr->len],
+			&jmp_fastcache[hash].addr,       -(long)&instr->addr[instr->len],
 			&jmp_fastcache[hash].jit_addr,   &retaddr_index
 		);
 		retaddr_index += len_taint;
@@ -679,7 +679,7 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 			&scratch_stack[-1],
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_fastcache[hash].addr,       &instr->addr[instr->len],
+			&jmp_fastcache[hash].addr,       -(long)&instr->addr[instr->len],
 			&jmp_fastcache[hash].jit_addr,   &retaddr_index
 		);
 	}

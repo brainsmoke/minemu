@@ -31,7 +31,7 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 	int hash = HASH_INDEX(addr), i;
 
 	jmp_fastcache[FASTHASH_INDEX(addr)] =
-		(jmp_map_t) { .addr = addr, .jit_addr = jit_addr };
+		(jmp_map_t) { .addr = -(long)addr, .jit_addr = jit_addr };
 
 	for (i=hash; i<JMP_CACHE_SIZE; i++)
 		if ( jmp_cache[i].addr == NULL )
