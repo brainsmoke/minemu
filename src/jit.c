@@ -579,7 +579,7 @@ char *jit(char *addr)
 
 	code_map_t *map = find_code_map(addr);
 
-	if (map->jit_addr == NULL)
+	if (map && map->jit_addr == NULL)
 	{
 		map->jit_addr = jit_realloc(map->jit_addr, map->len*4+(map->len/2));
 
