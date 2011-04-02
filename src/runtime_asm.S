@@ -61,6 +61,13 @@ pinsrd $0, %ecx, %xmm3 # cleared %eax
 jmp runtime_ijmp
 
 taint_fault:
+movl %ecx, ijmp_taint
+movl %eax, user_eip
+pextrd $0, %xmm4, %ecx
+pextrd $0, %xmm3, %eax
+pextrd $0, %xmm5, %edx
+mov %esp, scratch_stack
+mov $scratch_stack, %esp
 push %edi
 push %esi
 push %ebp
@@ -68,10 +75,8 @@ push scratch_stack   # user %esp
 push %ebx
 push %edx
 push %ecx
-push scratch_stack-4 # user %eax
-push %esp
-movl %eax, user_eip
-pextrd $0, %xmm5, ijmp_taint
+push %eax
+push %esp           # *(long)regs
 call unshield
 call do_taint_dump
 #int $3
