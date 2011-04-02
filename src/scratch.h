@@ -22,9 +22,6 @@
 #define JMP_CACHE_SIZE (0x10000)
 #define JMP_CACHE_MEM_SIZE (JMP_CACHE_SIZE*8)
 
-#define JMP_FASTCACHE_SIZE (0x400)
-#define JMP_FASTCACHE_MEM_SIZE (JMP_FASTCACHE_SIZE*8)
-
 #ifndef __ASSEMBLER__
 
 typedef struct
@@ -35,7 +32,6 @@ typedef struct
 } jmp_map_t;
 
 extern jmp_map_t jmp_cache[JMP_CACHE_SIZE];
-extern jmp_map_t jmp_fastcache[JMP_FASTCACHE_SIZE];
 
 extern unsigned long sigwrap_stack[];
 extern unsigned long sigwrap_stack_bottom[];

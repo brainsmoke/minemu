@@ -538,34 +538,6 @@ static int generate_ijump_tail(char *dest)
 	return jump_to(dest, (char *)(long)runtime_ijmp);
 }
 
-static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
-{
-	int len = gen_code(
-		dest,
-
-		"66 0F 3A 21 AC 24 L 0E" /* insertps $0xe,TAINT_OFFSET(%esp),%xmm5 */
-		"A3 L"           /* mov %eax, scratch_stack-4 */
-		"58"             /* pop %eax                  */
-		"89 25 L"        /* mov %esp, scratch_stack   */
-		"BC L"           /* mov $scratch_stack-4 %esp */
-		"9C"             /* pushf                     */
-		"81 44 24 08"    /* add ??, 8(%esp)           */
-		"S 00 00",
-
-		TAINT_OFFSET,
-		&scratch_stack[-1],
-		scratch_stack,
-		&scratch_stack[-1],
-		addr[1] + (addr[2]<<8)
-	);
-
-	len += jump_to(&dest[len], (char *)(long)runtime_ret_cleanup);
-
-	*trans = (trans_t){ .len=len };
-
-	return len;
-}
-
 static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 {
 	long mrm_len = instr->len - instr->mrm;
@@ -576,9 +548,12 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 
 	int len = len_taint+gen_code(
 		&dest[len_taint],
-		"A3 L"           /* mov %eax, scratch_stack-4 */
-		"? 8B &$",       /* mov ... ( -> %eax )       */
-		&scratch_stack[-1],
+
+		"66 0F 3A 22 E1 00" /* pinsrd $0, %ecx, %xmm4       */
+		"66 0F 3A 22 D8 00" /* pinsrd $0, %eax, %xmm3       */
+		"? 8B &$"           /* mov ... ( -> %eax )          */
+		"66 0F 3A 16 E9 00",/* pextrd $0, %xmm5, %ecx       */
+
 		instr->p[2], &i, &instr->addr[instr->mrm], mrm_len
 	);
 
@@ -593,7 +568,7 @@ static int generate_call(char *dest, char *jmp_addr,
                          instr_t *instr, trans_t *trans,
                          char *map, unsigned long map_len)
 {
-	int hash = FASTHASH_INDEX(&instr->addr[instr->len]);
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
 	int len_taint=0, retaddr_index, len;
 
 	if ( taint_flag == TAINT_ON )
@@ -612,8 +587,8 @@ static int generate_call(char *dest, char *jmp_addr,
 			"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 			&instr->addr[instr->len],
-			&jmp_fastcache[hash].addr,       -(long)&instr->addr[instr->len],
-			&jmp_fastcache[hash].jit_addr,   &retaddr_index
+			&jmp_cache[hash].addr,       CACHE_MANGLE(&instr->addr[instr->len]),
+			&jmp_cache[hash].jit_addr,   &retaddr_index
 		);
 		retaddr_index += len_taint;
 	}
@@ -626,7 +601,7 @@ static int generate_call(char *dest, char *jmp_addr,
 			"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
 
 			&instr->addr[instr->len],
-			&jmp_fastcache[hash]
+			&jmp_cache[hash]
 		);
 	}
 	else
@@ -653,7 +628,7 @@ static int generate_call(char *dest, char *jmp_addr,
 
 static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 {
-	int hash = FASTHASH_INDEX(&instr->addr[instr->len]);
+	int hash = HASH_INDEX(&instr->addr[instr->len]);
 	long mrm_len = instr->len - instr->mrm;
 	int len_taint=0, mrm, retaddr_index, len;
 
@@ -670,17 +645,18 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 		len = len_taint+gen_code(
 			&dest[len_taint],
 
-			"A3 L"                /* mov %eax, scratch_stack-4                            */
+			"66 0F 3A 22 E1 00"   /* pinsrd $0, %ecx, %xmm4       */
+			"66 0F 3A 22 D8 00"   /* pinsrd $0, %eax, %xmm3       */
 			"? 8B &$"             /* mov ... ( -> %eax )                                  */
+			"66 0F 3A 16 E9 00"   /* pextrd $0, %xmm5, %ecx       */
 			"68 L"                /* push $retaddr                                        */
 			"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
 			"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
-			&scratch_stack[-1],
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_fastcache[hash].addr,       -(long)&instr->addr[instr->len],
-			&jmp_fastcache[hash].jit_addr,   &retaddr_index
+			&jmp_cache[hash].addr,       CACHE_MANGLE(&instr->addr[instr->len]),
+			&jmp_cache[hash].jit_addr,   &retaddr_index
 		);
 	}
 	else if ( call_strategy == PREFETCH_ON_CALL )
@@ -688,15 +664,16 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 		len = len_taint+gen_code(
 			&dest[len_taint],
 
-			"A3 L"                /* mov %eax, scratch_stack-4                            */
+			"66 0F 3A 22 E1 00"   /* pinsrd $0, %ecx, %xmm4       */
+			"66 0F 3A 22 D8 00"   /* pinsrd $0, %eax, %xmm3       */
 			"? 8B &$"             /* mov ... ( -> %eax )                                  */
+			"66 0F 3A 16 E9 00"   /* pextrd $0, %xmm5, %ecx       */
 			"68 L"                /* push $retaddr                                        */
 			"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
 
-			&scratch_stack[-1],
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_fastcache[hash]
+			&jmp_cache[hash]
 		);
 	}
 	else
@@ -704,11 +681,12 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 		len = len_taint+gen_code(
 			&dest[len_taint],
 
-			"A3 L"                /* mov %eax, scratch_stack-4                            */
+			"66 0F 3A 22 E1 00"   /* pinsrd $0, %ecx, %xmm4       */
+			"66 0F 3A 22 D8 00"   /* pinsrd $0, %eax, %xmm3       */
 			"? 8B &$"             /* mov ... ( -> %eax )                                  */
+			"66 0F 3A 16 E9 00"   /* pextrd $0, %xmm5, %ecx       */
 			"68 L",               /* push $retaddr                                        */
 
-			&scratch_stack[-1],
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len]
 		);
@@ -726,20 +704,29 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 
 static int generate_ret(char *dest, char *addr, trans_t *trans)
 {
+	int len = jump_to(dest, (void *)(long)runtime_ret);
+	*trans = (trans_t){ .len=len };
+	return len;
+}
+
+static int generate_ret_cleanup(char *dest, char *addr, trans_t *trans)
+{
 	int len = gen_code(
 		dest,
 
-		"66 0F 3A 21 AC 24 L 0E" /* insertps $0xe,TAINT_OFFSET(%esp),%xmm5 */
-		"A3 L"           /* mov %eax, scratch_stack-4 */
-		"58",            /* pop %eax                  */
-
+		"66 0F 3A 22 E1 00" /* pinsrd $0, %ecx, %xmm4       */
+		"66 0F 3A 22 D8 00" /* pinsrd $0, %eax, %xmm3       */
+		"8b 8C 24 L"        /* mov TAINT_OFFSET(%esp), %ecx */
+		"58"                /* pop %eax                     */
+		"8D A4 24 S 00 00", /* lea N(%esp),%esp             */
 
 		TAINT_OFFSET,
-		&scratch_stack[-1]
+		addr[1] + (addr[2]<<8)
 	);
 
 	len += generate_ijump_tail(&dest[len]);
 	*trans = (trans_t){ .len=len };
+
 	return len;
 }
 
@@ -747,9 +734,11 @@ static int generate_cross_map_jump(char *dest, char *jmp_addr, trans_t *trans)
 {
 	int len = gen_code(
 		dest,
-		"A3 L"           /* mov %eax, scratch_stack-4 */
-		"B8 L",          /* mov jmp_addr, %eax        */
-		&scratch_stack[-1],
+		"66 0F 3A 22 E1 00"   /* pinsrd $0, %ecx, %xmm4       */
+		"66 0F 3A 22 D8 00"   /* pinsrd $0, %eax, %xmm3       */
+		"B8 L",               /* mov jmp_addr, %eax           */
+		"B9 00 00 00 00",     /* mov $0x0,%ecx                */
+
 		jmp_addr
 	);
 	len += generate_ijump_tail(&dest[len]);

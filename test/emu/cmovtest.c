@@ -47,6 +47,7 @@ int fd_printf(int fd, const char *format, ...)
 
 /* make symbols resolve */
 void runtime_ijmp(void) { die("calling placeholder"); }
+void runtime_ret(void) { die("calling placeholder"); }
 void runtime_ret_cleanup(void) { die("calling placeholder"); }
 void int80_emu(void) { die("calling placeholder"); }
 void linux_sysenter_emu(void) { die("calling placeholder"); }

@@ -15,6 +15,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#ifdef EMU_DEBUG
+
+#define DEBUG_COUNT_IJMP \
+xchg %eax, ijmp_count    \
+lea 1(%eax), %eax        \
+xchg %eax, ijmp_count
+
+#define DEBUG_COUNT_IJMP_MISSES \
+incl ijmp_misses
+
+#else
+
+#define DEBUG_COUNT_IJMP        # do nothing
+#define DEBUG_COUNT_IJMP_MISSES # do nothing
+
+#endif
+
 .text
 #include "scratch.h"
 
@@ -38,7 +55,9 @@ xor %ebx, %ebx
 xor %ebp, %ebp
 xor %esi, %esi
 xor %edi, %edi
-movl %ecx, scratch_stack-4   # cleared eax
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %ecx, %xmm3 # cleared %eax
+
 jmp runtime_ijmp
 
 taint_fault:
@@ -61,101 +80,87 @@ ud2
 #
 # RET / ICALL / IJMP FAST PATH:
 #
-# runtime_ijmp() is called from the jit code
-#
-# processor state is the same as the processor state
-# would be for the user process except that %eax
-# contains the jump address and that the original
-# eax is stored at scratch_stack-4
+# runtime_ret()/runtime_ijmp() are called from the jit code
 #
 .balign 64
+.global runtime_ret
+.type runtime_ret, @function
+
+runtime_ret:
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %eax, %xmm3
+mov .jit_end(%esp), %ecx # .jit_end == TAINT_OFFSET
+pop %eax
+
+#
+# Status from here: original %eax:         %xmm3[0:31]
+#                   original %ecx:         %xmm4[0:31]
+#                   taint:                 %ecx
+#                   original jump target:  %eax
+#
 .global runtime_ijmp
 .type runtime_ijmp, @function
 runtime_ijmp:
+DEBUG_COUNT_IJMP
 
-mov %esp, scratch_stack
-mov $scratch_stack-4, %esp
-pushf
-.global runtime_ret_cleanup
-.type runtime_ret_cleanup, @function
-runtime_ret_cleanup:
-
-#ifdef EMU_DEBUG
-incl ijmp_count
-#endif
-
-ptest  %xmm5, %xmm5
-push   %ecx
-jne,pn taint_fault
-movzwl %ax, %ecx
-cmpl jmp_cache(,%ecx,8), %eax
-jne,pn cache_lookup_loop
-movl jmp_cache+4(, %ecx, 8), %eax
-
-jit_return: # %eax contains jump address
-pop %ecx
-popf
-mov %eax, jit_eip
-pop %eax
-pop %esp
-jmp exit_runtime
-#
-
-
-
-#
-exit_runtime:
+pinsrd $0, %edx, %xmm5
+movzwl %ax, %edx
+jecxz,pt taint_ok
+jmp taint_fault
+taint_ok:
+movl jmp_cache(, %edx, 8), %ecx
+movl jmp_cache+4(, %edx, 8), %edx
+lea (%ecx,%eax,1), %ecx
+movl %edx, jit_eip
+loop cache_lookup
+jit_return: # jit_eip contains jump address
+pextrd $0, %xmm4, %ecx
+pextrd $0, %xmm3, %eax
+pextrd $0, %xmm5, %edx
 jmp *jit_eip            #  self-modifying code replaces this for jit_fragment and back
                         #  in case of a signal (*UGLY*)
 .global runtime_exit_jmpaddr
-runtime_exit_jmpaddr:
 
+runtime_exit_jmpaddr:
 #
 # END FAST PATH
 #
 #
 
-#
-# Processor state:
-#
-# runtime stack: (high to low)
-#
-# scratch_stack - 0: user %esp
-#               - 4: user %eax
-#               - 8: user %eflags
-#               - C: user %ecx     <-- %esp
-# 
-# %eax: user jmp address
-# %ecx: %ax
-#
+cache_lookup:
+DEBUG_COUNT_IJMP_MISSES
+
+mov %esp, scratch_stack
+mov $scratch_stack, %esp
+pushf
+movzwl %ax, %edx                  # HASH_INDEX[addr]
 cache_lookup_loop:
-
-#ifdef EMU_DEBUG
-incl ijmp_misses
-#endif
-
-inc %cx                          # %ecx = (%ecx+1) % 0x10000 (next cache entry)
-cmpl %eax, jmp_cache(, %ecx, 8)   # jmp_cache.addr[%ecx]
-je,pt cache_hit
-testl $-1, jmp_cache(, %ecx, 8)   # jmp_cache.addr[%ecx]
-jz,pn cache_miss
-cmp %ax, %cx
-jne,pt cache_lookup_loop
+inc %dx
+mov jmp_cache(, %edx, 8), %ecx
+lea -1(%ecx,%eax,1), %ecx
+jecxz,pt cache_hit
+testl $-1, jmp_cache(, %edx, 8)   # jmp_cache.addr[HASH_INDEX[addr]] == 0
+jz cache_miss
+cmp %ax, %dx
+jne cache_lookup_loop
+jmp cache_miss
 
 cache_hit:
-movl jmp_cache+4(, %ecx, 8), %eax
+mov jmp_cache+4(, %edx, 8), %edx
+movl %edx, jit_eip
+lookup_return:
+popf
+pop %esp
 jmp jit_return
 
 # address not found in jmp_cache
 #
 # Processor state:
 #
-# %ecx: clobbered
+# %eax:    address
+# %e[cd]x: clobbered
 #
 cache_miss:
-push %edx
-push %ebx
-
 push %eax            # addr
 push %eax            # addr
 call jit_lookup_addr # (char *addr);
@@ -168,9 +173,8 @@ call runtime_jit     # (char *addr);
 
 lookup_hit:
 lea 4(%esp), %esp
-pop %ebx
-pop %edx
-jmp jit_return
+movl %eax, jit_eip
+jmp lookup_return
 
 #
 # total miss, we have to translate some code
@@ -217,7 +221,9 @@ movl %esp, scratch_stack
 movl $scratch_stack, %esp
 call runtime_syscall
 pop %esp
-movl %eax, scratch_stack-4
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %eax, %xmm3
+mov $0x0,%ecx
 movl user_eip, %eax
 jmp runtime_ijmp
 
@@ -229,14 +235,18 @@ movl %esp, scratch_stack
 movl $scratch_stack, %esp
 call runtime_syscall
 pop %esp
-movl %eax, scratch_stack-4
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %eax, %xmm3
+mov $0x0,%ecx
 movl sysenter_reentry, %eax
 jmp runtime_ijmp
 
 .global state_restore
 .type state_restore, @function
 state_restore:
-movl %eax, scratch_stack-4
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %eax, %xmm3
+mov $0x0,%ecx
 movl user_eip, %eax
 jmp runtime_ijmp
 

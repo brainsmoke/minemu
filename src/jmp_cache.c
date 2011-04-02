@@ -30,25 +30,22 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 {
 	int hash = HASH_INDEX(addr), i;
 
-	jmp_fastcache[FASTHASH_INDEX(addr)] =
-		(jmp_map_t) { .addr = -(long)addr, .jit_addr = jit_addr };
-
 	for (i=hash; i<JMP_CACHE_SIZE; i++)
 		if ( jmp_cache[i].addr == NULL )
 		{
-			jmp_cache[i] = (jmp_map_t) { .addr = addr, .jit_addr = jit_addr };
+			jmp_cache[i] = (jmp_map_t) { .addr = CACHE_MANGLE(addr), .jit_addr = jit_addr };
 			return;
 		}
 
 	for (i=0; i<hash; i++)
 		if ( jmp_cache[i].addr == NULL )
 		{
-			jmp_cache[i] = (jmp_map_t) { .addr = addr, .jit_addr = jit_addr };
+			jmp_cache[i] = (jmp_map_t) { .addr = CACHE_MANGLE(addr), .jit_addr = jit_addr };
 			return;
 		}
 
 	debug("warning, hash jump table full");
-	jmp_cache[hash] = (jmp_map_t) { .addr = addr, .jit_addr = jit_addr };
+	jmp_cache[hash] = (jmp_map_t) { .addr = CACHE_MANGLE(addr), .jit_addr = jit_addr };
 
 }
 
@@ -57,13 +54,9 @@ static void jmp_cache_clear(char *addr, unsigned long len)
 	int i, last=-1 /* make compiler happy */ ;
 	char *tmp_addr, *tmp_jit_addr;
 
-	for (i=0; i<JMP_FASTCACHE_SIZE; i++)
-		if ( contains(addr, len, jmp_fastcache[i].addr) )
-			jmp_fastcache[i] = (jmp_map_t) { .addr = NULL, .jit_addr = NULL };
-
 	for (i=0; i<JMP_CACHE_SIZE; i++)
 	{
-		if ( contains(addr, len, jmp_cache[i].addr) )
+		if ( contains(addr, len, CACHE_MANGLE(jmp_cache[i].addr)) )
 			jmp_cache[i] = (jmp_map_t) { .addr = NULL, .jit_addr = NULL };
 
 		if ( jmp_cache[i].addr == NULL )
@@ -74,10 +67,10 @@ static void jmp_cache_clear(char *addr, unsigned long len)
 	{
 		if ( jmp_cache[i].addr == NULL )
 			last = i;
-		else if ( HASH_OFFSET(last, jmp_cache[i].addr) <
-		          HASH_OFFSET(i, jmp_cache[i].addr) )
+		else if ( HASH_OFFSET(last, CACHE_MANGLE(jmp_cache[i].addr)) <
+		          HASH_OFFSET(i,    CACHE_MANGLE(jmp_cache[i].addr)) )
 		{
-			tmp_addr = jmp_cache[i].addr;
+			tmp_addr = CACHE_MANGLE(jmp_cache[i].addr);
 			tmp_jit_addr = jmp_cache[i].jit_addr;
 			jmp_cache[i] = (jmp_map_t) { .addr = NULL, .jit_addr = NULL };
 			add_jmp_mapping(tmp_addr, tmp_jit_addr);
@@ -92,11 +85,11 @@ char *find_jmp_mapping(char *addr)
 	int hash = HASH_INDEX(addr), i;
 
 	for (i=hash; i<JMP_CACHE_SIZE; i++)
-		if ( (jmp_cache[i].addr == addr) || (jmp_cache[i].addr == NULL) )
+		if ( (jmp_cache[i].addr == CACHE_MANGLE(addr)) || (jmp_cache[i].addr == NULL) )
 			return jmp_cache[i].jit_addr;
 
 	for (i=0; i<hash; i++)
-		if ( (jmp_cache[i].addr == addr) || (jmp_cache[i].addr == NULL) )
+		if ( (jmp_cache[i].addr == CACHE_MANGLE(addr)) || (jmp_cache[i].addr == NULL) )
 			return jmp_cache[i].jit_addr;
 
 	return NULL;
