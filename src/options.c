@@ -64,7 +64,7 @@ void usage(char *arg0)
 
 void version(void)
 {
-	debug("minemu version 0.2.1");
+	debug("minemu version 0.3");
 	sys_exit(0);
 }
 
