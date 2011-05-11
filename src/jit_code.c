@@ -545,6 +545,8 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 
 	if ( taint_flag == TAINT_ON )
 		len_taint = taint_ijmp(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	else
+		len_taint = gen_code(dest, "66 0f ef ed");
 
 	int len = len_taint+gen_code(
 		&dest[len_taint],
@@ -639,6 +641,8 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	 */
 	if ( taint_flag == TAINT_ON )
 		len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	else
+		len_taint = gen_code(dest, "66 0f ef ed");
 
 	if ( call_strategy == PRESEED_ON_CALL )
 	{
