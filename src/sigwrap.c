@@ -32,6 +32,7 @@
 #include "jit_fragment.h"
 #include "debug.h"
 #include "taint.h"
+#include "taint_dump.h"
 
 /*
  * wrapper around signals, preventing signals being delivered on the
@@ -228,6 +229,14 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 		fpstate = &sigframe->fpstate;
 	}
 
+	if ( (sig == SIGSEGV) || (sig == SIGILL) )
+	{
+		user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
+		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
+		                context->esp, context->ebp, context->esi, context->edi, };
+		do_taint_dump(regs);
+	}
+
 	finish_instruction(context);
 
 	get_xmm5((unsigned char *)&fpstate->_xmm[5]);
@@ -344,6 +353,16 @@ void sigwrap_init(void)
 {
 	altstack_setup();
 	memset(user_sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
+
+	struct kernel_sigaction act =
+	{
+		.handler = sigwrap_handler,
+		.flags = SA_ONSTACK,
+	};
+
+	memset(&act.mask, 0xff, sizeof(act.mask));
+	user_rt_sigaction(SIGSEGV, &act, NULL, sizeof(act.mask));
+	user_rt_sigaction(SIGILL, &act, NULL, sizeof(act.mask));
 }
 
 /* the emulator blocks signals */
