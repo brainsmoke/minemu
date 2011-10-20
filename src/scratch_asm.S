@@ -47,13 +47,6 @@
 .lcomm jmp_cache, JMP_CACHE_MEM_SIZE
 .global jmp_cache
 
-.global scratch_xmm5
-.lcomm scratch_xmm5, 16
-.global scratch_xmm6
-.lcomm scratch_xmm6, 16
-.global scratch_xmm7
-.lcomm scratch_xmm7, 16
-
 .global taint_tmp
 .lcomm taint_tmp, 4
 
