@@ -52,6 +52,11 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 		case __NR_execve:
 		case __NR_exit_group:
 			break;
+		case __NR_access:
+			if ( arg1 && strcmp("/etc/ld.so.nohwcap", (char *)arg1) == 0 )
+				return 0;
+			else
+				return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 
 		case __NR_read:
 		case __NR_readv:
