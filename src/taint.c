@@ -121,8 +121,14 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 
 			switch (arg1)
 			{
-				case SYS_SOCKET:
+				case SYS_GETPEERNAME:
+					if ( (ret >= 0) && sockargs[1] && sockargs[2])
+						taint_mem((char *)sockargs[1], *(long *)sockargs[2], 0x01);
+					return;
 				case SYS_ACCEPT:
+					if ( (ret >= 0) && sockargs[1] && sockargs[2])
+						taint_mem((char *)sockargs[1], *(long *)sockargs[2], 0x01);
+				case SYS_SOCKET:
 					set_fd(ret, FD_SOCKET);
 					return;
 				case SYS_RECV:

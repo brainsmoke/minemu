@@ -48,9 +48,11 @@ void hexdump_taint(int fd, const void *data, ssize_t len,
 	const char *colors[256];
 	int i;
 	char *red = "\033[1;31m";
+	char *blue= "\033[1;36m";
 	colors[0] = "\033[0;37m";
 	for(i=1; i<256; i++)
 		colors[i] = red;
+	colors[1] = blue;
 
 	hexdump(fd, data, len, offset, ascii, description, taint, colors);
 }
