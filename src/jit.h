@@ -21,7 +21,7 @@
 
 #include "opcodes.h"
 
-void jit_init();
+void jit_init(void);
 char *jit(char *addr);
 char *jit_lookup_addr(char *addr);
 char *jit_rev_lookup_addr(char *jit_addr, char **jit_op_start, long *jit_op_len);
