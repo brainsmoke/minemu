@@ -180,10 +180,6 @@ void do_taint_dump(long *regs)
 	get_xmm7(&regs_taint[16]);
 	hexdump_taint(fd_out, regs, 32, regs_taint, 0, 1, regs_desc);
 
-#ifdef EMU_DEBUG
-	print_last_gencode_opcode();
-#endif
-
 	do
 	{
 		sys_read(fd, buf, 8);

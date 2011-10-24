@@ -48,12 +48,6 @@ extern long sysenter_reentry;
 
 extern long ijmp_taint;
 
-#ifdef EMU_DEBUG
-extern char *last_jit;
-extern long ijmp_misses;
-extern long ijmp_count;
-#endif
-
 #endif
 
 #endif /* SCRATCH_H */

@@ -15,23 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#ifdef EMU_DEBUG
-
-#define DEBUG_COUNT_IJMP \
-xchg %eax, ijmp_count    \
-lea 1(%eax), %eax        \
-xchg %eax, ijmp_count
-
-#define DEBUG_COUNT_IJMP_MISSES \
-incl ijmp_misses
-
-#else
-
-#define DEBUG_COUNT_IJMP        # do nothing
-#define DEBUG_COUNT_IJMP_MISSES # do nothing
-
-#endif
-
 .text
 #include "scratch.h"
 
@@ -106,8 +89,6 @@ pop %eax
 .global runtime_ijmp
 .type runtime_ijmp, @function
 runtime_ijmp:
-DEBUG_COUNT_IJMP
-
 pinsrd $0, %edx, %xmm5
 movzwl %ax, %edx
 jecxz,pt taint_ok
@@ -133,8 +114,6 @@ runtime_exit_jmpaddr:
 #
 
 cache_lookup:
-DEBUG_COUNT_IJMP_MISSES
-
 mov %esp, scratch_stack
 mov $scratch_stack, %esp
 pushf

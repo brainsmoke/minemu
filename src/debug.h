@@ -38,11 +38,4 @@ void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe 
 struct stat64;
 void print_stat(const struct stat64 *s);
 
-#ifdef EMU_DEBUG
-void print_debug_data(void);
-
-void print_last_gencode_opcode(void);
-
-#endif
-
 #endif /* DEBUG_H */

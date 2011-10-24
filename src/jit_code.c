@@ -415,12 +415,7 @@ int gen_code(char *dst, char *fmt, ...)
 	va_list ap;
 	va_start(ap, fmt);
 	int i,j=0, c, outc=1;
-#ifdef EMU_DEBUG
-	dst[0] = '\xC7'; dst[1] = '\x05';
-	imm_to(&dst[2], (long)&last_jit);
-	imm_to(&dst[6], (long)&dst[10]);
-	j=10;
-#endif
+
 	for (i=0; (c=fmt[i]); i++)
 	{
 		if ( (unsigned int)(c-'0') < 10 )

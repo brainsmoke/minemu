@@ -12,8 +12,7 @@ RM=$(SILENT)rm -r
 LDFLAGS=
 EMU_LDFLAGS=-z noexecstack
 
-#SETTINGS=-g -DEMU_DEBUG
-#SETTINGS=-Os -DEMU_DEBUG
+#SETTINGS=-g 
 SETTINGS=-Os
 WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99
 

@@ -587,12 +587,8 @@ char *jit(char *addr)
 	}
 
 	if (map == NULL)
-{
-#ifdef EMU_DEBUG
-print_last_gencode_opcode();
-#endif
 		die("attempting to jump in non-executable code addr: %X ", addr);
-}
+
 	jit_addr = jit_lookup_addr(addr);
 
 	if (jit_addr == NULL)

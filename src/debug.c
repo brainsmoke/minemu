@@ -133,26 +133,6 @@ const char *fpstate_desc[] =
 };
 static inline long min(long a, long b) { return a<b ? a:b; }
 
-#ifdef EMU_DEBUG
-void print_debug_data(void)
-{
-	debug("counts/misses ijmp: %u/%u", ijmp_count, ijmp_misses);
-}
-
-void print_last_gencode_opcode(void)
-{
-	char *jit_op, *op;
-	long jit_op_len, op_len;
-	op = jit_rev_lookup_addr(last_jit, &jit_op, &jit_op_len);
-	op_len = op_size(op, 16);
-	fd_printf(out, "last opcode at: %X %d\n", op, op_len);
-	hexdump(out, op, op_len, 1, 0, NULL,NULL,NULL);
-	fd_printf(out, "last jit opcode at: %X\n", last_jit);
-	hexdump(out, jit_op, jit_op_len, 1, 0, NULL,NULL,NULL);
-}
-
-#endif
-
 void print_sigcontext(struct sigcontext *sc)
 {
 	hexdump(out, sc, sizeof(*sc), 0, 1, sigcontext_desc, NULL, NULL);

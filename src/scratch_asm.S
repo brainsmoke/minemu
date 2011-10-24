@@ -75,12 +75,3 @@
 .lcomm fd_type, 1024
 .global fd_type 
 
-#ifdef EMU_DEBUG
-.lcomm ijmp_misses, 4
-.global ijmp_misses
-.lcomm ijmp_count, 4
-.global ijmp_count
-.lcomm last_jit, 4
-.global last_jit
-#endif
-
