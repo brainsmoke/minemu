@@ -89,6 +89,15 @@ $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 src/mm.ld: gen/gen_mm_ld
 	gen/gen_mm_ld > src/mm.ld
 
+test/testcases/killthread: test/testcases/killthread.o
+	$(LINK) -o $@ $^ $(LDFLAGS) -lpthread
+
+test/testcases/segvthread: test/testcases/segvthread.o
+	$(LINK) -o $@ $^ $(LDFLAGS) -lpthread
+
+test/testcases/tlstest: test/testcases/tlstest.o
+	$(LINK) -o $@ $^ $(LDFLAGS) -lpthread
+
 test/testcases/%: test/testcases/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
