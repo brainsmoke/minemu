@@ -97,7 +97,7 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 				dest,
 
 				"$  02"
-				"EB FF",
+				"EB FF", /* jump filled in at 1.) */
 
 				instr->addr, instr->len-1
 			);
@@ -107,7 +107,7 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 			else
 				code_len = off + jit_fragment_jump_exit(&dest[off], jump_addr);
 
-			dest[off-1] = code_len-off;
+			dest[off-1] = code_len-off; /* 1.) */
 
 			return code_len;
 
