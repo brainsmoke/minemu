@@ -79,6 +79,9 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_tgkill(a, b, c) \
 	syscall3(SYS_tgkill, (long)(a), (long)(b), (long)(c))
 
+#define sys_set_thread_area(a) \
+	syscall1(SYS_set_thread_area, (long)(a))
+
 #define sys_exit_group(a) \
 	syscall1(SYS_exit_group, (long)(a))
 
