@@ -26,10 +26,10 @@ static int entry_number = -1;
 
 static void set_fs_segment(int number)
 {
-	__asm__ __volatile__ ("mov %0, %%fs": "=r" (number));
+	__asm__ __volatile__ ("mov %0, %%fs":: "r" (number));
 }
 
-static void create_tls(char *base_addr, unsigned long size)
+static void create_tls(void *base_addr, unsigned long size)
 {
 	struct user_desc tls =
 	{
@@ -46,7 +46,7 @@ static void create_tls(char *base_addr, unsigned long size)
 		entry_number = tls.entry_number;
 }
 
-void init_tls(char *base_addr, unsigned long size)
+void init_tls(void *base_addr, unsigned long size)
 {
 	create_tls(base_addr, size);
 	set_fs_segment(entry_number*8 + 3);
