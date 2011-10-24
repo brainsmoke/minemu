@@ -21,6 +21,7 @@ void *hello_world(void *_)
 void *segv(void * _)
 {
 	_ = *(void **)0x0;
+	return NULL;
 }
 
 int main()

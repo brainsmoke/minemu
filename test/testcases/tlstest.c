@@ -44,6 +44,7 @@ int call_fs_func_pointer(void)
 {
 	printf("%d\n", read_fs_func());
 	__asm__ __volatile__ (".ascii \"\\x64\\xff\\x15\\x04\\x00\\x00\\x00\"");
+	return 0;
 }
 
 void create_fs_tls(char *base_addr, unsigned long size)
