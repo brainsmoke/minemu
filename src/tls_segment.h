@@ -19,6 +19,6 @@
 #ifndef TLS_SEGMENT_H
 #define TLS_SEGMENT_H
 
-void init_tls(char *base_addr, unsigned long size);
+void init_tls(void *base_addr, unsigned long size);
 
 #endif /* TLS_SEGMENT_H */
