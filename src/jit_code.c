@@ -584,13 +584,13 @@ static int generate_call(char *dest, char *jmp_addr,
 		len = len_taint+gen_code(
 			&dest[len_taint],
 
-			"68 L"                /* push $retaddr                                        */
-			"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
-			"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
+			"68 L"                   /* push $retaddr                                        */
+			"64 C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
+			"64 C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 			&instr->addr[instr->len],
-			&jmp_cache[hash].addr,       CACHE_MANGLE(&instr->addr[instr->len]),
-			&jmp_cache[hash].jit_addr,   &retaddr_index
+			hash*8, CACHE_MANGLE(&instr->addr[instr->len]),
+			hash*8+4, &retaddr_index
 		);
 		retaddr_index += len_taint;
 	}
@@ -600,10 +600,10 @@ static int generate_call(char *dest, char *jmp_addr,
 			&dest[len_taint],
 
 			"68 L"                /* push $retaddr                                        */
-			"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
+			"64 0F 18 0D L",      /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
 
 			&instr->addr[instr->len],
-			&jmp_cache[hash]
+			hash*4
 		);
 	}
 	else
@@ -649,18 +649,18 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 		len = len_taint+gen_code(
 			&dest[len_taint],
 
-			"66 0F 3A 22 E1 00"   /* pinsrd $0, %ecx, %xmm4       */
-			"66 0F 3A 22 D8 00"   /* pinsrd $0, %eax, %xmm3       */
-			"? 8B &$"             /* mov ... ( -> %eax )                                  */
-			"66 0F 3A 16 E9 00"   /* pextrd $0, %xmm5, %ecx       */
-			"68 L"                /* push $retaddr                                        */
-			"C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
-			"C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
+			"66 0F 3A 22 E1 00"      /* pinsrd $0, %ecx, %xmm4       */
+			"66 0F 3A 22 D8 00"      /* pinsrd $0, %eax, %xmm3       */
+			"? 8B &$"                /* mov ... ( -> %eax )                                  */
+			"66 0F 3A 16 E9 00"      /* pextrd $0, %xmm5, %ecx       */
+			"68 L"                   /* push $retaddr                                        */
+			"64 C7 05 L L"           /* movl $addr,     jmp_cache[HASH_INDEX(addr)].addr     */
+			"64 C7 05 L & DEADBEEF", /* movl $jit_addr, jmp_cache[HASH_INDEX(addr)].jit_addr */
 
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_cache[hash].addr,       CACHE_MANGLE(&instr->addr[instr->len]),
-			&jmp_cache[hash].jit_addr,   &retaddr_index
+			hash*8, CACHE_MANGLE(&instr->addr[instr->len]),
+			hash*8+4, &retaddr_index
 		);
 	}
 	else if ( call_strategy == PREFETCH_ON_CALL )
@@ -673,11 +673,11 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 			"? 8B &$"             /* mov ... ( -> %eax )                                  */
 			"66 0F 3A 16 E9 00"   /* pextrd $0, %xmm5, %ecx       */
 			"68 L"                /* push $retaddr                                        */
-			"0F 18 0D L",         /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
+			"64 0F 18 0D L",      /* prefetch jmp_cache[HASH_INDEX(addr)]                 */
 
 			instr->p[2], &mrm, &instr->addr[instr->mrm], mrm_len,
 			&instr->addr[instr->len],
-			&jmp_cache[hash]
+			hash*8
 		);
 	}
 	else
