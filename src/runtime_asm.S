@@ -94,11 +94,11 @@ movzwl %ax, %edx
 jecxz,pt taint_ok
 jmp taint_fault
 taint_ok:
-movl %fs:(, %edx, 8), %ecx
+movl %fs: (, %edx, 8), %ecx         # load mangled cached address
 movl %fs:4(, %edx, 8), %edx
-lea (%ecx,%eax,1), %ecx
+lea (%ecx,%eax,1), %ecx             # %ecx is 1 if there is a cache hit
 movl %edx, jit_eip
-loop cache_lookup
+loop cache_lookup                   # branch taken on cache miss
 jit_return: # jit_eip contains jump address
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
