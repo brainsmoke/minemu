@@ -113,8 +113,8 @@ movzwl %ax, %edx
 jecxz,pt taint_ok
 jmp taint_fault
 taint_ok:
-movl jmp_cache(, %edx, 8), %ecx
-movl jmp_cache+4(, %edx, 8), %edx
+movl %fs:(, %edx, 8), %ecx
+movl %fs:4(, %edx, 8), %edx
 lea (%ecx,%eax,1), %ecx
 movl %edx, jit_eip
 loop cache_lookup
@@ -141,17 +141,17 @@ pushf
 movzwl %ax, %edx                  # HASH_INDEX[addr]
 cache_lookup_loop:
 inc %dx
-mov jmp_cache(, %edx, 8), %ecx
+mov %fs:(, %edx, 8), %ecx
 lea -1(%ecx,%eax,1), %ecx
 jecxz,pt cache_hit
-testl $-1, jmp_cache(, %edx, 8)   # jmp_cache.addr[HASH_INDEX[addr]] == 0
+testl $-1, %fs:(, %edx, 8)   # jmp_cache.addr[HASH_INDEX[addr]] == 0
 jz cache_miss
 cmp %ax, %dx
 jne cache_lookup_loop
 jmp cache_miss
 
 cache_hit:
-mov jmp_cache+4(, %edx, 8), %edx
+mov %fs:4(, %edx, 8), %edx
 movl %edx, jit_eip
 lookup_return:
 popf
