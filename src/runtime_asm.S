@@ -18,6 +18,9 @@
 .text
 #include "scratch.h"
 
+.global runtime_cache_resolution_start
+runtime_cache_resolution_start:
+
 taint_fault:
 movl %ecx, ijmp_taint
 movl %eax, user_eip
@@ -110,6 +113,10 @@ movl %edx, jit_eip
 popf
 pop %esp
 jmp jit_return
+
+.global runtime_cache_resolution_end
+runtime_cache_resolution_end:
+nop
 
 # address not found in jmp_cache
 #
