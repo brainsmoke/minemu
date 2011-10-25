@@ -102,11 +102,9 @@ jz cache_miss
 cmp %ax, %dx
 jne cache_lookup_loop
 jmp cache_miss
-
 cache_hit:
 mov %fs:4(, %edx, 8), %edx
 movl %edx, jit_eip
-lookup_return:
 popf
 pop %esp
 jmp jit_return
@@ -132,7 +130,9 @@ call runtime_jit     # (char *addr);
 lookup_hit:
 lea 4(%esp), %esp
 movl %eax, jit_eip
-jmp lookup_return
+popf
+pop %esp
+jmp jit_return
 
 #
 # total miss, we have to translate some code
@@ -231,5 +231,4 @@ pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl user_eip, %eax
 jmp runtime_ijmp
-
 
