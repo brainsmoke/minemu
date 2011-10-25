@@ -72,7 +72,7 @@
 */
 /* logical sections */
 
-#define JIT_PAGES (0x6000UL)
+#define JIT_PAGES (0x8000UL)
 #define USER_PAGES ( (HIGH_PAGE - 2*JIT_PAGES) /3 )
 
 #define USER_SIZE (USER_PAGES * PG_SIZE)
