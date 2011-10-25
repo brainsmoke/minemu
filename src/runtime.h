@@ -30,7 +30,15 @@ long runtime_ret(void);
 long jit_return(void);
 long jit_fragment_exit(void);
 
+long reloc_jit_return(void);
+long reloc_runtime_ijmp(void);
+
 long int80_emu(void);
 long linux_sysenter_emu(void);
+
+extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
+            runtime_exit_jmpaddr[],
+            runtime_cache_resolution_start[], runtime_cache_resolution_end[],
+            reloc_runtime_cache_resolution_start[], reloc_runtime_cache_resolution_end[];
 
 #endif /* RUNTIME_H */

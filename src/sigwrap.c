@@ -63,33 +63,9 @@ void unblock_signals(void)
 static stack_t user_altstack;
 static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
-extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
-            runtime_exit_jmpaddr[];
-
 /* INTERCAL's COME FROM is for wimps :-)
  *
  */
-
-/* self-modifying code, UGLY UGLY UGLY NASTYNASTYNASTY :-( */
-long *set_runtime_exit_addr(long *ijmp_addr)
-{
-	char *write_addr = runtime_exit_jmpaddr-sizeof(long);
-
-	long base = PAGE_BASE(write_addr);
-	long len = PAGE_NEXT(&write_addr[sizeof(long)])-base;
-
-    if ( sys_mprotect(base, len, PROT_READ|PROT_WRITE|PROT_EXEC) & PG_MASK)
-		die("set_runtime_exit failed");
-
-	long *old_addr = (long *)imm_at(write_addr, sizeof(long));
-	imm_to(write_addr, (long)ijmp_addr);
-
-    if ( sys_mprotect(base, len, PROT_READ|PROT_EXEC) & PG_MASK)
-		die("set_runtime_exit failed");
-
-	return old_addr;
-}
-
 static void finish_instruction(struct sigcontext *context)
 {
 	char *orig_eip, *jit_op_start;
@@ -109,13 +85,16 @@ static void finish_instruction(struct sigcontext *context)
 	{
 		context->eip = (long)syscall_intr_critical_start;
 	}
+	else if ( between(runtime_cache_resolution_start, runtime_cache_resolution_end, (char *)context->eip) )
+	{
+		context->eip += reloc_runtime_cache_resolution_start-runtime_cache_resolution_start;
+	}
 
-	long *old_address =
-	set_runtime_exit_addr(&jit_fragment_exit_addr);
-
+	runtime_ijmp_addr = reloc_runtime_ijmp;
+	jit_return_addr = reloc_jit_return;
 	jit_fragment_run(context);
-
-	set_runtime_exit_addr(old_address);
+	runtime_ijmp_addr = runtime_ijmp;
+	jit_return_addr = jit_return;
 
 	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
 	if ( (char *)context->eip != jit_op_start )

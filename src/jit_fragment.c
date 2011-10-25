@@ -114,6 +114,9 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 		case JUMP_RELATIVE:
 			if ( contains(addr, len+1, jump_addr) )
 				return jit_fragment_jump(dest, mapping[jump_addr-addr]);
+			else if ( between(runtime_cache_resolution_start, runtime_cache_resolution_end, jump_addr) )
+				return jit_fragment_jump(dest, jump_addr + (long)reloc_runtime_cache_resolution_start-
+				                                                 (long)runtime_cache_resolution_start);
 			else if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, jump_addr) )
 				return jit_fragment_jump(dest, jump_addr);
 			else

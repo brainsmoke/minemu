@@ -118,9 +118,9 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	else
 		sysenter_reentry = (long)&vdso[off];
 
-	jit_return_addr = (long)jit_return;
-	runtime_ijmp_addr = (long)runtime_ijmp;
-	jit_fragment_exit_addr = (long)jit_fragment_exit;
+	jit_return_addr = jit_return;
+	runtime_ijmp_addr = runtime_ijmp;
+	jit_fragment_exit_addr = jit_fragment_exit;
 
 	add_code_region(vdso, 0x1000, 0, 0, 0, 0); /* vdso */
 

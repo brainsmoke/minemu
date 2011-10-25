@@ -57,8 +57,14 @@ void int80_emu(void) { die("calling placeholder"); }
 void linux_sysenter_emu(void) { die("calling placeholder"); }
 void jit_fragment_exit(void) { die("calling placeholder"); }
 void jit_rev_lookup_addr(void) { die("calling placeholder"); }
+
+void runtime_cache_resolution_start(void) { die("calling placeholder"); }
+void runtime_cache_resolution_end(void) { die("calling placeholder"); }
+void reloc_runtime_cache_resolution_start(void) { die("calling placeholder"); }
+
 char *hexcat(char *dest, unsigned long ul) { die("calling placeholder"); return NULL; }
 int taint_flag = TAINT_ON;
+
 
 char *tests[] =
 {

@@ -46,9 +46,9 @@ extern long user_eip;
 extern long jit_eip;
 extern long sysenter_reentry;
 
-extern long jit_return_addr;
-extern long runtime_ijmp_addr;
-extern long jit_fragment_exit_addr;
+extern long (*jit_return_addr)(void);
+extern long (*runtime_ijmp_addr)(void);
+extern long (*jit_fragment_exit_addr)(void);
 
 extern long ijmp_taint;
 
