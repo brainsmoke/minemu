@@ -69,8 +69,6 @@
 .global user_eip
 .lcomm jit_eip, 4
 .global jit_eip
-.lcomm sysenter_reentry, 4
-.global sysenter_reentry
 .lcomm jit_return_addr, 4
 .global jit_return_addr
 .lcomm runtime_ijmp_addr, 4

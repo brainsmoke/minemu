@@ -34,6 +34,8 @@
 #include "options.h"
 #include "tls_segment.h"
 
+long sysenter_reentry;
+
 /* not called main() to avoid warnings about extra parameters :-(  */
 int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 {
