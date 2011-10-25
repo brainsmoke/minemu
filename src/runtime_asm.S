@@ -18,31 +18,6 @@
 .text
 #include "scratch.h"
 
-#
-# emu_start(): Protect minemu memory, load registers, jump to address
-#
-.global emu_start
-.type emu_start, @function
-emu_start: # (long eip, long esp)
-movl 4(%esp), %esi           # load user %eip from arg1
-movl 8(%esp), %ebp           # load user's stack pointer from arg2
-
-movl $scratch_stack, %esp    # move the stack out of emulator memory
-call shield                  # protect emulator memory
-movl %ebp, %esp              # load user stack
-
-movl %esi, %eax              # user %eip
-xor %ecx, %ecx               # clear registers and flags
-xor %edx, %edx
-xor %ebx, %ebx
-xor %ebp, %ebp
-xor %esi, %esi
-xor %edi, %edi
-pinsrd $0, %ecx, %xmm4
-pinsrd $0, %ecx, %xmm3 # cleared %eax
-
-jmp runtime_ijmp
-
 taint_fault:
 movl %ecx, ijmp_taint
 movl %eax, user_eip
@@ -54,7 +29,7 @@ mov $scratch_stack, %esp
 push %edi
 push %esi
 push %ebp
-push scratch_stack   # user %esp
+push 12(%esp)       # user %esp
 push %ebx
 push %edx
 push %ecx
@@ -62,7 +37,6 @@ push %eax
 push %esp           # *(long)regs
 call unshield
 call do_taint_dump
-#int $3
 ud2
 
 #
@@ -198,6 +172,30 @@ pop %ecx
 popf
 ret
 
+#
+# emu_start(): Protect minemu memory, load registers, jump to address
+#
+.global emu_start
+.type emu_start, @function
+emu_start: # (long eip, long esp)
+movl 4(%esp), %esi           # load user %eip from arg1
+movl 8(%esp), %ebp           # load user's stack pointer from arg2
+
+movl $scratch_stack, %esp    # move the stack out of emulator memory
+call shield                  # protect emulator memory
+movl %ebp, %esp              # load user stack
+
+movl %esi, %eax              # user %eip
+xor %ecx, %ecx               # clear registers and flags
+xor %edx, %edx
+xor %ebx, %ebx
+xor %ebp, %ebp
+xor %esi, %esi
+xor %edi, %edi
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %ecx, %xmm3 # cleared %eax
+jmp runtime_ijmp
+
 .global int80_emu
 .type int80_emu, @function
 int80_emu:
@@ -233,4 +231,5 @@ pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl user_eip, %eax
 jmp runtime_ijmp
+
 
