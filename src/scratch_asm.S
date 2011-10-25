@@ -47,11 +47,11 @@
 .lcomm jmp_cache, JMP_CACHE_MEM_SIZE
 .global jmp_cache
 
-.global taint_tmp
-.lcomm taint_tmp, 4
+.lcomm fd_type, 1024
+.global fd_type 
 
-.global ijmp_taint
-.lcomm ijmp_taint, 4
+.lcomm old_sigset, 8
+.global old_sigset
 
 .lcomm jit_fragment_running, 4
 .global jit_fragment_running
@@ -62,9 +62,6 @@
 .lcomm jit_fragment_scratch, 4
 .global jit_fragment_scratch
 
-.lcomm old_sigset, 8
-.global old_sigset
-
 .lcomm user_eip, 4
 .global user_eip
 .lcomm jit_eip, 4
@@ -73,7 +70,8 @@
 .global jit_return_addr
 .lcomm runtime_ijmp_addr, 4
 .global runtime_ijmp_addr
-
-.lcomm fd_type, 1024
-.global fd_type 
+.global taint_tmp
+.lcomm taint_tmp, 4
+.global ijmp_taint
+.lcomm ijmp_taint, 4
 
