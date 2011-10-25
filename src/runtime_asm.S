@@ -84,9 +84,6 @@ pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
 jmp *jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
-.global runtime_exit_jmpaddr
-
-runtime_exit_jmpaddr:
 #
 # END FAST PATH
 #

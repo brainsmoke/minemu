@@ -37,7 +37,6 @@ long int80_emu(void);
 long linux_sysenter_emu(void);
 
 extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
-            runtime_exit_jmpaddr[],
             runtime_cache_resolution_start[], runtime_cache_resolution_end[],
             reloc_runtime_cache_resolution_start[], reloc_runtime_cache_resolution_end[];
 
