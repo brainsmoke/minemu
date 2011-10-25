@@ -27,6 +27,7 @@ void state_restore(void);
 long runtime_ijmp(void);
 long runtime_ret_cleanup(void);
 long runtime_ret(void);
+long jit_return(void);
 long jit_fragment_exit(void);
 
 long int80_emu(void);

@@ -3,6 +3,7 @@ SILENT=@
 SHELL=bash
 CC=$(SILENT)gcc
 AS=$(SILENT)gcc
+OBJCOPY=objcopy
 LINK=$(SILENT)gcc
 EMU_LINK=$(SILENT)ld
 STRIP=$(SILENT)strip --strip-all
@@ -77,8 +78,20 @@ $(TESTCASES_OBJECTS): %.o: %.c
 $(EMU_OBJECTS) $(EMU_TEST_OBJECTS) $(EMU_GEN_OBJECTS): %.o: %.c
 	$(CC) -c $(EMU_CFLAGS) -o $@ $<
 
-$(EMU_ASM_OBJECTS): %.o: %.S
+$(filter-out src/runtime_asm.o src/reloc_runtime_asm.o, $(EMU_ASM_OBJECTS)): %.o: %.S
 	$(AS) -c $(EMU_CFLAGS) -o $@ $<
+
+src/runtime_asm.o: %.o: %.S
+	$(AS) -c $(EMU_CFLAGS) -o $@ $<
+	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_eip $@
+
+src/reloc_runtime_asm.o: %.o: %.S
+	$(AS) -c $(EMU_CFLAGS) -o $@ $<
+	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_fragment_exit_addr \
+	           --redefine-sym runtime_ret=reloc_runtime_ret \
+	           --redefine-sym runtime_ijmp=reloc_runtime_ijmp \
+	           --redefine-sym runtime_exit_jmpaddr=XXX_runtime_exit_jmpaddr \
+	           --redefine-sym jit_return=reloc_jit_return $@
 
 $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 	$(AS) -c $(CFLAGS) -o $@ $<

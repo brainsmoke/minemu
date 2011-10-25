@@ -90,8 +90,6 @@ long *set_runtime_exit_addr(long *ijmp_addr)
 	return old_addr;
 }
 
-long jit_fragment_exit_addr = (long)jit_fragment_exit;
-
 static void finish_instruction(struct sigcontext *context)
 {
 	char *orig_eip, *jit_op_start;

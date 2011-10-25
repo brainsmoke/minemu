@@ -71,6 +71,13 @@
 .global jit_eip
 .lcomm sysenter_reentry, 4
 .global sysenter_reentry
+.lcomm jit_return_addr, 4
+.global jit_return_addr
+.lcomm runtime_ijmp_addr, 4
+.global runtime_ijmp_addr
+.lcomm jit_fragment_exit_addr, 4
+.global jit_fragment_exit_addr
+
 
 .lcomm fd_type, 1024
 .global fd_type 

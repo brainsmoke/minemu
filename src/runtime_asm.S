@@ -73,12 +73,14 @@ movl %fs:4(, %edx, 8), %edx
 lea (%ecx,%eax,1), %ecx             # %ecx is 1 if there is a cache hit
 movl %edx, jit_eip
 loop cache_lookup                   # branch taken on cache miss
+
+.global jit_return
+.type jit_return, @function
 jit_return: # jit_eip contains jump address
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
-jmp *jit_eip            #  self-modifying code replaces this for jit_fragment and back
-                        #  in case of a signal (*UGLY*)
+jmp *jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
 .global runtime_exit_jmpaddr
 
 runtime_exit_jmpaddr:
@@ -132,7 +134,7 @@ lea 4(%esp), %esp
 movl %eax, jit_eip
 popf
 pop %esp
-jmp jit_return
+jmp *jit_return_addr
 
 #
 # total miss, we have to translate some code
@@ -150,85 +152,4 @@ push %eax
 call shield                         # protect jit stack
 pop %eax                            # translated address is stored in %eax
 ret
-
-#
-# syscall wrapper
-#
-runtime_syscall:
-pushf
-push %ecx
-push %edx
-push %ebp
-push %edi
-push %esi
-push %edx
-push %ecx
-push %ebx
-push %eax
-call syscall_emu
-lea 28(%esp), %esp
-pop %edx
-pop %ecx
-popf
-ret
-
-#
-# emu_start(): Protect minemu memory, load registers, jump to address
-#
-.global emu_start
-.type emu_start, @function
-emu_start: # (long eip, long esp)
-movl 4(%esp), %esi           # load user %eip from arg1
-movl 8(%esp), %ebp           # load user's stack pointer from arg2
-
-movl $scratch_stack, %esp    # move the stack out of emulator memory
-call shield                  # protect emulator memory
-movl %ebp, %esp              # load user stack
-
-movl %esi, %eax              # user %eip
-xor %ecx, %ecx               # clear registers and flags
-xor %edx, %edx
-xor %ebx, %ebx
-xor %ebp, %ebp
-xor %esi, %esi
-xor %edi, %edi
-pinsrd $0, %ecx, %xmm4
-pinsrd $0, %ecx, %xmm3 # cleared %eax
-jmp runtime_ijmp
-
-.global int80_emu
-.type int80_emu, @function
-int80_emu:
-movl %esp, scratch_stack
-movl $scratch_stack, %esp
-call runtime_syscall
-pop %esp
-pinsrd $0, %ecx, %xmm4
-pinsrd $0, %eax, %xmm3
-mov $0x0,%ecx
-movl user_eip, %eax
-jmp runtime_ijmp
-
-.global linux_sysenter_emu
-.type linux_sysenter_emu, @function
-linux_sysenter_emu:
-movl (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
-movl %esp, scratch_stack
-movl $scratch_stack, %esp
-call runtime_syscall
-pop %esp
-pinsrd $0, %ecx, %xmm4
-pinsrd $0, %eax, %xmm3
-mov $0x0,%ecx
-movl sysenter_reentry, %eax
-jmp runtime_ijmp
-
-.global state_restore
-.type state_restore, @function
-state_restore:
-pinsrd $0, %ecx, %xmm4
-pinsrd $0, %eax, %xmm3
-mov $0x0,%ecx
-movl user_eip, %eax
-jmp runtime_ijmp
 
