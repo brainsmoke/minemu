@@ -53,7 +53,7 @@ OBJECTS=\
 	$(EMU_GEN_OBJECTS)
 
 
-CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) gen/gen_mm_ld .dep
+CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp gen/gen_mm_ld .dep
 
 .PHONY: depend clean strip
 
@@ -81,17 +81,20 @@ $(EMU_OBJECTS) $(EMU_TEST_OBJECTS) $(EMU_GEN_OBJECTS): %.o: %.c
 $(filter-out src/runtime_asm.o src/reloc_runtime_asm.o, $(EMU_ASM_OBJECTS)): %.o: %.S
 	$(AS) -c $(EMU_CFLAGS) -o $@ $<
 
-src/runtime_asm.o: %.o: %.S
+src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp: %.o-tmp: %.S
 	$(AS) -c $(EMU_CFLAGS) -o $@ $<
-	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_eip $@
 
-src/reloc_runtime_asm.o: %.o: %.S
-	$(AS) -c $(EMU_CFLAGS) -o $@ $<
+src/runtime_asm.o: %.o: %.o-tmp
+	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_eip $< $@
+
+src/reloc_runtime_asm.o: %.o: %.o-tmp
 	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_fragment_exit_addr \
+	           --redefine-sym runtime_cache_resolution_start=reloc_runtime_cache_resolution_start \
+	           --redefine-sym runtime_cache_resolution_end=reloc_runtime_cache_resolution_end \
 	           --redefine-sym runtime_ret=reloc_runtime_ret \
 	           --redefine-sym runtime_ijmp=reloc_runtime_ijmp \
 	           --redefine-sym runtime_exit_jmpaddr=XXX_runtime_exit_jmpaddr \
-	           --redefine-sym jit_return=reloc_jit_return $@
+	           --redefine-sym jit_return=reloc_jit_return $< $@
 
 $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 	$(AS) -c $(CFLAGS) -o $@ $<
