@@ -28,7 +28,6 @@
 #include "jit_code.h"
 #include "taint.h"
 
-char *jit_fragment_exit_eip;
 char *jit_fragment_exit_addr;
 
 char runtime_code_start[1];

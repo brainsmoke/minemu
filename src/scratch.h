@@ -38,7 +38,6 @@ extern unsigned long sigwrap_stack_bottom[];
 extern unsigned long scratch_stack[];
 extern char jit_fragment_page[];
 
-extern long jit_fragment_exit_eip;
 extern long jit_fragment_restartsys;
 extern long jit_fragment_running;
 extern long jit_fragment_scratch;
