@@ -33,6 +33,9 @@
  * switches back after that instruction is done.
  */
 
+typedef long (*exit_func_t)(void);
+const exit_func_t jit_fragment_exit_addr = jit_fragment_exit;
+
 static long jit_fragment_jcc(char *dest, instr_t *instr, char *jump_jit_addr)
 {
 	return gen_code(
