@@ -3,7 +3,7 @@ SILENT=@
 SHELL=bash
 CC=$(SILENT)gcc
 AS=$(SILENT)gcc
-OBJCOPY=objcopy
+OBJCOPY=$(SILENT)objcopy
 LINK=$(SILENT)gcc
 EMU_LINK=$(SILENT)ld
 STRIP=$(SILENT)strip --strip-all
@@ -101,7 +101,7 @@ $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 # Linking
 
 src/mm.ld: gen/gen_mm_ld
-	gen/gen_mm_ld > src/mm.ld
+	$(SILENT)gen/gen_mm_ld > src/mm.ld
 
 test/testcases/killthread: test/testcases/killthread.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lpthread
