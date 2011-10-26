@@ -16,8 +16,11 @@
 # limitations under the License.
 
 #include "scratch.h"
+#include "asm_consts_gen.h"
 .bss
 #.balign 4096 # .{b,p2,}align doesn't seem to work
+.lcomm ctx, CTX_ARRAY__SIZE
+.global ctx
 
 .lcomm fault_page_0, 4096
 .global fault_page_0

@@ -53,7 +53,7 @@ OBJECTS=\
 	$(EMU_GEN_OBJECTS)
 
 
-CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp gen/gen_mm_ld .dep
+CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp gen/gen_mm_ld .dep src/asm_consts_gen.h gen/gen_asm_consts_gen_h
 
 .PHONY: depend clean strip
 
@@ -102,6 +102,11 @@ $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S
 
 src/mm.ld: gen/gen_mm_ld
 	$(SILENT)gen/gen_mm_ld > src/mm.ld
+
+src/scratch_asm.S: src/asm_consts_gen.h
+
+src/asm_consts_gen.h: gen/gen_asm_consts_gen_h
+	$(SILENT)gen/gen_asm_consts_gen_h > $@
 
 test/testcases/killthread: test/testcases/killthread.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lpthread

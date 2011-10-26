@@ -19,6 +19,7 @@
 #ifndef EXEC_CTX_H
 #define EXEC_CTX_H
 
+#include <stddef.h>
 #include "tls_segment.h"
 
 #define JMP_CACHE_SIZE (0x10000)
