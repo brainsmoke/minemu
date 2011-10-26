@@ -25,6 +25,7 @@ inline long get_tls_long(long offset)
 {
 	long ret;
 	__asm__ __volatile__ ("mov %%fs:(%1), %0":"=r"(ret): "r" (offset));
+	return ret;
 }
 
 #endif /* TLS_SEGMENT_H */
