@@ -29,13 +29,15 @@
 #include "error.h"
 #include "runtime.h"
 
-static short blocks[2000];
+#define BLOCK_SIZE 65536
+
+static short blocks[JIT_SIZE/BLOCK_SIZE];
 static long n_blocks;
 static unsigned long block_size;
 
 void jit_mm_init(void)
 {
-	block_size = 65536;
+	block_size = BLOCK_SIZE;
 	n_blocks = JIT_CODE_SIZE/block_size;
 	memset(blocks, 0, n_blocks*sizeof(short));
 	blocks[0] = n_blocks;
