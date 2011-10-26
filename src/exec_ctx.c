@@ -18,6 +18,8 @@
 
 #include "exec_ctx.h"
 
-extern exec_ctx_t ctx[MAX_THREADS];
-//long lock;
-
+void init_exec_ctx(void)
+{
+	init_tls(&ctx[0], sizeof(exec_ctx_t));
+	ctx[0].my_addr = &ctx[0];
+}

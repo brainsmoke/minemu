@@ -47,9 +47,6 @@
 .lcomm fault_page_3, 4096
 .global fault_page_3
 
-.lcomm jmp_cache, JMP_CACHE_MEM_SIZE
-.global jmp_cache
-
 .lcomm fd_type, 1024
 .global fd_type 
 

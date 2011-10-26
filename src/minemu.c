@@ -32,7 +32,7 @@
 #include "codemap.h"
 #include "sigwrap.h"
 #include "options.h"
-#include "tls_segment.h"
+#include "exec_ctx.h"
 
 long sysenter_reentry;
 
@@ -52,7 +52,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		progname = argv[0];
 
 	init_minemu_mem(envp);
-	init_tls(jmp_cache, JMP_CACHE_MEM_SIZE);
+	init_exec_ctx();
 	sigwrap_init();
 	jit_init();
 

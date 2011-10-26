@@ -72,4 +72,8 @@ inline exec_ctx_t *get_exec_ctx(void)
 	return (exec_ctx_t *)get_tls_long(offsetof(exec_ctx_t, my_addr));
 }
 
+extern exec_ctx_t ctx[MAX_THREADS];
+
+void init_exec_ctx(void);
+
 #endif /* EXEC_CTX_H */
