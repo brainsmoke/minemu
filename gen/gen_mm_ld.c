@@ -54,6 +54,10 @@ int main(void)
 	printf("ctx__size = 0x%lx;\n", sizeof(exec_ctx_t));
 	printf("ctx_array__size = 0x%lx;\n", sizeof(exec_ctx_t)*MAX_THREADS);
 	assert( (sizeof(exec_ctx_t) & 0xfff) == 0);
+	assert( (offsetof(exec_ctx_t, fault_page0) & 0xfff) == 0);
+	assert( (offsetof(exec_ctx_t, sigwrap_stack) & 0xfff) == 0);
+	assert( (offsetof(exec_ctx_t, jit_fragment_page) & 0xfff) == 0);
+	assert( (offsetof(exec_ctx_t, scratch_stack) & 0xfff) == 0);
 
 	exit(EXIT_SUCCESS);
 }
