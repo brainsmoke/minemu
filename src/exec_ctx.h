@@ -19,10 +19,10 @@
 #ifndef EXEC_CTX_H
 #define EXEC_CTX_H
 
+#include "tls_segment.h"
+
 #define JMP_CACHE_SIZE (0x10000)
 #define MAX_THREADS 32
-
-#ifndef __ASSEMBLER__
 
 typedef struct
 {
@@ -66,8 +66,9 @@ struct exec_ctx_s
 
 };
 
-exec_ctx_t *get_exec_ctx(void);
-
-#endif
+inline exec_ctx_t *get_exec_ctx(void)
+{
+	return (exec_ctx_t *)get_tls_long(offsetof(exec_ctx_t, my_addr));
+}
 
 #endif /* EXEC_CTX_H */

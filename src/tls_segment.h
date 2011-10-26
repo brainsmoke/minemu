@@ -21,4 +21,10 @@
 
 void init_tls(void *base_addr, unsigned long size);
 
+inline long get_tls_long(long offset)
+{
+	long ret;
+	__asm__ __volatile__ ("mov %%fs:(%1), %0":"=r"(ret): "r" (offset));
+}
+
 #endif /* TLS_SEGMENT_H */
