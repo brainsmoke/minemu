@@ -36,9 +36,6 @@
 .lcomm fault_page_3, 4096
 .global fault_page_3
 
-.lcomm old_sigset, 8
-.global old_sigset
-
 .lcomm user_eip, 4
 .global user_eip
 .lcomm jit_eip, 4

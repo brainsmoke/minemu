@@ -68,7 +68,7 @@ struct exec_ctx_s
 	long ijmp_taint;
 	long taint_tmp;
 
-	kernel_sigset_t sigset;
+	kernel_sigset_t old_sigset;
 
 	char fd_type[1024];
 };

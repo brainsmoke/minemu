@@ -41,8 +41,6 @@
  * atomic when executed natively
  */
 
-extern kernel_sigset_t old_sigset;
-
 /* for the emulation of some some non-blocking syscalls, we block all signals
  *
  */
@@ -50,12 +48,12 @@ int try_block_signals(void)
 {
 	kernel_sigset_t blockall;
 	memset(&blockall, 0, sizeof(blockall));
-	return !syscall_intr(__NR_sigprocmask, SIG_BLOCK, (long)&blockall, (long)&old_sigset, 0,0,0);
+	return !syscall_intr(__NR_sigprocmask, SIG_BLOCK, (long)&blockall, (long)&get_exec_ctx()->old_sigset, 0,0,0);
 }
 
 void unblock_signals(void)
 {
-	syscall_intr(__NR_sigprocmask, SIG_SETMASK, (long)&old_sigset, (long)NULL, 0,0,0);
+	syscall_intr(__NR_sigprocmask, SIG_SETMASK, (long)&get_exec_ctx()->old_sigset, (long)NULL, 0,0,0);
 }
 
 /* our sighandler bookkeeping:
