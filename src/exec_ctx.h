@@ -20,6 +20,7 @@
 #define EXEC_CTX_H
 
 #include <stddef.h>
+#include "sigwrap.h"
 #include "tls_segment.h"
 
 #define JMP_CACHE_SIZE (0x10000)
@@ -46,12 +47,14 @@ struct exec_ctx_s
 
 	char jit_fragment_page[0x1000 - 2*sizeof(ijmp_t) -
 	                                2*sizeof(long *) -
-	                                  sizeof(exec_ctx_t *)];
+	                                  sizeof(exec_ctx_t *) - 
+	                                  sizeof(kernel_sigset_t)];
 	ijmp_t jit_return_addr;
 	ijmp_t runtime_ijmp_addr;
 	long *sigwrap_stack_top;
 	long *scratch_stack_top;
 	exec_ctx_t *my_addr;
+	kernel_sigset_t sigset;
 
 	long scratch_stack[0x2000 - 7];
 
