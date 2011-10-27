@@ -33,6 +33,7 @@
 #include "debug.h"
 #include "taint.h"
 #include "taint_dump.h"
+#include "exec_ctx.h"
 
 /*
  * wrapper around signals, preventing signals being delivered on the
@@ -294,9 +295,9 @@ void user_rt_sigreturn(void)
 	context->eip = (long)state_restore; /* not user code       */
 	frame.uc.uc_stack = (stack_t)
 	{
-		.ss_sp = sigwrap_stack_bottom,
+		.ss_sp = &get_exec_ctx()->sigwrap_stack,
 		.ss_flags = 0,
-		.ss_size = sigwrap_stack-sigwrap_stack_bottom
+		.ss_size = sizeof( ctx[0].sigwrap_stack )
 	};
 	load_rt_sigframe(__NR_rt_sigreturn, &frame);
 }
@@ -307,9 +308,9 @@ static void altstack_setup(void)
 
 	stack_t sigwrap_altstack =
 	{
-		.ss_sp = sigwrap_stack_bottom,
+		.ss_sp = &get_exec_ctx()->sigwrap_stack,
 		.ss_flags = 0,
-		.ss_size = sigwrap_stack-sigwrap_stack_bottom
+		.ss_size = sizeof( ctx[0].sigwrap_stack )
 	};
 
 	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &user_altstack)) )

@@ -22,14 +22,6 @@
 .lcomm ctx, CTX_ARRAY__SIZE
 .global ctx
 
-.lcomm fault_page_0, 4096
-.global fault_page_0
-
-.lcomm sigwrap_stack_bottom, 32764             # signal stack
-.global sigwrap_stack_bottom                   #
-.lcomm sigwrap_stack, 4                        #
-.global sigwrap_stack                          #
-
 .lcomm fault_page_1, 4096
 .global fault_page_1
 

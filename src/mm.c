@@ -270,7 +270,6 @@ void init_minemu_mem(char **envp)
 		                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 		                 -1, 0);
 
-	ret |= sys_munmap(FAULT_PAGE_0, PG_SIZE);
 	ret |= sys_munmap(FAULT_PAGE_1, PG_SIZE);
 	ret |= sys_munmap(FAULT_PAGE_2, PG_SIZE);
 	ret |= sys_munmap(FAULT_PAGE_3, PG_SIZE);
