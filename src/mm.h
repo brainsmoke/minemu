@@ -102,8 +102,7 @@
 extern char runtime_code_start[], runtime_code_size[],
             runtime_data_start[], runtime_data_size[],
             jit_code_start[], jit_code_size[],
-            jit_data_size[],
-            fault_page_1[], fault_page_2[], fault_page_3[];
+            jit_data_size[];
 
 #define SYM_VAR(a) ((unsigned long)a)
 

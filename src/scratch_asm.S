@@ -22,12 +22,3 @@
 .lcomm ctx, CTX_ARRAY__SIZE
 .global ctx
 
-.lcomm fault_page_1, 4096
-.global fault_page_1
-
-.lcomm fault_page_2, 4096
-.global fault_page_2
-
-.lcomm fault_page_3, 4096
-.global fault_page_3
-
