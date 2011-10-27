@@ -16,6 +16,7 @@
 # limitations under the License.
 
 .text
+#include "asm_consts_gen.h"
 #include "scratch.h"
 
 #
@@ -61,7 +62,7 @@ xor %esi, %esi
 xor %edi, %edi
 pinsrd $0, %ecx, %xmm4
 pinsrd $0, %ecx, %xmm3 # cleared %eax
-jmp *runtime_ijmp_addr
+jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global int80_emu
 .type int80_emu, @function
@@ -74,7 +75,7 @@ pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl user_eip, %eax
-jmp *runtime_ijmp_addr
+jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
@@ -88,7 +89,7 @@ pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl sysenter_reentry, %eax
-jmp *runtime_ijmp_addr
+jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global state_restore
 .type state_restore, @function
@@ -97,5 +98,5 @@ pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl user_eip, %eax
-jmp *runtime_ijmp_addr
+jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 

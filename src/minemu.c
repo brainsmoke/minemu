@@ -120,9 +120,6 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	else
 		sysenter_reentry = (long)&vdso[off];
 
-	jit_return_addr = jit_return;
-	runtime_ijmp_addr = runtime_ijmp;
-
 	add_code_region(vdso, 0x1000, 0, 0, 0, 0); /* vdso */
 
 	emu_start(prog.entry, prog.sp);

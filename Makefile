@@ -55,6 +55,7 @@ OBJECTS=\
 
 CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp gen/gen_mm_ld .dep src/asm_consts_gen.h gen/gen_asm_consts_gen_h
 
+.PHONY: test/emu/test_jit_fragment
 .PHONY: depend clean strip
 
 all: depend $(TARGETS)
@@ -143,8 +144,8 @@ test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o src/taint_code.o 
 test/emu/cmovtest: test/emu/cmovtest.o src/opcodes.o src/syscalls_asm.o src/scratch_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/test_jit_fragment: test/emu/test_jit_fragment.o src/jit_fragment.o src/opcodes.o src/syscalls_asm.o src/scratch_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o
-	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
+#test/emu/test_jit_fragment: test/emu/test_jit_fragment.o src/jit_fragment.o src/opcodes.o src/syscalls_asm.o src/scratch_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o src/runtime_asm.o src/reloc_runtime_asm.o
+#	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/test_jit_lookup: test/emu/test_jit_lookup.o $(filter-out src/minemu.o, src/mm.ld src/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))
 	$(EMU_LINK) $(EMU_LDFLAGS) -o $@ -T src/minemu.ld test/emu/test_jit_lookup.o $(filter-out src/minemu.o, $(EMU_OBJECTS) $(EMU_ASM_OBJECTS))

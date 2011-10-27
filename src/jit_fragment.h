@@ -23,8 +23,6 @@
 
 #include "opcodes.h"
 
-/* non-re-entrant */
-char *jit_fragment(char *code, long len, char *entry);
-char *jit_fragment_run(struct sigcontext *context);
+void finish_instruction(struct sigcontext *context);
 
 #endif /* JIT_FRAGMENT_H */

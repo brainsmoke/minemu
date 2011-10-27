@@ -29,9 +29,6 @@ extern unsigned long scratch_stack[];
 extern long user_eip;
 extern long jit_eip;
 
-extern long (*jit_return_addr)(void);
-extern long (*runtime_ijmp_addr)(void);
-
 extern long ijmp_taint;
 
 #endif

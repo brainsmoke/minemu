@@ -19,6 +19,7 @@
 
 #include <string.h>
 
+#include "jit.h"
 #include "jit_code.h"
 #include "jit_fragment.h"
 #include "scratch.h"
@@ -184,21 +185,72 @@ static char *jit_fragment_translate(char *addr, long len, char *entry,
 	return jit_entry;
 }
 
-char *jit_fragment(char *fragment, long len, char *entry)
+static char *jit_fragment(char *fragment, long len, char *entry)
 {
 	char *jit_entry;
 	char *mapping[len+1];
 	char *jit_fragment_page = get_exec_ctx()->jit_fragment_page;
 	long code_sz = sizeof( ctx[0].jit_fragment_page );
 
-	sys_mprotect(jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
-
 	/* two-pass, we build up the jump-mapping beforehand */
 	            jit_fragment_translate(fragment, len, entry, jit_fragment_page, code_sz, mapping);
 	jit_entry = jit_fragment_translate(fragment, len, entry, jit_fragment_page, code_sz, mapping);
 
-	sys_mprotect(jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
-
 	return jit_entry;
 }
+
+char *jit_fragment_run(struct sigcontext *context);
+
+/* INTERCAL's COME FROM is for wimps :-)
+ *
+ */
+void finish_instruction(struct sigcontext *context)
+{
+	exec_ctx_t *local_ctx = get_exec_ctx();
+	char *orig_eip, *jit_op_start;
+	long jit_op_len;
+
+	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
+
+	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
+	{
+		if ( (char *)context->eip == jit_op_start ) /* we don't have to do anything */
+		{
+			context->eip = (long)orig_eip; /* set return instruction pointer to user eip */
+			return;
+		}
+		/* jit the jit! */
+		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
+	}
+	else if ( between(syscall_intr_critical_start, syscall_intr_critical_end, (char *)context->eip) )
+	{
+		context->eip = (long)syscall_intr_critical_start;
+	}
+	else if ( between(runtime_cache_resolution_start, runtime_cache_resolution_end, (char *)context->eip) )
+	{
+		context->eip += reloc_runtime_cache_resolution_start-runtime_cache_resolution_start;
+	}
+
+	local_ctx->runtime_ijmp_addr = reloc_runtime_ijmp;
+	local_ctx->jit_return_addr = reloc_jit_return;
+
+	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+	jit_fragment_run(context);
+	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
+
+	local_ctx->runtime_ijmp_addr = runtime_ijmp;
+	local_ctx->jit_return_addr = jit_return;
+
+	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+
+	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
+	if ( (char *)context->eip != jit_op_start )
+		die("instruction pointer (%x) not at opcode start after jit_fragment_run()", context->eip);
+
+	context->eip = (long)orig_eip;
+
+	if (local_ctx->jit_fragment_restartsys)
+		context->eip -= 2;
+}
+
 

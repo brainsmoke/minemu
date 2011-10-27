@@ -43,10 +43,6 @@
 .global user_eip
 .lcomm jit_eip, 4
 .global jit_eip
-.lcomm jit_return_addr, 4
-.global jit_return_addr
-.lcomm runtime_ijmp_addr, 4
-.global runtime_ijmp_addr
 .global ijmp_taint
 .lcomm ijmp_taint, 4
 

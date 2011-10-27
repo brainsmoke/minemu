@@ -16,6 +16,7 @@
 # limitations under the License.
 
 .text
+#include "asm_consts_gen.h"
 #include "scratch.h"
 
 .global runtime_cache_resolution_start
@@ -138,7 +139,7 @@ lea 4(%esp), %esp
 movl %eax, jit_eip
 popf
 pop %esp
-jmp *jit_return_addr
+jmp *%fs:CTX__JIT_RETURN_ADDR
 
 #
 # total miss, we have to translate some code

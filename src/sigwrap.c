@@ -64,49 +64,6 @@ void unblock_signals(void)
 static stack_t user_altstack;
 static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
-/* INTERCAL's COME FROM is for wimps :-)
- *
- */
-static void finish_instruction(struct sigcontext *context)
-{
-	char *orig_eip, *jit_op_start;
-	long jit_op_len;
-
-	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
-	{
-		if ( (char *)context->eip == jit_op_start ) /* we don't have to do anything */
-		{
-			context->eip = (long)orig_eip; /* set return instruction pointer to user eip */
-			return;
-		}
-		/* jit the jit! */
-		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
-	}
-	else if ( between(syscall_intr_critical_start, syscall_intr_critical_end, (char *)context->eip) )
-	{
-		context->eip = (long)syscall_intr_critical_start;
-	}
-	else if ( between(runtime_cache_resolution_start, runtime_cache_resolution_end, (char *)context->eip) )
-	{
-		context->eip += reloc_runtime_cache_resolution_start-runtime_cache_resolution_start;
-	}
-
-	runtime_ijmp_addr = reloc_runtime_ijmp;
-	jit_return_addr = reloc_jit_return;
-	jit_fragment_run(context);
-	runtime_ijmp_addr = runtime_ijmp;
-	jit_return_addr = jit_return;
-
-	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
-	if ( (char *)context->eip != jit_op_start )
-		die("instruction pointer (%x) not at opcode start after jit_fragment_run()", context->eip);
-
-	context->eip = (long)orig_eip;
-
-	if (get_exec_ctx()->jit_fragment_restartsys)
-		context->eip -= 2;
-}
-
 #define __USER_CS (0x73)
 #define __USER_DS (0x7b)
 
