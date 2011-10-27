@@ -23,7 +23,7 @@
 runtime_cache_resolution_start:
 
 taint_fault:
-movl %ecx, ijmp_taint
+movl %ecx, %fs:CTX__IJMP_TAINT
 movl %eax, user_eip
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax

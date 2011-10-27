@@ -43,6 +43,3 @@
 .global user_eip
 .lcomm jit_eip, 4
 .global jit_eip
-.global ijmp_taint
-.lcomm ijmp_taint, 4
-
