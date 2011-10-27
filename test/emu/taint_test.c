@@ -27,8 +27,9 @@
 #include "codeexec.h"
 #include "taint_code.h"
 #include "opcodes.h"
+#include "exec_ctx.h"
 
-long taint_tmp[1];
+char jit_return[1],runtime_ijmp[1];
 
 long imm_at(char *addr, long size)
 {
@@ -1018,6 +1019,8 @@ int main(int argc, char **argv)
 	memcpy(&fx_orig[256], taint_orig, 8*sizeof(long));
 	offset = (long)taintmem_test - (long)mem_test;
 	codeexec(NULL, 0, (long *)regs_orig);
+
+	init_exec_ctx();
 
 	test_reg2(taint_copy_reg32_to_reg32, ref_copy_reg32_to_reg32);
 	test_reg2(taint_copy_reg16_to_reg16, ref_copy_reg16_to_reg16);

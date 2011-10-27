@@ -24,8 +24,7 @@
 #include "error.h"
 //#include "opcodes.h"
 #include "jit_code.h"
-
-extern unsigned long taint_tmp[1];
+#include "exec_ctx.h"
 
 /*       .____.____.____.____.
  * xmm5  |    scratch reg    |
@@ -1240,19 +1239,19 @@ int taint_erase_mem8(char *dest, char *mrm, long offset)
 /* blegh */
 int taint_swap_reg8_reg8(char *dest, int reg1, int reg2)
 {
-	memcpy(dest, "\x66\x0f\x3a\x14\x35????\x00"
-	             "\x66\x0f\x3a\x14\x35????\x00"
-	             "\x66\x0f\x3a\x20\x35????\x00"
-	             "\x66\x0f\x3a\x20\x35????\x00", 40);
+	memcpy(dest, "\x64\x66\x0f\x3a\x14\x35????\x00"
+	             "\x64\x66\x0f\x3a\x14\x35????\x00"
+	             "\x64\x66\x0f\x3a\x20\x35????\x00"
+	             "\x64\x66\x0f\x3a\x20\x35????\x00", 44);
 
-	dest[ 9] = dest[29] = reg8_index[reg1];
-	dest[19] = dest[39] = reg8_index[reg2];
+	dest[10] = dest[32] = reg8_index[reg1];
+	dest[21] = dest[43] = reg8_index[reg2];
 
-	imm_to(&dest[ 5],   (long)taint_tmp);
-	imm_to(&dest[15], 1+(long)taint_tmp);
-	imm_to(&dest[25], 1+(long)taint_tmp);
-	imm_to(&dest[35],   (long)taint_tmp);
-	return 40;
+	imm_to(&dest[ 6],   offsetof(exec_ctx_t, taint_tmp));
+	imm_to(&dest[17], 1+offsetof(exec_ctx_t, taint_tmp));
+	imm_to(&dest[28], 1+offsetof(exec_ctx_t, taint_tmp));
+	imm_to(&dest[39],   offsetof(exec_ctx_t, taint_tmp));
+	return 44;
 }
 
 int taint_swap_reg8_mem8(char *dest, char *mrm, long offset)

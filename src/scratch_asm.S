@@ -47,8 +47,6 @@
 .global jit_return_addr
 .lcomm runtime_ijmp_addr, 4
 .global runtime_ijmp_addr
-.global taint_tmp
-.lcomm taint_tmp, 4
 .global ijmp_taint
 .lcomm ijmp_taint, 4
 
