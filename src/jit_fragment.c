@@ -23,7 +23,6 @@
 #include "jit.h"
 #include "jit_code.h"
 #include "jit_fragment.h"
-#include "scratch.h"
 #include "runtime.h"
 #include "error.h"
 #include "syscalls.h"
@@ -35,9 +34,6 @@
  * So we need to translate our jit code of one emulated instruction into code which
  * switches back after that instruction is done.
  */
-
-typedef long (*exit_func_t)(void);
-const exit_func_t jit_fragment_exit_addr = jit_fragment_exit;
 
 static long jit_fragment_jcc(char *dest, instr_t *instr, char *jump_jit_addr)
 {
