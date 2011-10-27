@@ -20,7 +20,6 @@
 #include <linux/unistd.h>
 #include <string.h>
 
-#include "scratch.h"
 #include "runtime.h"
 #include "jit.h"
 #include "mm.h"

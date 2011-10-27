@@ -23,7 +23,6 @@
 #include <fcntl.h>
 
 #include "mm.h"
-#include "scratch.h"
 #include "error.h"
 #include "sigwrap.h"
 #include "syscalls.h"

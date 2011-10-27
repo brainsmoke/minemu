@@ -22,7 +22,6 @@
 
 #include "syscalls.h"
 #include "sigwrap.h"
-#include "scratch.h"
 #include "runtime.h"
 #include "error.h"
 #include "mm.h"

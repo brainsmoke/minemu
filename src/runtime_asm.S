@@ -17,7 +17,6 @@
 
 .text
 #include "asm_consts_gen.h"
-#include "scratch.h"
 
 .global runtime_cache_resolution_start
 runtime_cache_resolution_start:

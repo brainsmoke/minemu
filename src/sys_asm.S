@@ -17,7 +17,6 @@
 
 .text
 #include "asm_consts_gen.h"
-#include "scratch.h"
 
 #
 # syscall wrapper

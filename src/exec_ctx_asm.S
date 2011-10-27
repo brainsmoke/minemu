@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#include "scratch.h"
 #include "asm_consts_gen.h"
 .bss
 #.balign 4096 # .{b,p2,}align doesn't seem to work

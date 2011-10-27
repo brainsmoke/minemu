@@ -27,7 +27,6 @@
 #include "error.h"
 #include "mm.h"
 #include "runtime.h"
-#include "scratch.h"
 #include "jit.h"
 #include "jit_cache.h"
 #include "codemap.h"

@@ -19,8 +19,6 @@
 #ifndef RUNTIME_H
 #define RUNTIME_H
 
-#include "scratch.h"
-
 void emu_start(void *eip, long *esp);
 void state_restore(void);
 

@@ -22,7 +22,6 @@
 
 #include "jit_code.h"
 #include "jmp_cache.h"
-#include "scratch.h"
 #include "runtime.h"
 #include "error.h"
 #include "taint_code.h"

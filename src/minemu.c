@@ -27,7 +27,6 @@
 #include "lib.h"
 #include "mm.h"
 #include "runtime.h"
-#include "scratch.h"
 #include "jit.h"
 #include "codemap.h"
 #include "sigwrap.h"

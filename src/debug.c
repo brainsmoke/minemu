@@ -27,7 +27,6 @@
 #include "lib.h"
 #include "mm.h"
 #include "jit.h"
-#include "scratch.h"
 #include "error.h"
 #include "sigwrap.h"
 #include "syscalls.h"
