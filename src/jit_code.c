@@ -18,6 +18,7 @@
 
 
 #include <string.h>
+#include <stddef.h>
 
 #include "jit_code.h"
 #include "jmp_cache.h"
@@ -28,6 +29,7 @@
 #include "taint.h"
 #include "debug.h"
 #include "mm.h"
+#include "exec_ctx.h"
 
 int call_strategy = PRESEED_ON_CALL;
 
@@ -518,9 +520,9 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 		dest,
 
 		"66 0f ef ed"    /* clear ijmp taint register (pxor %xmm5,%xmm5 */
-		"C7 05 L L",     /* movl $post_addr, user_eip */
+		"64 C7 05 L L",     /* movl $post_addr, user_eip */
 
-		&user_eip, &instr->addr[instr->len]
+		offsetof(exec_ctx_t, user_eip), &instr->addr[instr->len]
 	);
 
 	len += jump_to(&dest[len], (void *)(long)int80_emu);

@@ -26,9 +26,6 @@
 
 extern unsigned long scratch_stack[];
 
-extern long user_eip;
-extern long jit_eip;
-
 #endif
 
 #endif /* SCRATCH_H */

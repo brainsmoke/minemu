@@ -45,11 +45,12 @@ struct exec_ctx_s
 
 	long sigwrap_stack[0x800];
 
-	char jit_fragment_page[0x1000 - 2*sizeof(ijmp_t) -
+	char jit_fragment_page[0x1000 - 3*sizeof(ijmp_t) -
 	                                2*sizeof(long *) -
 	                                  sizeof(exec_ctx_t *)];
 	ijmp_t jit_return_addr;      /* normally */
 	ijmp_t runtime_ijmp_addr;    /*          */
+	ijmp_t jit_fragment_exit_addr;
 	long *sigwrap_stack_top;     /*   read   */
 	long *scratch_stack_top;     /*          */
 	exec_ctx_t *my_addr;         /*   only   */

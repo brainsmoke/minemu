@@ -18,6 +18,7 @@
 
 
 #include <string.h>
+#include <stddef.h>
 
 #include "jit.h"
 #include "jit_code.h"
@@ -56,10 +57,10 @@ static long jit_fragment_jcc_exit(char *dest, instr_t *instr, char *jump_addr)
 		dest,
 
 		"70+ 09"                                /* jcc end (inversed)               */
-		"C7 05 L L",                            /* movl $addr, jit_eip              */
+		"64 C7 05 L L",                         /* movl $addr, jit_eip              */
 
 		(instr->addr[instr->mrm-1]^1) & 0x0f,
-		&jit_eip, jump_addr
+		offsetof(exec_ctx_t, jit_eip), jump_addr
 	);
 	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }
@@ -74,9 +75,9 @@ static long jit_fragment_jump_exit(char *dest, char *jump_addr)
 	int len = gen_code(
 		dest,
 
-		"C7 05 L L",                            /* movl $addr, jit_eip               */
+		"64 C7 05 L L",                            /* movl $addr, jit_eip               */
 
-		&jit_eip, jump_addr
+		offsetof(exec_ctx_t, jit_eip), jump_addr
 	);
 	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }

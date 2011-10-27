@@ -72,7 +72,7 @@ pop %edx                             # flags
 movl %edx, 0x40(%eax)
 pop %edx                             # user %eax
 movl %edx, 0x2C(%eax)
-movl jit_eip, %ebp                   # %eip
+movl %fs:CTX__JIT_EIP, %ebp          # %eip
 movl %ebp, 0x38(%eax)                # (struct sigcontext *)%eax->eip
 
 popf

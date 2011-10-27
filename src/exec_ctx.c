@@ -35,6 +35,7 @@ void set_exec_ctx(exec_ctx_t *local_ctx)
 
 	local_ctx->jit_return_addr = jit_return;
 	local_ctx->runtime_ijmp_addr = runtime_ijmp;
+	local_ctx->jit_fragment_exit_addr = jit_fragment_exit;
 
 	local_ctx->sigwrap_stack_top = &local_ctx->sigwrap_stack[sizeof(local_ctx->sigwrap_stack)/sizeof(long)-1];
 	local_ctx->scratch_stack_top = &local_ctx->user_esp;

@@ -24,7 +24,7 @@ runtime_cache_resolution_start:
 
 taint_fault:
 movl %ecx, %fs:CTX__IJMP_TAINT
-movl %eax, user_eip
+movl %eax, %fs:CTX__USER_EIP
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
@@ -75,16 +75,16 @@ taint_ok:
 movl %fs: (, %edx, 8), %ecx         # load mangled cached address
 movl %fs:4(, %edx, 8), %edx
 lea (%ecx,%eax,1), %ecx             # %ecx is 1 if there is a cache hit
-movl %edx, jit_eip
+movl %edx, %fs:CTX__JIT_EIP
 loop cache_lookup                   # branch taken on cache miss
 
 .global jit_return
 .type jit_return, @function
-jit_return: # jit_eip contains jump address
+jit_return: # exec_ctx->jit_eip contains jump address
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
-jmp *jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
+jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
 #
 # END FAST PATH
 #
@@ -107,7 +107,7 @@ jne cache_lookup_loop
 jmp cache_miss
 cache_hit:
 mov %fs:4(, %edx, 8), %edx
-movl %edx, jit_eip
+movl %edx, %fs:CTX__JIT_EIP
 popf
 pop %esp
 jmp jit_return
@@ -136,7 +136,7 @@ call runtime_jit     # (char *addr);
 
 lookup_hit:
 lea 4(%esp), %esp
-movl %eax, jit_eip
+movl %eax, %fs:CTX__JIT_EIP
 popf
 pop %esp
 jmp *%fs:CTX__JIT_RETURN_ADDR

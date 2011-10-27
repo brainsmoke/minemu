@@ -29,7 +29,25 @@
 #include "opcodes.h"
 #include "exec_ctx.h"
 
-char jit_return[1],runtime_ijmp[1];
+int fd_vprintf(int fd, const char *format, va_list ap)
+{
+    return vprintf(format, ap);
+}
+
+int fd_printf(int fd, const char *format, ...)
+{
+    int ret;
+    va_list ap;
+    va_start(ap, format);
+    ret=fd_vprintf(fd, format, ap);
+    va_end(ap);
+    return ret;
+}
+
+void runtime_ijmp(void) { die("calling placeholder"); }
+void jit_return(void) { die("calling placeholder"); }
+void jit_fragment_exit(void) { die("calling placeholder"); }
+
 
 long imm_at(char *addr, long size)
 {
@@ -45,8 +63,6 @@ void imm_to(char *dest, long imm)
 {
 	memcpy(dest, &imm, sizeof(long));
 }
-
-int die() { return -1; }
 
 void fill(char *bin, int size)
 {

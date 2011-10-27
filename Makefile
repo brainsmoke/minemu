@@ -86,10 +86,10 @@ src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp: %.o-tmp: %.S
 	$(AS) -c $(EMU_CFLAGS) -o $@ $<
 
 src/runtime_asm.o: %.o: %.o-tmp
-	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_eip $< $@
+	$(OBJCOPY) --redefine-sym offset__jit_eip_HACK=offset__jit_eip $< $@
 
 src/reloc_runtime_asm.o: %.o: %.o-tmp
-	$(OBJCOPY) --redefine-sym jit_eip_HACK=jit_fragment_exit_addr \
+	$(OBJCOPY) --redefine-sym offset__jit_eip_HACK=offset__jit_fragment_exit_addr \
 	           --redefine-sym runtime_cache_resolution_start=reloc_runtime_cache_resolution_start \
 	           --redefine-sym runtime_cache_resolution_end=reloc_runtime_cache_resolution_end \
 	           --redefine-sym runtime_ret=reloc_runtime_ret \
@@ -138,7 +138,7 @@ test/emu/shellcode: test/emu/shellcode.o test/emu/debug.o test/emu/codeexec.o
 test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o src/taint_code.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o src/taint_code.o test/emu/debug.o src/tls_segment.o src/exec_ctx.o src/syscalls_asm.o src/scratch_asm.S
+test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o src/taint_code.o test/emu/debug.o src/tls_segment.o src/exec_ctx.o src/syscalls_asm.o src/scratch_asm.S src/error.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/cmovtest: test/emu/cmovtest.o src/opcodes.o src/syscalls_asm.o src/scratch_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o

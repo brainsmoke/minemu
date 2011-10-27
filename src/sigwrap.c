@@ -164,7 +164,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	if ( (sig == SIGSEGV) || (sig == SIGILL) )
 	{
-		user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
+		get_exec_ctx()->user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
 		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
 		                context->esp, context->ebp, context->esi, context->edi, };
 		do_taint_dump(regs);
@@ -203,7 +203,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	context->ss = __USER_DS;
 	context->cs = __USER_CS;
 
-	user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
+	get_exec_ctx()->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
 	context->eip = (long)state_restore; /* code, not user code                     */
 	context->eax = sig;
 
@@ -235,7 +235,7 @@ void user_sigreturn(void)
 	struct kernel_sigframe frame = *sigframe;
 	struct sigcontext *context = &frame.sc;
 	
-	user_eip = context->eip;            /* jump into jit code, */
+	get_exec_ctx()->user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore; /* not user code       */
 	load_sigframe(__NR_sigreturn, &frame);
 }
@@ -246,7 +246,7 @@ void user_rt_sigreturn(void)
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *)&esp[-1];
 	struct kernel_rt_sigframe frame = *rt_sigframe;
 	struct sigcontext *context = &frame.uc.uc_mcontext;
-	user_eip = context->eip;            /* jump into jit code, */
+	get_exec_ctx()->user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore; /* not user code       */
 	frame.uc.uc_stack = (stack_t)
 	{

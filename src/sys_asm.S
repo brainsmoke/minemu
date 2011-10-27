@@ -74,7 +74,7 @@ pop %esp
 pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
-movl user_eip, %eax
+movl %fs:CTX__USER_EIP, %eax
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global linux_sysenter_emu
@@ -97,6 +97,6 @@ state_restore:
 pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
-movl user_eip, %eax
+movl %fs:CTX__USER_EIP, %eax
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 

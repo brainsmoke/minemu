@@ -33,6 +33,8 @@ int main(void)
 	printf(".user_end = 0x%lx;\n", USER_END);
 	printf(".jit_end = 0x%lx;\n", JIT_END);
 	printf("minemu_stack_bottom = 0x%lx;\n", MINEMU_STACK_BOTTOM);
+	printf("offset__jit_fragment_exit_addr = 0x%lx;\n", offsetof(exec_ctx_t, jit_fragment_exit_addr));
+	printf("offset__jit_eip = 0x%lx;\n", offsetof(exec_ctx_t, jit_eip));
 
 	exit(EXIT_SUCCESS);
 }
