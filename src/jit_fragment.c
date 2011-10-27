@@ -27,6 +27,7 @@
 #include "syscalls.h"
 #include "mm.h"
 #include "debug.h"
+#include "exec_ctx.h"
 
 /* On the event of a signal we may need to finish the emulation of an instruction.
  * So we need to translate our jit code of one emulated instruction into code which
@@ -187,14 +188,16 @@ char *jit_fragment(char *fragment, long len, char *entry)
 {
 	char *jit_entry;
 	char *mapping[len+1];
+	char *jit_fragment_page = get_exec_ctx()->jit_fragment_page;
+	long code_sz = sizeof( ctx[0].jit_fragment_page );
 
 	sys_mprotect(jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
 
 	/* two-pass, we build up the jump-mapping beforehand */
-	            jit_fragment_translate(fragment, len, entry, jit_fragment_page, PG_SIZE, mapping);
-	jit_entry = jit_fragment_translate(fragment, len, entry, jit_fragment_page, PG_SIZE, mapping);
+	            jit_fragment_translate(fragment, len, entry, jit_fragment_page, code_sz, mapping);
+	jit_entry = jit_fragment_translate(fragment, len, entry, jit_fragment_page, code_sz, mapping);
 
-	sys_mprotect(jit_fragment_page, PG_SIZE, PROT_EXEC);
+	sys_mprotect(jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
 
 	return jit_entry;
 }

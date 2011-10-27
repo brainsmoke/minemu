@@ -25,7 +25,6 @@
 #ifndef __ASSEMBLER__
 
 extern unsigned long scratch_stack[];
-extern char jit_fragment_page[];
 
 extern long jit_fragment_restartsys;
 extern long jit_fragment_running;

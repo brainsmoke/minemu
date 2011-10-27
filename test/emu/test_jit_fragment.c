@@ -27,6 +27,7 @@
 #include "hexdump.h"
 #include "jit_code.h"
 #include "taint.h"
+#include "exec_ctx.h"
 
 char *jit_fragment_exit_addr;
 
@@ -182,8 +183,6 @@ char *tests[] =
 	NULL
 };
 
-extern char jit_fragment_page[];
-
 long common_len(const char *s1, const char *s2)
 {
 	long i;
@@ -197,6 +196,7 @@ int main(void)
 	long i, entry_off, len, jit_len;
 	char code[256];
 	char diff_hack[4096];
+	char *jit_fragment_page = get_exec_ctx()->jit_fragment_page;
 
 	for (i=0; tests[i]; i++)
 	{

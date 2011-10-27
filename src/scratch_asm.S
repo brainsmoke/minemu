@@ -33,9 +33,6 @@
 .lcomm fault_page_2, 4096
 .global fault_page_2
 
-.lcomm jit_fragment_page, 4096
-.global jit_fragment_page
-
 .lcomm fault_page_3, 4096
 .global fault_page_3
 
