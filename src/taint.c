@@ -29,8 +29,7 @@
 #include "lib.h"
 #include "mm.h"
 #include "taint.h"
-
-extern char fd_type[1024];
+#include "exec_ctx.h"
 
 int taint_flag = TAINT_ON;
 
@@ -49,6 +48,8 @@ enum
 
 int is_socket(int fd)
 {
+	char *fd_type = get_exec_ctx()->fd_type;
+
 	if ( (fd > 1023) || (fd < 0) )
 		return 0;
 
@@ -67,7 +68,7 @@ int is_socket(int fd)
 void set_fd(int fd, int type)
 {
 	if ( (fd < 1024) && (fd > -1) )
-		fd_type[fd] = type;
+		get_exec_ctx()->fd_type[fd] = type;
 }
 
 void taint_mem(void *mem, unsigned long size, int type)
@@ -109,7 +110,7 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 			return;
 		case __NR_dup:
 		case __NR_dup2:
-			set_fd( ret, fd_type[arg1]);
+			set_fd( ret, get_exec_ctx()->fd_type[arg1]);
 			return;
 		case __NR_pipe:
 			set_fd( ((long *)arg1)[0], FD_SOCKET);

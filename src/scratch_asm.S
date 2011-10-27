@@ -39,9 +39,6 @@
 .lcomm fault_page_3, 4096
 .global fault_page_3
 
-.lcomm fd_type, 1024
-.global fd_type 
-
 .lcomm old_sigset, 8
 .global old_sigset
 
