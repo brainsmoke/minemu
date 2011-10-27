@@ -230,23 +230,27 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 void user_sigreturn(void)
 {
-	long *esp = (long *)scratch_stack[0]; /* ugly */
+	exec_ctx_t *local_ctx = get_exec_ctx();
+
+	long *esp = (long *)local_ctx->user_esp;
 	struct kernel_sigframe *sigframe = (struct kernel_sigframe *)&esp[-2];
 	struct kernel_sigframe frame = *sigframe;
 	struct sigcontext *context = &frame.sc;
 	
-	get_exec_ctx()->user_eip = context->eip;            /* jump into jit code, */
+	local_ctx->user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore; /* not user code       */
 	load_sigframe(__NR_sigreturn, &frame);
 }
 
 void user_rt_sigreturn(void)
 {
-	long *esp = (long *)scratch_stack[0]; /* ugly */
+	exec_ctx_t *local_ctx = get_exec_ctx();
+
+	long *esp = (long *)local_ctx->user_esp;
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *)&esp[-1];
 	struct kernel_rt_sigframe frame = *rt_sigframe;
 	struct sigcontext *context = &frame.uc.uc_mcontext;
-	get_exec_ctx()->user_eip = context->eip;            /* jump into jit code, */
+	local_ctx->user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore; /* not user code       */
 	frame.uc.uc_stack = (stack_t)
 	{

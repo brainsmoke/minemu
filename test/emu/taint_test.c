@@ -28,6 +28,7 @@
 #include "taint_code.h"
 #include "opcodes.h"
 #include "exec_ctx.h"
+#include "error.h"
 
 int fd_vprintf(int fd, const char *format, va_list ap)
 {

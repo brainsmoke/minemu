@@ -49,9 +49,9 @@ emu_start: # (long eip, long esp)
 movl 4(%esp), %esi           # load user %eip from arg1
 movl 8(%esp), %ebp           # load user's stack pointer from arg2
 
-movl $scratch_stack, %esp    # move the stack out of emulator memory
-call shield                  # protect emulator memory
-movl %ebp, %esp              # load user stack
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp # move the stack out of emulator memory
+call shield                          # protect emulator memory
+movl %ebp, %esp                      # load user stack
 
 movl %esi, %eax              # user %eip
 xor %ecx, %ecx               # clear registers and flags
@@ -67,8 +67,8 @@ jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 .global int80_emu
 .type int80_emu, @function
 int80_emu:
-movl %esp, scratch_stack
-movl $scratch_stack, %esp
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 call runtime_syscall
 pop %esp
 pinsrd $0, %ecx, %xmm4
@@ -81,8 +81,8 @@ jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
 movl (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
-movl %esp, scratch_stack
-movl $scratch_stack, %esp
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 call runtime_syscall
 pop %esp
 pinsrd $0, %ecx, %xmm4

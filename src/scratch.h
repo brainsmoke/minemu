@@ -22,10 +22,4 @@
 #define JMP_CACHE_SIZE (0x10000)
 #define JMP_CACHE_MEM_SIZE (JMP_CACHE_SIZE*8)
 
-#ifndef __ASSEMBLER__
-
-extern unsigned long scratch_stack[];
-
-#endif
-
 #endif /* SCRATCH_H */

@@ -25,11 +25,6 @@
 .lcomm fault_page_1, 4096
 .global fault_page_1
 
-.lcomm scratch_stack_bottom, 32764             # runtime stack
-.global scratch_stack_bottom                   #
-.lcomm scratch_stack, 4                        #
-.global scratch_stack                          #
-
 .lcomm fault_page_2, 4096
 .global fault_page_2
 

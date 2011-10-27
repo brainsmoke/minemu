@@ -40,6 +40,7 @@ int main(void)
 	printf("#define CTX__SCRATCH_STACK_TOP (0x%lx)\n", offsetof(exec_ctx_t, scratch_stack_top));
 	printf("#define CTX__MY_ADDR (0x%lx)\n", offsetof(exec_ctx_t, my_addr));
 	printf("#define CTX__SCRATCH_STACK (0x%lx)\n", offsetof(exec_ctx_t, scratch_stack));
+	printf("#define CTX__USER_ESP (0x%lx)\n", offsetof(exec_ctx_t, user_esp));
 	printf("#define CTX__USER_EIP (0x%lx)\n", offsetof(exec_ctx_t, user_eip));
 	printf("#define CTX__JIT_EIP (0x%lx)\n", offsetof(exec_ctx_t, jit_eip));
 	printf("#define CTX__JIT_FRAGMENT_RESTARTSYS (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_restartsys));

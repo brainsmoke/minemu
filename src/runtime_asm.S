@@ -28,8 +28,8 @@ movl %eax, %fs:CTX__USER_EIP
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
-mov %esp, scratch_stack
-mov $scratch_stack, %esp
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 push %edi
 push %esi
 push %ebp
@@ -91,8 +91,8 @@ jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+s
 #
 
 cache_lookup:
-mov %esp, scratch_stack
-mov $scratch_stack, %esp
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 pushf
 movzwl %ax, %edx                  # HASH_INDEX[addr]
 cache_lookup_loop:
