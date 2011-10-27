@@ -47,17 +47,16 @@ struct exec_ctx_s
 
 	char jit_fragment_page[0x1000 - 2*sizeof(ijmp_t) -
 	                                2*sizeof(long *) -
-	                                  sizeof(exec_ctx_t *) - 
-	                                  sizeof(kernel_sigset_t)];
-	ijmp_t jit_return_addr;
-	ijmp_t runtime_ijmp_addr;
-	long *sigwrap_stack_top;
-	long *scratch_stack_top;
-	exec_ctx_t *my_addr;
-	kernel_sigset_t sigset;
+	                                  sizeof(exec_ctx_t *)];
+	ijmp_t jit_return_addr;      /* normally */
+	ijmp_t runtime_ijmp_addr;    /*          */
+	long *sigwrap_stack_top;     /*   read   */
+	long *scratch_stack_top;     /*          */
+	exec_ctx_t *my_addr;         /*   only   */
 
-	long scratch_stack[0x2000 - 7];
+	long scratch_stack[0x2000 - 8 - sizeof(kernel_sigset_t)/sizeof(long)];
 
+	long user_esp; /* scratch_stack_top points here */
 	long user_eip;
 	long jit_eip;
 
@@ -68,6 +67,7 @@ struct exec_ctx_s
 	long ijmp_taint;
 	long taint_tmp;
 
+	kernel_sigset_t sigset;
 };
 
 inline exec_ctx_t *get_exec_ctx(void)

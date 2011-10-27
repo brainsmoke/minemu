@@ -16,10 +16,37 @@
  * limitations under the License.
  */
 
+#include <sys/mman.h>
+
 #include "exec_ctx.h"
+#include "syscalls.h"
+#include "runtime.h"
+#include "error.h"
+
+void set_exec_ctx(exec_ctx_t *local_ctx)
+{
+	long ret = sys_mmap2(local_ctx, sizeof(exec_ctx_t),
+	                     PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+
+	if (ret != (long)local_ctx)
+		die("set_exec_ctx(): mmap() failed\n");
+
+	local_ctx->my_addr = local_ctx;
+
+	local_ctx->jit_return_addr = jit_return;
+	local_ctx->runtime_ijmp_addr = runtime_ijmp;
+
+	local_ctx->sigwrap_stack_top = &local_ctx->sigwrap_stack[sizeof(local_ctx->sigwrap_stack)/sizeof(long)-1];
+	local_ctx->scratch_stack_top = &local_ctx->user_esp;
+
+	sys_mprotect(&local_ctx->fault_page0, 0x1000, PROT_NONE);
+	sys_mprotect(&local_ctx->jit_fragment_page, 0x1000, PROT_READ|PROT_EXEC);
+
+	init_tls(local_ctx, sizeof(exec_ctx_t));
+}
+
 
 void init_exec_ctx(void)
 {
-	init_tls(&ctx[0], sizeof(exec_ctx_t));
-	ctx[0].my_addr = &ctx[0];
+	set_exec_ctx(&ctx[0]);
 }
