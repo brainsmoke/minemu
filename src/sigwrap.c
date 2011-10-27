@@ -103,7 +103,7 @@ static void finish_instruction(struct sigcontext *context)
 
 	context->eip = (long)orig_eip;
 
-	if (jit_fragment_restartsys)
+	if (get_exec_ctx()->jit_fragment_restartsys)
 		context->eip -= 2;
 }
 

@@ -44,7 +44,8 @@ int main(void)
 	printf("#define CTX__JIT_EIP (0x%lx)\n", offsetof(exec_ctx_t, jit_eip));
 	printf("#define CTX__JIT_FRAGMENT_RESTARTSYS (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_restartsys));
 	printf("#define CTX__JIT_FRAGMENT_RUNNING (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_running));
-	printf("#define CTX__JIT_FRAGMENT_SCRATCH (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_scratch));
+	printf("#define CTX__JIT_FRAGMENT_ENTRY (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_entry));
+	printf("#define CTX__JIT_FRAGMENT_SAVED_ESP (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_saved_esp));
 	printf("#define CTX__IJMP_TAINT (0x%lx)\n", offsetof(exec_ctx_t, ijmp_taint));
 	printf("#define CTX__TAINT_TMP (0x%lx)\n", offsetof(exec_ctx_t, taint_tmp));
 	printf("#define CTX__SIZE (0x%lx)\n", sizeof(exec_ctx_t));

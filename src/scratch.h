@@ -26,9 +26,6 @@
 
 extern unsigned long scratch_stack[];
 
-extern long jit_fragment_restartsys;
-extern long jit_fragment_running;
-extern long jit_fragment_scratch;
 extern long user_eip;
 extern long jit_eip;
 

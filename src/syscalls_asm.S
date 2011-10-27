@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#include "asm_consts_gen.h"
+
 .text
 
 # Sysenter did not do much for performance.
@@ -189,8 +191,8 @@ movl 32(%ebp),%ebp
 DO_SYSCALL_INTR_PRE
 .global syscall_intr_critical_start
 syscall_intr_critical_start:
-movb $1, jit_fragment_restartsys
-testb $1, jit_fragment_running
+movb $1, %fs:CTX__JIT_FRAGMENT_RESTARTSYS
+testb $1, %fs:CTX__JIT_FRAGMENT_RUNNING
 jnz return
 .global syscall_intr_critical_end
 syscall_intr_critical_end:

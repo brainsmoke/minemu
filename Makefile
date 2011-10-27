@@ -104,6 +104,8 @@ src/mm.ld: gen/gen_mm_ld
 	$(SILENT)gen/gen_mm_ld > src/mm.ld
 
 src/scratch_asm.S: src/asm_consts_gen.h
+src/syscalls_asm.S: src/asm_consts_gen.h
+src/jit_fragment_asm.S: src/asm_consts_gen.h
 
 src/asm_consts_gen.h: gen/gen_asm_consts_gen_h
 	$(SILENT)gen/gen_asm_consts_gen_h > $@

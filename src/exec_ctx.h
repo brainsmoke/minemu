@@ -54,7 +54,7 @@ struct exec_ctx_s
 	long *scratch_stack_top;     /*          */
 	exec_ctx_t *my_addr;         /*   only   */
 
-	long scratch_stack[0x2400 - 8 - (sizeof(kernel_sigset_t)+1024)/sizeof(long)];
+	long scratch_stack[0x2400 - 9 - (sizeof(kernel_sigset_t)+1024)/sizeof(long)];
 
 	long user_esp; /* scratch_stack_top points here */
 	long user_eip;
@@ -62,7 +62,8 @@ struct exec_ctx_s
 
 	long jit_fragment_restartsys;
 	long jit_fragment_running;
-	long jit_fragment_scratch;
+	long jit_fragment_entry;
+	long jit_fragment_saved_esp;
 
 	long ijmp_taint;
 	long taint_tmp;

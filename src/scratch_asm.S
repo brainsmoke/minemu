@@ -39,15 +39,6 @@
 .lcomm old_sigset, 8
 .global old_sigset
 
-.lcomm jit_fragment_running, 4
-.global jit_fragment_running
-.lcomm jit_fragment_restartsys, 4
-.global jit_fragment_restartsys
-.lcomm jit_fragment_saved_esp, 4
-.global jit_fragment_saved_esp
-.lcomm jit_fragment_scratch, 4
-.global jit_fragment_scratch
-
 .lcomm user_eip, 4
 .global user_eip
 .lcomm jit_eip, 4
