@@ -24,8 +24,9 @@
 #include "error.h"
 #include "mm.h"
 
-extern char fd_type[1024];
 extern struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
+exec_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
+char fd_type[1024];
 
 void set_exec_ctx(exec_ctx_t *local_ctx)
 {

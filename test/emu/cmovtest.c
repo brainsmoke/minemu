@@ -29,6 +29,7 @@
 #include "taint.h"
 #include "opcodes.h"
 #include "jit_code.h"
+#include "exec_ctx.h"
 
 int fd_vprintf(int fd, const char *format, va_list ap)
 {
@@ -54,6 +55,10 @@ void linux_sysenter_emu(void) { die("calling placeholder"); }
 void jit_rev_lookup_addr(void) { die("calling placeholder"); }
 void unshield(void) { die("calling placeholder"); }
 char *hexcat(char *dest, unsigned long ul) { die("calling placeholder"); return NULL; }
+void jit_return(void) { die("calling placeholder"); }
+void jit_fragment_exit(void) { die("calling placeholder"); }
+
+char user_sigaction_list[1];
 int taint_flag = TAINT_ON;
 
 typedef long (*func_t)(long flags, long orig, long condval);
@@ -91,6 +96,7 @@ int main(int argc, char **argv)
 {
 	long flags;
 	enum { CF=1, PF=4, AF=16, ZF=64, SF=128, OF=2048 };
+	init_exec_ctx();
 
 	for (flags=1; flags<0x1000; flags++) if ( (flags & 0x72A) == 0x02 )
 	{
