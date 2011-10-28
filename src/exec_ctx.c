@@ -24,6 +24,8 @@
 #include "error.h"
 #include "mm.h"
 
+extern char fd_type[1024];
+
 void set_exec_ctx(exec_ctx_t *local_ctx)
 {
 	long ret = sys_mmap2(local_ctx, sizeof(exec_ctx_t),
@@ -41,12 +43,12 @@ void set_exec_ctx(exec_ctx_t *local_ctx)
 	local_ctx->sigwrap_stack_top = &local_ctx->sigwrap_stack[sizeof(local_ctx->sigwrap_stack)/sizeof(long)-1];
 	local_ctx->scratch_stack_top = &local_ctx->user_esp;
 
-	sys_mprotect(&local_ctx->fault_page0, 0x1000, PROT_NONE);
-	sys_mprotect(&local_ctx->jit_fragment_page, 0x1000, PROT_READ|PROT_EXEC);
+	local_ctx->fd_type = fd_type;
 
 	init_tls(local_ctx, sizeof(exec_ctx_t));
+	sys_mprotect(&local_ctx->fault_page0, 0x1000, PROT_NONE);
+	protect_ctx();
 }
-
 
 void protect_ctx(void)
 {

@@ -1,5 +1,5 @@
 .user_end = 0x50000000;
 .jit_end = 0x58000000;
 minemu_stack_bottom = 0xbff70000;
-offset__jit_fragment_exit_addr = 0x83fe4;
-offset__jit_eip = 0x8cbdc;
+offset__jit_fragment_exit_addr = 0x83fe0;
+offset__jit_eip = 0x8cfdc;

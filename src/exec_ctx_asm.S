@@ -20,4 +20,5 @@
 #.balign 4096 # .{b,p2,}align doesn't seem to work
 .lcomm ctx, CTX_ARRAY__SIZE
 .global ctx
-
+.lcomm fd_type, 1024
+.global fd_type
