@@ -49,6 +49,7 @@ void runtime_ijmp(void) { die("calling placeholder"); }
 void jit_return(void) { die("calling placeholder"); }
 void jit_fragment_exit(void) { die("calling placeholder"); }
 
+char user_sigaction_list[1];
 
 long imm_at(char *addr, long size)
 {

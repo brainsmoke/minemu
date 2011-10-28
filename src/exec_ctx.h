@@ -49,6 +49,7 @@ struct exec_ctx_s
 	                                2*sizeof(long *) -
 	                                  sizeof(exec_ctx_t *) -
 	                                  sizeof(char *) -
+	                                  sizeof(struct kernel_sigaction *) -
 	                                  sizeof(stack_t)];
 	ijmp_t jit_return_addr;      /* normally */
 	ijmp_t runtime_ijmp_addr;    /*          */
@@ -57,6 +58,7 @@ struct exec_ctx_s
 	long *scratch_stack_top;     /*          */
 	exec_ctx_t *my_addr;         /*   only   */
 	char *fd_type;
+	struct kernel_sigaction *sigaction_list;
 	stack_t altstack;
 
 	long scratch_stack[0x2400 - 9 - sizeof(kernel_sigset_t)/sizeof(long)];

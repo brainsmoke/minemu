@@ -58,7 +58,7 @@ void unblock_signals(void)
 /* our sighandler bookkeeping:
  *
  */
-static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
+struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
 #define __USER_CS (0x73)
 #define __USER_DS (0x7b)
@@ -136,9 +136,10 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 
 static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 {
+	exec_ctx_t *local_ctx = get_exec_ctx();
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
 	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
-	struct kernel_sigaction *action = &user_sigaction_list[sig];
+	struct kernel_sigaction *action = &local_ctx->sigaction_list[sig];
 	struct _fpstate *fpstate;
 	struct sigcontext *context;
 	unsigned long *sigmask, *extramask;
@@ -163,7 +164,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	if ( (sig == SIGSEGV) || (sig == SIGILL) )
 	{
-		get_exec_ctx()->user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
+		local_ctx->user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
 		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
 		                context->esp, context->ebp, context->esi, context->edi, };
 		do_taint_dump(regs);
@@ -202,7 +203,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	context->ss = __USER_DS;
 	context->cs = __USER_CS;
 
-	get_exec_ctx()->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
+	local_ctx->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
 	context->eip = (long)state_restore; /* code, not user code                     */
 	context->eax = sig;
 
@@ -290,7 +291,7 @@ void sigwrap_init(void)
 	unprotect_ctx();
 	altstack_setup();
 	protect_ctx();
-	memset(user_sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
+	memset(get_exec_ctx()->sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
 
 	struct kernel_sigaction act =
 	{
@@ -376,6 +377,7 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 {
 	long ret;
 	struct kernel_sigaction wrap;
+	exec_ctx_t *local_ctx = get_exec_ctx();
 
 	/* TODO test readability of memory */
 	if (act)
@@ -393,16 +395,16 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 		return ret;
 
 	if (oact)
-		*oact = user_sigaction_list[sig];
+		*oact = local_ctx->sigaction_list[sig];
 
 	if (act)
 	{
 		if ( act->handler == (kernel_sighandler_t)SIG_ERR ||
 		     act->handler == (kernel_sighandler_t)SIG_DFL ||
 		     act->handler == (kernel_sighandler_t)SIG_IGN )
-			user_sigaction_list[sig] = *act;
+			local_ctx->sigaction_list[sig] = *act;
 		else
-			ret = sys_rt_sigaction(sig, &wrap, &user_sigaction_list[sig], sigsetsize);
+			ret = sys_rt_sigaction(sig, &wrap, &local_ctx->sigaction_list[sig], sigsetsize);
 	}
 
 	if (ret)

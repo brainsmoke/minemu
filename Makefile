@@ -11,7 +11,7 @@ MKDIR=$(SILENT)mkdir
 RM=$(SILENT)rm -r
 
 LDFLAGS=
-EMU_LDFLAGS=-z noexecstack
+EMU_LDFLAGS=-z noexecstack --warn-common
 
 #SETTINGS=-g 
 SETTINGS=-Os

@@ -25,6 +25,7 @@
 #include "mm.h"
 
 extern char fd_type[1024];
+extern struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
 void set_exec_ctx(exec_ctx_t *local_ctx)
 {
@@ -44,6 +45,7 @@ void set_exec_ctx(exec_ctx_t *local_ctx)
 	local_ctx->scratch_stack_top = &local_ctx->user_esp;
 
 	local_ctx->fd_type = fd_type;
+	local_ctx->sigaction_list = user_sigaction_list;
 
 	init_tls(local_ctx, sizeof(exec_ctx_t));
 	sys_mprotect(&local_ctx->fault_page0, 0x1000, PROT_NONE);

@@ -22,7 +22,7 @@ SECTIONS
   runtime_code_size = . - .user_end;
   .scratch_data : { src/exec_ctx_asm*(.bss) . = ALIGN(0x1000); } :scratch
   runtime_data_start = . ;
-  .runtime_bss : { *(.bss) . = ALIGN(0x1000); } :bss
+  .runtime_bss : { *(.bss) *(COMMON) . = ALIGN(0x1000); } :bss
   .runtime_data : { *(*) . = ALIGN(0x1000); } :data
   runtime_data_size = . - runtime_data_start;
   jit_code_start = . ;
