@@ -207,7 +207,7 @@ void finish_instruction(struct sigcontext *context)
 	char *orig_eip, *jit_op_start;
 	long jit_op_len;
 
-	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
+	unprotect_ctx();
 
 	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
 	{
@@ -231,14 +231,14 @@ void finish_instruction(struct sigcontext *context)
 	local_ctx->runtime_ijmp_addr = reloc_runtime_ijmp;
 	local_ctx->jit_return_addr = reloc_jit_return;
 
-	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+	protect_ctx();
 	jit_fragment_run(context);
-	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
+	unprotect_ctx();
 
 	local_ctx->runtime_ijmp_addr = runtime_ijmp;
 	local_ctx->jit_return_addr = jit_return;
 
-	sys_mprotect(local_ctx->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+	protect_ctx();
 
 	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
 	if ( (char *)context->eip != jit_op_start )

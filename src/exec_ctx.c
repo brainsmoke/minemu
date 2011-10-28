@@ -22,6 +22,7 @@
 #include "syscalls.h"
 #include "runtime.h"
 #include "error.h"
+#include "mm.h"
 
 void set_exec_ctx(exec_ctx_t *local_ctx)
 {
@@ -46,6 +47,16 @@ void set_exec_ctx(exec_ctx_t *local_ctx)
 	init_tls(local_ctx, sizeof(exec_ctx_t));
 }
 
+
+void protect_ctx(void)
+{
+	sys_mprotect(get_exec_ctx()->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+}
+
+void unprotect_ctx(void)
+{
+	sys_mprotect(get_exec_ctx()->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
+}
 
 void init_exec_ctx(void)
 {

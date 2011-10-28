@@ -58,7 +58,6 @@ void unblock_signals(void)
 /* our sighandler bookkeeping:
  *
  */
-static stack_t user_altstack;
 static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 
 #define __USER_CS (0x73)
@@ -71,18 +70,19 @@ static struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *context, long size)
 {
     unsigned long sp = context->esp;
+	exec_ctx_t *local_ctx = get_exec_ctx();
 
-	if ( contains(user_altstack.ss_sp, user_altstack.ss_size, (char*)sp) &&
-	    !contains(user_altstack.ss_sp, user_altstack.ss_size, (char*)(sp-size)) )
+	if ( contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char*)sp) &&
+	    !contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char*)(sp-size)) )
 		/* XXX this will segfault/terminate the program, just as the normal program would,
 		 * mirrors kernel code and it's simple, but it's dirty^2 doing it this way
 		 */
 		return (void *) -1L;
 
 	if ( (action->flags & SA_ONSTACK) &&
-	     (user_altstack.ss_size > 0) &&
-	     (!contains(user_altstack.ss_sp, user_altstack.ss_size, (char *)sp)) )
-		sp = (unsigned long) user_altstack.ss_sp - user_altstack.ss_size;
+	     (local_ctx->altstack.ss_size > 0) &&
+	     (!contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char *)sp)) )
+		sp = (unsigned long) local_ctx->altstack.ss_sp - local_ctx->altstack.ss_size;
 
 	else if ( ((context->ss & 0xffff) != __USER_DS) &&
 	         !(action->flags & SA_RESTORER) &&
@@ -128,7 +128,7 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 	if (frame->puc == &frame->uc)
 		copy->puc = &copy->uc;
 
-	copy->uc.uc_stack = user_altstack;
+	copy->uc.uc_stack = get_exec_ctx()->altstack;
 
 	return copy;
 }
@@ -271,14 +271,14 @@ static void altstack_setup(void)
 		.ss_size = sizeof( ctx[0].sigwrap_stack )
 	};
 
-	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &user_altstack)) )
+	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &get_exec_ctx()->altstack)) )
 		die("altstack_setup: sigaltstack failed: %d", ret);
 }
 
 static void altstack_restore(void)
 {
 	long ret;
-	if ( (ret=sys_sigaltstack(&user_altstack, NULL)) )
+	if ( (ret=sys_sigaltstack(&get_exec_ctx()->altstack, NULL)) )
 		die("altstack_restore: sigaltstack failed: %d", ret);
 }
 
@@ -287,7 +287,9 @@ static void altstack_restore(void)
  */
 void sigwrap_init(void)
 {
+	unprotect_ctx();
 	altstack_setup();
+	protect_ctx();
 	memset(user_sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
 
 	struct kernel_sigaction act =
@@ -306,9 +308,11 @@ void sigwrap_init(void)
 long user_sigaltstack(const stack_t *ss, stack_t *oss)
 {
 	long ret;
+	unprotect_ctx();
 	altstack_restore();
 	ret = sys_sigaltstack(ss, oss);
 	altstack_setup();
+	protect_ctx();
 	return ret;
 }
 
