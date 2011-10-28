@@ -30,28 +30,17 @@
 
 int main(void)
 {
-	printf("#define CTX__JMP_CACHE (0x%lx)\n", offsetof(exec_ctx_t, jmp_cache));
-	printf("#define CTX__FAULT_PAGE0 (0x%lx)\n", offsetof(exec_ctx_t, fault_page0));
-	printf("#define CTX__SIGWRAP_STACK (0x%lx)\n", offsetof(exec_ctx_t, sigwrap_stack));
-	printf("#define CTX__JIT_FRAGMENT_PAGE (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_page));
 	printf("#define CTX__JIT_RETURN_ADDR (0x%lx)\n", offsetof(exec_ctx_t, jit_return_addr));
 	printf("#define CTX__RUNTIME_IJMP_ADDR (0x%lx)\n", offsetof(exec_ctx_t, runtime_ijmp_addr));
-	printf("#define CTX__SIGWRAP_STACK_TOP (0x%lx)\n", offsetof(exec_ctx_t, sigwrap_stack_top));
 	printf("#define CTX__SCRATCH_STACK_TOP (0x%lx)\n", offsetof(exec_ctx_t, scratch_stack_top));
-	printf("#define CTX__MY_ADDR (0x%lx)\n", offsetof(exec_ctx_t, my_addr));
-	printf("#define CTX__SCRATCH_STACK (0x%lx)\n", offsetof(exec_ctx_t, scratch_stack));
 	printf("#define CTX__USER_ESP (0x%lx)\n", offsetof(exec_ctx_t, user_esp));
 	printf("#define CTX__USER_EIP (0x%lx)\n", offsetof(exec_ctx_t, user_eip));
 	printf("#define CTX__JIT_EIP (0x%lx)\n", offsetof(exec_ctx_t, jit_eip));
 	printf("#define CTX__JIT_FRAGMENT_RESTARTSYS (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_restartsys));
 	printf("#define CTX__JIT_FRAGMENT_RUNNING (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_running));
 	printf("#define CTX__JIT_FRAGMENT_ENTRY (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_entry));
-	printf("#define CTX__JIT_FRAGMENT_EXIT_ADDR (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_exit_addr));
 	printf("#define CTX__JIT_FRAGMENT_SAVED_ESP (0x%lx)\n", offsetof(exec_ctx_t, jit_fragment_saved_esp));
 	printf("#define CTX__IJMP_TAINT (0x%lx)\n", offsetof(exec_ctx_t, ijmp_taint));
-	printf("#define CTX__TAINT_TMP (0x%lx)\n", offsetof(exec_ctx_t, taint_tmp));
-	printf("#define CTX__SIZE (0x%lx)\n", sizeof(exec_ctx_t));
-	printf("#define CTX_ARRAY__SIZE (0x%lx)\n", sizeof(exec_ctx_t)*MAX_THREADS);
 	assert( (sizeof(exec_ctx_t) & 0xfff) == 0);
 	assert( (offsetof(exec_ctx_t, fault_page0) & 0xfff) == 0);
 	assert( (offsetof(exec_ctx_t, sigwrap_stack) & 0xfff) == 0);
