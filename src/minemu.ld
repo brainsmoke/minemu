@@ -22,6 +22,8 @@ SECTIONS
   runtime_code_size = . - .user_end;
   .scratch_data : { src/exec_ctx*(.bss) src/exec_ctx*(COMMON) . = ALIGN(0x1000); } :scratch
   runtime_data_start = . ;
+  .runtime_rw : { src/mm*(.bss) src/sigwrap*(.bss) src/sigwrap*(COMMON) . = ALIGN(0x1000); } : bss
+/*  runtime_data_size = . - runtime_data_start; */
   .runtime_bss : { *(.bss) *(COMMON) . = ALIGN(0x1000); } :bss
   .runtime_data : { *(*) . = ALIGN(0x1000); } :data
   runtime_data_size = . - runtime_data_start;
