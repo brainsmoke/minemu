@@ -19,7 +19,7 @@
 
 #include <asm/ldt.h>
 
-#include "tls_segment.h"
+#include "segments.h"
 #include "syscalls.h"
 
 static int entry_number = -1;

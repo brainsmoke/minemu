@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include "sigwrap.h"
-#include "tls_segment.h"
+#include "segments.h"
 
 #define JMP_CACHE_SIZE (0x10000)
 #define MAX_THREADS 32

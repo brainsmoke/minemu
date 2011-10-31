@@ -85,7 +85,7 @@ unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
 		return user_mmap2(addr, length, prot, flags, fd, pgoffset);
 }
 
-static unsigned brk_cur = 0x10000, brk_min = 0x10000;
+static unsigned brk_cur = 0, brk_min = 0x10000;
 
 unsigned long set_brk_min(unsigned long new_brk)
 {
