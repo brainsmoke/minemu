@@ -38,26 +38,6 @@
 
 unsigned long sysenter_reentry;
 
-typedef struct
-{
-	unsigned long start;
-	unsigned long length;
-	long prot;
-
-} mem_map_t;
-
-static mem_map_t shield_maps[] =
-{
-	{ .start = JIT_START,     .length = JIT_SIZE,     .prot = PROT_READ|PROT_EXEC  },
-	{ .start = 0 },
-};
-
-static mem_map_t unshield_maps[] =
-{
-	{ .start = JIT_START,     .length = JIT_SIZE,     .prot = PROT_READ|PROT_WRITE },
-	{ .start = 0 },
-};
-
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)
 {
@@ -208,24 +188,14 @@ static void fill_last_page_hack(void)
 	clear(buf, 0x2000);
 }
 
-void set_protection(mem_map_t *maps)
-{
-	mem_map_t *i;
-
-	for (i=maps; i->start; i++)
-		if (sys_mprotect(i->start, i->length, i->prot))
-			die("failed to give memory region %x with size %x protection %x",
-			    i->start, i->length, i->prot);
-}
-
 void shield(void)
 {
-	set_protection(shield_maps);
+	sys_mprotect(JIT_START, JIT_SIZE, PROT_READ|PROT_EXEC);
 }
 
 void unshield(void)
 {
-	set_protection(unshield_maps);
+	sys_mprotect(JIT_START, JIT_SIZE, PROT_READ|PROT_WRITE);
 }
 
 void init_minemu_mem(char **envp)

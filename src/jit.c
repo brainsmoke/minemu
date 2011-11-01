@@ -577,6 +577,8 @@ char *jit(char *addr)
 	if (jit_addr != NULL)
 		return jit_addr;
 
+	unshield();
+
 	code_map_t *map = find_code_map(addr);
 
 	if (map && map->jit_addr == NULL)
@@ -601,6 +603,8 @@ char *jit(char *addr)
 
 	if (jit_addr == NULL)
 		die("jit failed");
+
+	shield();
 
 	return jit_addr;
 }

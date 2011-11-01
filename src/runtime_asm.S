@@ -40,7 +40,6 @@ push %edx
 push %ecx
 push %eax
 push %esp           # *(long)regs
-call unshield
 call do_taint_dump
 ud2
 
@@ -153,7 +152,6 @@ jmp *%fs:CTX__JIT_RETURN_ADDR
 # total miss, we have to translate some code
 #
 runtime_jit:
-call unshield                       # unprotect jit stack
 movl 4(%esp), %eax
 movl %esp, minemu_stack_bottom      # switch to jit stack
 movl $minemu_stack_bottom, %esp     #
@@ -161,8 +159,5 @@ push %eax                           # address to be translated
 call jit
 addl $4, %esp
 pop %esp                            # revert to scratch stack
-push %eax
-call shield                         # protect jit stack
-pop %eax                            # translated address is stored in %eax
 ret
 
