@@ -177,11 +177,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	get_xmm7((unsigned char *)&fpstate->_xmm[7]);
 
 	if ( action->flags & SA_ONESHOT )
-	{
-		unshield();
 		memset(action, 0, sizeof(*action));
-		shield();
-	}
 
 	if ( action->flags & SA_SIGINFO )
 	{
@@ -200,7 +196,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	context->ds =
 	context->es =
-	context->ss = __USER_DS;
+	context->ss = SHIELD_SEGMENT;
 	context->cs = __USER_CS;
 
 	local_ctx->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */

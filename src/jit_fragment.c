@@ -119,7 +119,7 @@ static long jit_fragment_control(char *dest, instr_t *instr,
 			else if ( between(runtime_cache_resolution_start, runtime_cache_resolution_end, jump_addr) )
 				return jit_fragment_jump(dest, jump_addr + (long)reloc_runtime_cache_resolution_start-
 				                                                 (long)runtime_cache_resolution_start);
-			else if ( contains(runtime_code_start, RUNTIME_CODE_SIZE, jump_addr) )
+			else if ( between(minemu_code_start, minemu_code_end, jump_addr) )
 				return jit_fragment_jump(dest, jump_addr);
 			else
 				return jit_fragment_jump_exit(dest, jump_addr);

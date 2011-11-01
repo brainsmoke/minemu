@@ -47,9 +47,13 @@ movl 0x18(%eax), %ebp
 movl 0x20(%eax), %ebx
 movl 0x24(%eax), %edx
 movl 0x28(%eax), %ecx
-movl 0x2C(%eax), %eax
 
-SHIELDS_UP
+# RESTORE SHIELD
+mov 0x00(%eax), %gs
+mov 0x08(%eax), %es
+mov 0x0C(%eax), %ds
+
+movl %cs:0x2C(%eax), %eax
 
 jmp *%fs:CTX__JIT_FRAGMENT_ENTRY
 

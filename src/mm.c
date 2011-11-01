@@ -46,35 +46,15 @@ typedef struct
 
 static mem_map_t shield_maps[] =
 {
-	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ            },
-	{ .start = JIT_CODE_START,     .length = JIT_CODE_SIZE,     .prot = PROT_READ|PROT_EXEC  },
-	/* modified by init_minemu: */
-	{ .start = TAINT_END,          .length = 0,                 .prot = PROT_NONE            },
+	{ .start = JIT_START,     .length = JIT_SIZE,     .prot = PROT_READ|PROT_EXEC  },
 	{ .start = 0 },
 };
 
 static mem_map_t unshield_maps[] =
 {
-/*	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ|PROT_WRITE },
-	{ .start = JIT_CODE_START,     .length = JIT_CODE_SIZE,     .prot = PROT_READ|PROT_WRITE },*/
-	{ .start = RUNTIME_DATA_START, .length = JIT_DATA_SIZE,     .prot = PROT_READ|PROT_WRITE },
-	/* modified by init_minemu: */
-	{ .start = TAINT_END,          .length = 0,                 .prot = PROT_READ|PROT_WRITE },
+	{ .start = JIT_START,     .length = JIT_SIZE,     .prot = PROT_READ|PROT_WRITE },
 	{ .start = 0 },
 };
-
-static mem_map_t minimal_shield_maps[] =
-{
-	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ            },
-	{ .start = 0 },
-};
-
-static mem_map_t minimal_unshield_maps[] =
-{
-	{ .start = RUNTIME_DATA_START, .length = RUNTIME_DATA_SIZE, .prot = PROT_READ|PROT_WRITE },
-	{ .start = 0 },
-};
-
 
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)
@@ -233,16 +213,6 @@ void unshield(void)
 	set_protection(unshield_maps);
 }
 
-void minimal_shield(void)
-{
-	set_protection(minimal_shield_maps);
-}
-
-void minimal_unshield(void)
-{
-	set_protection(minimal_unshield_maps);
-}
-
 void init_minemu_mem(char **envp)
 {
 	long ret = 0;
@@ -251,34 +221,29 @@ void init_minemu_mem(char **envp)
 
 	fill_last_page_hack();
 
-	ret |= sys_mmap2(TAINT_END, PAGE_BASE(c-0x1000)-TAINT_END,
+	/* pre-allocate some memory regions, mostly because this way we don't
+	 * have to do our own memory-allocation. It /is/ the reason we need
+	 * to set vm.overcommit_memory = 1 in sysctl.conf so this might change
+	 * in the future (I hope so.)
+	 */
+	ret |= sys_mmap2(TAINT_START, TAINT_SIZE,
+	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 -1, 0);
+
+	ret |= sys_mmap2(JIT_START, JIT_SIZE,
+	                 PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 -1, 0);
+
+	ret |= sys_mmap2(MINEMU_END, PAGE_BASE(c-0x1000)-MINEMU_END,
 	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
 
 	fill_last_page_hack();
 
-	ret |= sys_mmap2(JIT_CODE_START, JIT_CODE_SIZE,
-	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
-	                 -1, 0);
-
-	ret |= sys_mmap2(TAINT_START, TAINT_SIZE,
-	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
-	                 -1, 0);
-
 	if ( high_user_addr(envp) > stack_top(envp) )
 		ret |= sys_mmap2(stack_top(envp), high_user_addr(envp)-stack_top(envp),
 		                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 		                 -1, 0);
-
-	mem_map_t *i;
-
-	for (i=shield_maps; i->start; i++)
-		if (i->start == TAINT_END)
-			i->length = high_user_addr(envp)-TAINT_END;
-
-	for (i=unshield_maps; i->start; i++)
-		if (i->start == TAINT_END)
-			i->length = high_user_addr(envp)-TAINT_END;
 
 	if (ret & PG_MASK)
 		die("mem init failed", ret);

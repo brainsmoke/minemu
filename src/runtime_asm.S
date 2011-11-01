@@ -56,7 +56,7 @@ ud2
 runtime_ret:
 pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
-mov .jit_end(%esp), %ecx # .jit_end == TAINT_OFFSET
+mov taint_offset(%esp), %ecx
 pop %eax
 
 #

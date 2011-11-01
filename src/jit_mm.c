@@ -38,7 +38,7 @@ static unsigned long block_size;
 void jit_mm_init(void)
 {
 	block_size = BLOCK_SIZE;
-	n_blocks = JIT_CODE_SIZE/block_size;
+	n_blocks = JIT_SIZE/block_size;
 	memset(blocks, 0, n_blocks*sizeof(short));
 	blocks[0] = n_blocks;
 }
@@ -62,7 +62,7 @@ void *jit_alloc(unsigned long size)
 				blocks[i+blocks_needed] = blocks[i]-blocks_needed;
 
 			blocks[i] = -blocks_needed;
-			return (void *)(JIT_CODE_START+i*block_size);
+			return (void *)(JIT_START+i*block_size);
 		}
 	}
 	die("jit_alloc(): requested block size too big: %d", size);
@@ -71,7 +71,7 @@ void *jit_alloc(unsigned long size)
 
 static int get_alloc_block(void *p)
 {
-	unsigned long offset = (unsigned long)p - JIT_CODE_START;
+	unsigned long offset = (unsigned long)p - JIT_START;
 
 	if (offset % block_size)
 		die("get_alloc_block(): bad pointer");

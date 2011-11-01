@@ -83,8 +83,6 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 	if (!try_block_signals())
 		return ret; /* we have a signal in progress, revert to pre-syscall state */
 
-	minimal_unshield();
-
 	switch (call)
 	{
 		/* these calls are all non-blocking right?
@@ -120,17 +118,13 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			                              (struct kernel_sigaction *)arg3, arg4);
 			break;
  		case __NR_sigreturn:
-			shield();
 			user_sigreturn();
 			break;
  		case __NR_rt_sigreturn:
-			shield();
 			user_rt_sigreturn();
 			break;
 		case __NR_execve:
-			unshield();
 			ret = user_execve((char *)arg1, (char **)arg2, (char **)arg3);
-			shield();
 			break;
 		case __NR_exit_group:
 			if (dump_on_exit)
@@ -143,8 +137,6 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			die("unimplemented syscall");
 			break;
 	}
-
-	minimal_shield();
 	unblock_signals();
 	return ret;
 }

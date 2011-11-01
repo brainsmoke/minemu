@@ -50,9 +50,7 @@ movl 4(%esp), %esi           # load user %eip from arg1
 movl 8(%esp), %ebp           # load user's stack pointer from arg2
 
 mov %fs:CTX__SCRATCH_STACK_TOP, %esp # move the stack out of emulator memory
-call shield                          # protect emulator memory
 movl %ebp, %esp                      # load user stack
-
 movl %esi, %eax              # user %eip
 xor %ecx, %ecx               # clear registers and flags
 xor %edx, %edx
