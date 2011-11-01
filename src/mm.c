@@ -36,6 +36,8 @@
 #include "jit.h"
 #include "codemap.h"
 
+unsigned long sysenter_reentry;
+
 typedef struct
 {
 	unsigned long start;
@@ -172,6 +174,19 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 	return ret;
 }
 
+unsigned long init_vdso(unsigned long vdso)
+{
+	long off = memscan((char *)vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);
+
+	if (off < 0)
+		sysenter_reentry = 0; /* assume int $0x80 syscalls, crash otherwise */
+	else
+		sysenter_reentry = vdso + off;
+
+	sys_mmap2(vdso+TAINT_OFFSET, 0x1000, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+	add_code_region((char *)vdso, 0x1000, 0, 0, 0, 0); /* vdso */
+}
+
 unsigned long stack_top(char **envp)
 {
 	unsigned long max = (long)envp;
@@ -227,7 +242,7 @@ void init_minemu_mem(char **envp)
 	 * in the future (I hope so.)
 	 */
 	ret |= sys_mmap2(TAINT_START, TAINT_SIZE,
-	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
 
 	ret |= sys_mmap2(JIT_START, JIT_SIZE,

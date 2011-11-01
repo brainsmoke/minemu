@@ -88,6 +88,8 @@ unsigned long user_munmap(unsigned long addr, size_t length);
 
 unsigned long user_mprotect(unsigned long addr, size_t length, long prot);
 
+unsigned long init_vdso(unsigned long vdso);
+
 void shield(void);
 void unshield(void);
 

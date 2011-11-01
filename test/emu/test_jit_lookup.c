@@ -33,8 +33,6 @@
 #include "sigwrap.h"
 #include "options.h"
 
-long sysenter_reentry = 0;
-
 /* not called main() to avoid warnings about extra parameters :-(  */
 int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 {
