@@ -16,10 +16,29 @@
  * limitations under the License.
  */
 
-#ifndef TLS_SEGMENT_H
-#define TLS_SEGMENT_H
+#ifndef SEGMENTS_H
+#define SEGMENTS_H
+
+#define TLS_GDT_ENTRY (7)
+#define TLS_SEGMENT (TLS_GDT_ENTRY*8 + 3)
+
+#define SHIELD_GDT_ENTRY (8)
+#define SHIELD_SEGMENT (SHIELD_GDT_ENTRY*8 + 3)
+
+#define SHIELDS_UP \
+	mov shield_segment, %ds \
+	mov shield_segment, %es \
+	mov shield_segment, %ss
+
+#define SHIELDS_DOWN \
+	mov code_segment, %ds \
+	mov code_segment, %es \
+	mov code_segment, %ss
+
+#ifndef __ASSEMBLER__
 
 void init_tls(void *base_addr, unsigned long size);
+void init_shield(unsigned long size);
 
 inline long get_tls_long(long offset)
 {
@@ -28,4 +47,6 @@ inline long get_tls_long(long offset)
 	return ret;
 }
 
-#endif /* TLS_SEGMENT_H */
+#endif
+
+#endif /* SEGMENTS_H */

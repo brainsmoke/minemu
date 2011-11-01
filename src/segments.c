@@ -22,16 +22,16 @@
 #include "segments.h"
 #include "syscalls.h"
 
-static int entry_number = -1;
+long shield_segment = SHIELD_SEGMENT, code_segment;
 
 static void set_fs_segment(int number)
 {
 	__asm__ __volatile__ ("mov %0, %%fs":: "r" (number));
 }
 
-static void create_tls(void *base_addr, unsigned long size)
+static void create_segment(int entry_number, void *base_addr, unsigned long size)
 {
-	struct user_desc tls =
+	struct user_desc seg =
 	{
 		.entry_number = entry_number,
 		.base_addr = (int)base_addr,
@@ -40,14 +40,18 @@ static void create_tls(void *base_addr, unsigned long size)
 		.limit_in_pages = 1,
 	};
 
-	sys_set_thread_area(&tls);
-
-	if (entry_number == -1)
-		entry_number = tls.entry_number;
+	sys_set_thread_area(&seg);
 }
 
 void init_tls(void *base_addr, unsigned long size)
 {
-	create_tls(base_addr, size);
-	set_fs_segment(entry_number*8 + 3);
+	create_segment(TLS_GDT_ENTRY, base_addr, size);
+	set_fs_segment(TLS_SEGMENT);
+}
+
+void init_shield(unsigned long size)
+{
+	create_segment(SHIELD_GDT_ENTRY, 0x00000000, size);
+	code_segment = 0;
+	__asm__ __volatile__ ("mov %%cs, code_segment"::);
 }

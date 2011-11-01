@@ -51,6 +51,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		progname = argv[0];
 
 	init_minemu_mem(envp);
+	init_shield(TAINT_END);
 	init_exec_ctx();
 	sigwrap_init();
 	jit_init();
