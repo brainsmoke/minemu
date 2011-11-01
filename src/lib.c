@@ -327,44 +327,6 @@ int absdir(char *dest, const char *dir)
 	return 0;
 }
 
-/*
-static void swap(void *a, void *b, size_t size)
-{
-	if (a==b)
-		return;
-
-	char tmp[size];
-	memcpy(tmp, a, size);
-	memcpy(a, b, size);
-	memcpy(b, tmp, size);
-}
-
-#define E(n) &((char*)base)[(n)*size]
-
-void qsort(void *base, size_t n, size_t size,
-           int(*cmp)(const void *, const void *))
-{
-	if (n < 2)
-		return;
-
-	swap(E(n/2), E(n-1), size);
-
-	unsigned long i, part=0;
-
-	for (i=0; i<n-1; i++)
-		if (cmp(E(i), E(n-1)) <= 0)
-		{
-			swap(E(i), E(part), size);
-			part += 1;
-		}
-
-	swap(E(n-1), E(part), size);
-
-	qsort(E(0)     ,   part  , size, cmp);
-	qsort(E(part+1), n-part-1, size, cmp);
-}
-*/
-
 long memscan(const char *hay, long haylen, const char *needle, long needlelen)
 {
 	long i, max = haylen-needlelen;
