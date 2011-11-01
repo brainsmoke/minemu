@@ -17,11 +17,13 @@
 
 .text
 #include "asm_consts_gen.h"
+#include "segments.h"
 
 .global runtime_cache_resolution_start
 runtime_cache_resolution_start:
 
 taint_fault:
+SHIELDS_DOWN
 movl %ecx, %fs:CTX__IJMP_TAINT
 movl %eax, %fs:CTX__USER_EIP
 pextrd $0, %xmm4, %ecx
@@ -90,6 +92,7 @@ jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+s
 #
 
 cache_lookup:
+SHIELDS_DOWN
 mov %esp, %fs:CTX__USER_ESP
 mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 pushf
@@ -109,6 +112,7 @@ mov %fs:4(, %edx, 8), %edx
 movl %edx, %fs:CTX__JIT_EIP
 popf
 pop %esp
+SHIELDS_UP
 jmp jit_return
 
 .global runtime_cache_resolution_end
@@ -138,6 +142,7 @@ lea 4(%esp), %esp
 movl %eax, %fs:CTX__JIT_EIP
 popf
 pop %esp
+SHIELDS_UP
 jmp *%fs:CTX__JIT_RETURN_ADDR
 
 #

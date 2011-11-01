@@ -26,14 +26,14 @@
 #define SHIELD_SEGMENT (SHIELD_GDT_ENTRY*8 + 3)
 
 #define SHIELDS_UP \
-	mov shield_segment, %ds \
-	mov shield_segment, %es \
-	mov shield_segment, %ss
+	mov %cs:shield_segment, %ds ; \
+	mov %cs:shield_segment, %es ; \
+	mov %cs:shield_segment, %ss ;
 
 #define SHIELDS_DOWN \
-	mov code_segment, %ds \
-	mov code_segment, %es \
-	mov code_segment, %ss
+	mov %cs:data_segment, %ds ; \
+	mov %cs:data_segment, %es ; \
+	mov %cs:data_segment, %ss ;
 
 #ifndef __ASSEMBLER__
 

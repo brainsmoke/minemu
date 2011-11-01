@@ -17,6 +17,7 @@
 
 .text
 #include "asm_consts_gen.h"
+#include "segments.h"
 
 #
 # syscall wrapper
@@ -61,11 +62,13 @@ xor %esi, %esi
 xor %edi, %edi
 pinsrd $0, %ecx, %xmm4
 pinsrd $0, %ecx, %xmm3 # cleared %eax
+SHIELDS_UP
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global int80_emu
 .type int80_emu, @function
 int80_emu:
+SHIELDS_DOWN
 mov %esp, %fs:CTX__USER_ESP
 mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 call runtime_syscall
@@ -74,11 +77,13 @@ pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl %fs:CTX__USER_EIP, %eax
+SHIELDS_UP
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global linux_sysenter_emu
 .type linux_sysenter_emu, @function
 linux_sysenter_emu:
+SHIELDS_DOWN
 movl (%esp), %ebp      # restore %ebp, (is used to store %esp during sysenter.)
 mov %esp, %fs:CTX__USER_ESP
 mov %fs:CTX__SCRATCH_STACK_TOP, %esp
@@ -88,14 +93,17 @@ pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl sysenter_reentry, %eax
+SHIELDS_UP
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
 .global state_restore
 .type state_restore, @function
 state_restore:
+SHIELDS_DOWN
 pinsrd $0, %ecx, %xmm4
 pinsrd $0, %eax, %xmm3
 mov $0x0,%ecx
 movl %fs:CTX__USER_EIP, %eax
+SHIELDS_UP
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 

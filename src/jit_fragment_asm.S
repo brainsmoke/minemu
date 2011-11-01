@@ -16,6 +16,7 @@
 # limitations under the License.
 
 #include "asm_consts_gen.h"
+#include "segments.h"
 
 .global jit_fragment_run
 .type jit_fragment_run, @function
@@ -48,11 +49,16 @@ movl 0x24(%eax), %edx
 movl 0x28(%eax), %ecx
 movl 0x2C(%eax), %eax
 
+SHIELDS_UP
+
 jmp *%fs:CTX__JIT_FRAGMENT_ENTRY
 
 .global jit_fragment_exit
 .type jit_fragment_exit, @function
 jit_fragment_exit:
+
+SHIELDS_DOWN
+
 xchg %fs:CTX__JIT_FRAGMENT_SAVED_ESP, %esp
 
 xchg %eax, (%esp)                    # (struct sigcontext *)%eax / user %eax

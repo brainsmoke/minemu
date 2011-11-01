@@ -22,7 +22,7 @@
 #include "segments.h"
 #include "syscalls.h"
 
-long shield_segment = SHIELD_SEGMENT, code_segment;
+long shield_segment = SHIELD_SEGMENT, data_segment;
 
 static void set_fs_segment(int number)
 {
@@ -52,6 +52,6 @@ void init_tls(void *base_addr, unsigned long size)
 void init_shield(unsigned long size)
 {
 	create_segment(SHIELD_GDT_ENTRY, 0x00000000, size);
-	code_segment = 0;
-	__asm__ __volatile__ ("mov %%cs, code_segment"::);
+	data_segment = 0;
+	__asm__ __volatile__ ("mov %%ds, data_segment"::);
 }
