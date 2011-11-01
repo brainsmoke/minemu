@@ -296,8 +296,8 @@ void sigwrap_init(void)
 	};
 
 	memset(&act.mask, 0xff, sizeof(act.mask));
-	user_rt_sigaction(SIGSEGV, &act, NULL, sizeof(act.mask));
-	user_rt_sigaction(SIGILL, &act, NULL, sizeof(act.mask));
+	sys_rt_sigaction(SIGSEGV, &act, NULL, sizeof(act.mask));
+	sys_rt_sigaction(SIGILL, &act, NULL, sizeof(act.mask));
 }
 
 /* the emulator blocks signals */
