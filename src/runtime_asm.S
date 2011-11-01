@@ -92,27 +92,25 @@ jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+s
 #
 
 cache_lookup:
-SHIELDS_DOWN
-mov %esp, %fs:CTX__USER_ESP
-mov %fs:CTX__SCRATCH_STACK_TOP, %esp
-pushf
-movzwl %ax, %edx                  # HASH_INDEX[addr]
+mov %eax, %edx
+lahf
+mov %eax, %fs:CTX__FLAGS_TMP
+movzwl %dx, %eax                  # HASH_INDEX[addr]
 cache_lookup_loop:
-inc %dx
-mov %fs:(, %edx, 8), %ecx
-lea -1(%ecx,%eax,1), %ecx
+inc %ax
+mov %fs:(, %eax, 8), %ecx
+lea -1(%ecx,%edx,1), %ecx
 jecxz,pt cache_hit
-testl $-1, %fs:(, %edx, 8)   # jmp_cache.addr[HASH_INDEX[addr]] == 0
+testl $-1, %fs:(, %eax, 8)   # jmp_cache.addr[HASH_INDEX[addr]] == 0
 jz cache_miss
-cmp %ax, %dx
+cmp %dx, %ax
 jne cache_lookup_loop
 jmp cache_miss
 cache_hit:
-mov %fs:4(, %edx, 8), %edx
+mov %fs:4(, %eax, 8), %edx
+mov %fs:CTX__FLAGS_TMP, %eax
+sahf
 movl %edx, %fs:CTX__JIT_EIP
-popf
-pop %esp
-SHIELDS_UP
 jmp jit_return
 
 .global runtime_cache_resolution_end
@@ -127,8 +125,14 @@ nop
 # %e[cd]x: clobbered
 #
 cache_miss:
-push %eax            # addr
-push %eax            # addr
+mov %fs:CTX__FLAGS_TMP, %eax
+sahf
+SHIELDS_DOWN
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
+pushf
+push %edx            # addr
+push %edx            # addr
 call jit_lookup_addr # (char *addr);
 lea 4(%esp), %esp
 test %eax, %eax      # jit_addr or NULL

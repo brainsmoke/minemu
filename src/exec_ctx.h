@@ -61,7 +61,7 @@ struct exec_ctx_s
 	struct kernel_sigaction *sigaction_list;
 	stack_t altstack;
 
-	long scratch_stack[0x2400 - 9 - sizeof(kernel_sigset_t)/sizeof(long)];
+	long scratch_stack[0x2400 - 10 - sizeof(kernel_sigset_t)/sizeof(long)];
 
 	long user_esp; /* scratch_stack_top points here */
 	long user_eip;
@@ -74,6 +74,7 @@ struct exec_ctx_s
 
 	long ijmp_taint;
 	long taint_tmp;
+	long flags_tmp;
 
 	kernel_sigset_t old_sigset;
 };
