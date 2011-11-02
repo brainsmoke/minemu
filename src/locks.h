@@ -24,4 +24,9 @@ void mutex_init(long *lock);
 void mutex_lock(long *lock);
 void mutex_unlock(long *lock);
 
+/* release the lock and exit, without thouching the stack after
+ * releasing the lock
+ */
+void mutex_unlock_exit(long status, long *lock);
+
 #endif /* LOCKS_H */

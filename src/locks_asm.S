@@ -49,3 +49,12 @@ mutex_unlock:
 movl 4(%esp), %edx
 movl $0, (%edx)
 ret
+
+.global mutex_unlock_exit # ( long status, long *lock_addr )
+.type mutex_unlock_exit, @function
+mutex_unlock_exit:
+movl 8(%esp), %edx
+movl 4(%esp), %ebx
+movl __NR_exit, %eax
+movl $0, (%edx)
+int $0x80
