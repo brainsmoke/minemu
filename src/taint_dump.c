@@ -29,7 +29,7 @@
 
 #include "taint_dump.h"
 #include "hexdump.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 int dump_on_exit = 0;
 int dump_all = 0;
@@ -170,8 +170,8 @@ void do_taint_dump(long *regs)
 
 	fd_printf(fd_out, "jump address:\n");
 
-	hexdump_taint(fd_out, &get_exec_ctx()->user_eip, 4,
-	              (unsigned char *)&get_exec_ctx()->ijmp_taint, 0,0, NULL);
+	hexdump_taint(fd_out, &get_thread_ctx()->user_eip, 4,
+	              (unsigned char *)&get_thread_ctx()->ijmp_taint, 0,0, NULL);
 
 	fd_printf(fd_out, "registers:\n");
 

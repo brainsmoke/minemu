@@ -24,7 +24,7 @@
 #include "error.h"
 //#include "opcodes.h"
 #include "jit_code.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 /*       .____.____.____.____.
  * xmm5  |    scratch reg    |
@@ -1247,10 +1247,10 @@ int taint_swap_reg8_reg8(char *dest, int reg1, int reg2)
 	dest[10] = dest[32] = reg8_index[reg1];
 	dest[21] = dest[43] = reg8_index[reg2];
 
-	imm_to(&dest[ 6],   offsetof(exec_ctx_t, taint_tmp));
-	imm_to(&dest[17], 1+offsetof(exec_ctx_t, taint_tmp));
-	imm_to(&dest[28], 1+offsetof(exec_ctx_t, taint_tmp));
-	imm_to(&dest[39],   offsetof(exec_ctx_t, taint_tmp));
+	imm_to(&dest[ 6],   offsetof(thread_ctx_t, taint_tmp));
+	imm_to(&dest[17], 1+offsetof(thread_ctx_t, taint_tmp));
+	imm_to(&dest[28], 1+offsetof(thread_ctx_t, taint_tmp));
+	imm_to(&dest[39],   offsetof(thread_ctx_t, taint_tmp));
 	return 44;
 }
 

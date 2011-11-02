@@ -18,23 +18,23 @@
 
 #include <sys/mman.h>
 
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 #include "syscalls.h"
 #include "runtime.h"
 #include "error.h"
 #include "mm.h"
 
 extern struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
-exec_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
+thread_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
 char fd_type[1024];
 
-void set_exec_ctx(exec_ctx_t *local_ctx)
+void set_thread_ctx(thread_ctx_t *local_ctx)
 {
-	long ret = sys_mmap2(local_ctx, sizeof(exec_ctx_t),
+	long ret = sys_mmap2(local_ctx, sizeof(thread_ctx_t),
 	                     PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
 
 	if (ret != (long)local_ctx)
-		die("set_exec_ctx(): mmap() failed\n");
+		die("set_thread_ctx(): mmap() failed\n");
 
 	local_ctx->my_addr = local_ctx;
 
@@ -48,22 +48,22 @@ void set_exec_ctx(exec_ctx_t *local_ctx)
 	local_ctx->fd_type = fd_type;
 	local_ctx->sigaction_list = user_sigaction_list;
 
-	init_tls(local_ctx, sizeof(exec_ctx_t));
+	init_tls(local_ctx, sizeof(thread_ctx_t));
 	sys_mprotect(&local_ctx->fault_page0, 0x1000, PROT_NONE);
 	protect_ctx();
 }
 
 void protect_ctx(void)
 {
-	sys_mprotect(get_exec_ctx()->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+	sys_mprotect(get_thread_ctx()->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
 }
 
 void unprotect_ctx(void)
 {
-	sys_mprotect(get_exec_ctx()->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
+	sys_mprotect(get_thread_ctx()->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
 }
 
-void init_exec_ctx(void)
+void init_thread_ctx(void)
 {
-	set_exec_ctx(&ctx[0]);
+	set_thread_ctx(&ctx[0]);
 }

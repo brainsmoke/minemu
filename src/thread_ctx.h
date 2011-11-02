@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef EXEC_CTX_H
-#define EXEC_CTX_H
+#ifndef THREAD_CTX_H
+#define THREAD_CTX_H
 
 #include <stddef.h>
 #include "sigwrap.h"
@@ -33,11 +33,11 @@ typedef struct
 
 } jmp_map_t;
 
-typedef struct exec_ctx_s exec_ctx_t;
+typedef struct thread_ctx_s thread_ctx_t;
 
 typedef long (*ijmp_t)(void);
 
-struct exec_ctx_s
+struct thread_ctx_s
 {
 	jmp_map_t jmp_cache[JMP_CACHE_SIZE];
 
@@ -47,19 +47,19 @@ struct exec_ctx_s
 
 	char jit_fragment_page[0x1000 - 3*sizeof(ijmp_t) -
 	                                2*sizeof(long *) -
-	                                  sizeof(exec_ctx_t *) -
+	                                  sizeof(thread_ctx_t *) -
 	                                  sizeof(char *) -
 	                                  sizeof(struct kernel_sigaction *) -
 	                                  sizeof(stack_t)];
-	ijmp_t jit_return_addr;      /* normally */
-	ijmp_t runtime_ijmp_addr;    /*          */
-	ijmp_t jit_fragment_exit_addr;
-	long *sigwrap_stack_top;     /*   read   */
-	long *scratch_stack_top;     /*          */
-	exec_ctx_t *my_addr;         /*   only   */
-	char *fd_type;
-	struct kernel_sigaction *sigaction_list;
-	stack_t altstack;
+	ijmp_t jit_return_addr;                   /* normally */
+	ijmp_t runtime_ijmp_addr;                 /*   read   */
+	ijmp_t jit_fragment_exit_addr;            /*   only   */
+	long *sigwrap_stack_top;                  /*   for    */
+	long *scratch_stack_top;                  /* catching */
+	thread_ctx_t *my_addr;                    /*  stack   */
+	char *fd_type;                            /* underrun */
+	struct kernel_sigaction *sigaction_list;  /*   bugs   */
+	stack_t altstack;                         /*    :-)   */
 
 	long scratch_stack[0x2400 - 10 - sizeof(kernel_sigset_t)/sizeof(long)];
 
@@ -79,18 +79,18 @@ struct exec_ctx_s
 	kernel_sigset_t old_sigset;
 };
 
-inline exec_ctx_t *get_exec_ctx(void)
+inline thread_ctx_t *get_thread_ctx(void)
 {
-	return (exec_ctx_t *)get_tls_long(offsetof(exec_ctx_t, my_addr));
+	return (thread_ctx_t *)get_tls_long(offsetof(thread_ctx_t, my_addr));
 }
 
 void protect_ctx(void);
 void unprotect_ctx(void);
 
-extern exec_ctx_t ctx[MAX_THREADS];
+extern thread_ctx_t ctx[MAX_THREADS];
 
-void init_exec_ctx(void);
+void init_thread_ctx(void);
 
 
 
-#endif /* EXEC_CTX_H */
+#endif /* THREAD_CTX_H */

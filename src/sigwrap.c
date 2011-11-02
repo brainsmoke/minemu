@@ -32,7 +32,7 @@
 #include "debug.h"
 #include "taint.h"
 #include "taint_dump.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 /*
  * wrapper around signals, preventing signals being delivered on the
@@ -47,12 +47,12 @@ int try_block_signals(void)
 {
 	kernel_sigset_t blockall;
 	memset(&blockall, 0, sizeof(blockall));
-	return !syscall_intr(__NR_sigprocmask, SIG_BLOCK, (long)&blockall, (long)&get_exec_ctx()->old_sigset, 0,0,0);
+	return !syscall_intr(__NR_sigprocmask, SIG_BLOCK, (long)&blockall, (long)&get_thread_ctx()->old_sigset, 0,0,0);
 }
 
 void unblock_signals(void)
 {
-	syscall_intr(__NR_sigprocmask, SIG_SETMASK, (long)&get_exec_ctx()->old_sigset, (long)NULL, 0,0,0);
+	syscall_intr(__NR_sigprocmask, SIG_SETMASK, (long)&get_thread_ctx()->old_sigset, (long)NULL, 0,0,0);
 }
 
 /* our sighandler bookkeeping:
@@ -70,7 +70,7 @@ struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
 void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *context, long size)
 {
     unsigned long sp = context->esp;
-	exec_ctx_t *local_ctx = get_exec_ctx();
+	thread_ctx_t *local_ctx = get_thread_ctx();
 
 	if ( contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char*)sp) &&
 	    !contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char*)(sp-size)) )
@@ -128,7 +128,7 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 	if (frame->puc == &frame->uc)
 		copy->puc = &copy->uc;
 
-	copy->uc.uc_stack = get_exec_ctx()->altstack;
+	copy->uc.uc_stack = get_thread_ctx()->altstack;
 
 	return copy;
 }
@@ -136,7 +136,7 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 
 static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 {
-	exec_ctx_t *local_ctx = get_exec_ctx();
+	thread_ctx_t *local_ctx = get_thread_ctx();
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
 	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
 	struct kernel_sigaction *action = &local_ctx->sigaction_list[sig];
@@ -200,7 +200,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	context->cs = __USER_CS;
 
 	local_ctx->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
-	context->eip = (long)state_restore; /* code, not user code                     */
+	context->eip = (long)state_restore;            /* code, not user code                     */
 	context->eax = sig;
 
 	if ( action->flags & SA_SIGINFO )
@@ -226,7 +226,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 void user_sigreturn(void)
 {
-	exec_ctx_t *local_ctx = get_exec_ctx();
+	thread_ctx_t *local_ctx = get_thread_ctx();
 
 	long *esp = (long *)local_ctx->user_esp;
 	struct kernel_sigframe *sigframe = (struct kernel_sigframe *)&esp[-2];
@@ -234,23 +234,23 @@ void user_sigreturn(void)
 	struct sigcontext *context = &frame.sc;
 	
 	local_ctx->user_eip = context->eip;            /* jump into jit code, */
-	context->eip = (long)state_restore; /* not user code       */
+	context->eip = (long)state_restore;            /* not user code       */
 	load_sigframe(__NR_sigreturn, &frame);
 }
 
 void user_rt_sigreturn(void)
 {
-	exec_ctx_t *local_ctx = get_exec_ctx();
+	thread_ctx_t *local_ctx = get_thread_ctx();
 
 	long *esp = (long *)local_ctx->user_esp;
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *)&esp[-1];
 	struct kernel_rt_sigframe frame = *rt_sigframe;
 	struct sigcontext *context = &frame.uc.uc_mcontext;
 	local_ctx->user_eip = context->eip;            /* jump into jit code, */
-	context->eip = (long)state_restore; /* not user code       */
+	context->eip = (long)state_restore;            /* not user code       */
 	frame.uc.uc_stack = (stack_t)
 	{
-		.ss_sp = &get_exec_ctx()->sigwrap_stack,
+		.ss_sp = &get_thread_ctx()->sigwrap_stack,
 		.ss_flags = 0,
 		.ss_size = sizeof( ctx[0].sigwrap_stack )
 	};
@@ -263,19 +263,19 @@ static void altstack_setup(void)
 
 	stack_t sigwrap_altstack =
 	{
-		.ss_sp = &get_exec_ctx()->sigwrap_stack,
+		.ss_sp = &get_thread_ctx()->sigwrap_stack,
 		.ss_flags = 0,
 		.ss_size = sizeof( ctx[0].sigwrap_stack )
 	};
 
-	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &get_exec_ctx()->altstack)) )
+	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &get_thread_ctx()->altstack)) )
 		die("altstack_setup: sigaltstack failed: %d", ret);
 }
 
 static void altstack_restore(void)
 {
 	long ret;
-	if ( (ret=sys_sigaltstack(&get_exec_ctx()->altstack, NULL)) )
+	if ( (ret=sys_sigaltstack(&get_thread_ctx()->altstack, NULL)) )
 		die("altstack_restore: sigaltstack failed: %d", ret);
 }
 
@@ -287,7 +287,7 @@ void sigwrap_init(void)
 	unprotect_ctx();
 	altstack_setup();
 	protect_ctx();
-	memset(get_exec_ctx()->sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
+	memset(get_thread_ctx()->sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
 
 	struct kernel_sigaction act =
 	{
@@ -373,7 +373,7 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 {
 	long ret;
 	struct kernel_sigaction wrap;
-	exec_ctx_t *local_ctx = get_exec_ctx();
+	thread_ctx_t *local_ctx = get_thread_ctx();
 
 	/* TODO test readability of memory */
 	if (act)

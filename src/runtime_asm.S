@@ -80,7 +80,7 @@ loop cache_lookup                   # branch taken on cache miss
 
 .global jit_return
 .type jit_return, @function
-jit_return: # exec_ctx->jit_eip contains jump address
+jit_return: # thread_ctx->jit_eip contains jump address
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx

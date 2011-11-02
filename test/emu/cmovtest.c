@@ -29,7 +29,7 @@
 #include "taint.h"
 #include "opcodes.h"
 #include "jit_code.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 int fd_vprintf(int fd, const char *format, va_list ap)
 {
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 {
 	long flags;
 	enum { CF=1, PF=4, AF=16, ZF=64, SF=128, OF=2048 };
-	init_exec_ctx();
+	init_thread_ctx();
 
 	for (flags=1; flags<0x1000; flags++) if ( (flags & 0x72A) == 0x02 )
 	{

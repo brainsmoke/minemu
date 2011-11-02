@@ -28,7 +28,7 @@
 #include "syscalls.h"
 #include "mm.h"
 #include "debug.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 /* On the event of a signal we may need to finish the emulation of an instruction.
  * So we need to translate our jit code of one emulated instruction into code which
@@ -56,7 +56,7 @@ static long jit_fragment_jcc_exit(char *dest, instr_t *instr, char *jump_addr)
 		"64 C7 05 L L",                         /* movl $addr, jit_eip              */
 
 		(instr->addr[instr->mrm-1]^1) & 0x0f,
-		offsetof(exec_ctx_t, jit_eip), jump_addr
+		offsetof(thread_ctx_t, jit_eip), jump_addr
 	);
 	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }
@@ -73,7 +73,7 @@ static long jit_fragment_jump_exit(char *dest, char *jump_addr)
 
 		"64 C7 05 L L",                            /* movl $addr, jit_eip               */
 
-		offsetof(exec_ctx_t, jit_eip), jump_addr
+		offsetof(thread_ctx_t, jit_eip), jump_addr
 	);
 	return len+jump_to(&dest[len], (char *)(long)jit_fragment_exit);
 }
@@ -186,7 +186,7 @@ static char *jit_fragment(char *fragment, long len, char *entry)
 {
 	char *jit_entry;
 	char *mapping[len+1];
-	char *jit_fragment_page = get_exec_ctx()->jit_fragment_page;
+	char *jit_fragment_page = get_thread_ctx()->jit_fragment_page;
 	long code_sz = sizeof( ctx[0].jit_fragment_page );
 
 	/* two-pass, we build up the jump-mapping beforehand */
@@ -203,7 +203,7 @@ char *jit_fragment_run(struct sigcontext *context);
  */
 void finish_instruction(struct sigcontext *context)
 {
-	exec_ctx_t *local_ctx = get_exec_ctx();
+	thread_ctx_t *local_ctx = get_thread_ctx();
 	char *orig_eip, *jit_op_start;
 	long jit_op_len;
 

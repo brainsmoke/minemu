@@ -24,7 +24,7 @@
 #include <assert.h>
 
 #include "mm.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 /* export some of our nice preprocessor defines to our linker file */
 
@@ -33,8 +33,8 @@ int main(void)
 	printf("minemu_start = 0x%lx;\n", MINEMU_START);
 	printf("taint_offset = 0x%lx;\n", TAINT_OFFSET);
 	printf("minemu_stack_bottom = 0x%lx;\n", MINEMU_STACK_BOTTOM);
-	printf("offset__jit_fragment_exit_addr = 0x%lx;\n", offsetof(exec_ctx_t, jit_fragment_exit_addr));
-	printf("offset__jit_eip = 0x%lx;\n", offsetof(exec_ctx_t, jit_eip));
+	printf("offset__jit_fragment_exit_addr = 0x%lx;\n", offsetof(thread_ctx_t, jit_fragment_exit_addr));
+	printf("offset__jit_eip = 0x%lx;\n", offsetof(thread_ctx_t, jit_eip));
 
 	exit(EXIT_SUCCESS);
 }

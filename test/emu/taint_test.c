@@ -27,7 +27,7 @@
 #include "codeexec.h"
 #include "taint_code.h"
 #include "opcodes.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 #include "error.h"
 
 int fd_vprintf(int fd, const char *format, va_list ap)
@@ -1038,7 +1038,7 @@ int main(int argc, char **argv)
 	offset = (long)taintmem_test - (long)mem_test;
 	codeexec(NULL, 0, (long *)regs_orig);
 
-	init_exec_ctx();
+	init_thread_ctx();
 
 	test_reg2(taint_copy_reg32_to_reg32, ref_copy_reg32_to_reg32);
 	test_reg2(taint_copy_reg16_to_reg16, ref_copy_reg16_to_reg16);

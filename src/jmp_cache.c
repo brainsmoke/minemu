@@ -20,7 +20,7 @@
 #include "lib.h"
 #include "error.h"
 #include "jmp_cache.h"
-#include "exec_ctx.h"
+#include "thread_ctx.h"
 
 #define HASH_OFFSET(i, addr) (((unsigned long)(i)-(unsigned long)(addr))&0xfffful)
 
@@ -28,7 +28,7 @@
 
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
-	jmp_map_t *jmp_cache = get_exec_ctx()->jmp_cache;
+	jmp_map_t *jmp_cache = get_thread_ctx()->jmp_cache;
 
 	int hash = HASH_INDEX(addr), i;
 
@@ -53,7 +53,7 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 
 static void jmp_cache_clear(char *addr, unsigned long len)
 {
-	jmp_map_t *jmp_cache = get_exec_ctx()->jmp_cache;
+	jmp_map_t *jmp_cache = get_thread_ctx()->jmp_cache;
 
 	int i, last=-1 /* make compiler happy */ ;
 	char *tmp_addr, *tmp_jit_addr;
@@ -86,7 +86,7 @@ static void jmp_cache_clear(char *addr, unsigned long len)
 
 char *find_jmp_mapping(char *addr)
 {
-	jmp_map_t *jmp_cache = get_exec_ctx()->jmp_cache;
+	jmp_map_t *jmp_cache = get_thread_ctx()->jmp_cache;
 
 	int hash = HASH_INDEX(addr), i;
 
