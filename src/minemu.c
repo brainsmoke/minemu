@@ -50,7 +50,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 
 	init_minemu_mem(envp);
 	init_shield(TAINT_END);
-	init_thread_ctx();
+	init_threads();
 	sigwrap_init();
 	jit_init();
 

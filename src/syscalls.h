@@ -121,4 +121,7 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_getcwd(buf, bufsize) \
 	syscall2(SYS_getcwd, (long)buf, (long)bufsize)
 
+#define sys_clone(a, b, c, d, e) \
+	syscall5(SYS_clone, (long)(a), (long)(b), (long)(c), (long)(d), (long)(e))
+
 #endif /* SYSCALLS_H */

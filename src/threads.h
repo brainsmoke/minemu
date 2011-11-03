@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include "sigwrap.h"
 #include "segments.h"
+#include "locks.h"
 
 #define JMP_CACHE_SIZE (0x10000)
 #define MAX_THREADS 32
@@ -102,8 +103,9 @@ inline thread_ctx_t *get_thread_ctx(void)
 void protect_ctx(void);
 void unprotect_ctx(void);
 
-void init_thread_ctx(void);
+void init_threads(void);
 
-
+long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long dummy, void *child_tid);
+void user_exit(long status);
 
 #endif /* THREADS_H */

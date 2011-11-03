@@ -27,6 +27,7 @@
 static thread_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
 static sighandler_ctx_t sighandler;
 static file_ctx_t files;
+static long thread_lock=0;
 
 void set_thread_ctx(thread_ctx_t *local_ctx)
 {
@@ -63,7 +64,23 @@ void unprotect_ctx(void)
 	sys_mprotect(get_thread_ctx()->jit_fragment_page, PG_SIZE, PROT_READ|PROT_WRITE);
 }
 
-void init_thread_ctx(void)
+void init_threads(void)
 {
 	set_thread_ctx(&ctx[0]);
 }
+
+long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long dummy, void *child_tid)
+{
+	long ret;
+	// allocate context / relocate stack
+	ret = sys_clone(flags, sp, parent_tid, dummy, child_tid);
+	// if error: free context
+	return ret;
+}
+
+void user_exit(long status)
+{
+	// free context
+	mutex_unlock_exit(status, &thread_lock);
+}
+

@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 {
 	long flags;
 	enum { CF=1, PF=4, AF=16, ZF=64, SF=128, OF=2048 };
-	init_thread_ctx();
+	init_threads();
 
 	for (flags=1; flags<0x1000; flags++) if ( (flags & 0x72A) == 0x02 )
 	{

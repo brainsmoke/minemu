@@ -49,11 +49,12 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 		case __NR_sigreturn:
  		case __NR_rt_sigaction:
 		case __NR_rt_sigreturn:
+
+		case __NR_exit:
+		case __NR_clone:
+
 		case __NR_execve:
 		case __NR_exit_group:
-
-//		case __NR_exit:
-//		case __NR_clone:
 
 			break;
 		case __NR_access:
@@ -132,6 +133,14 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_rt_sigreturn:
 			user_rt_sigreturn();
 			break;
+
+		case __NR_exit:
+			user_exit(arg1);
+			break;
+		case __NR_clone:
+			ret = user_clone(arg1, arg2, (void *)arg3, arg4, (void*)arg5);
+			break;
+
 		case __NR_execve:
 			ret = user_execve((char *)arg1, (char **)arg2, (char **)arg3);
 			break;
