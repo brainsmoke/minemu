@@ -24,7 +24,7 @@
 #include "error.h"
 #include "mm.h"
 
-thread_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
+static thread_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
 static sighandler_ctx_t sighandler;
 static file_ctx_t files;
 

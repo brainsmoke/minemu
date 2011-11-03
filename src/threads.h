@@ -102,8 +102,6 @@ inline thread_ctx_t *get_thread_ctx(void)
 void protect_ctx(void);
 void unprotect_ctx(void);
 
-extern thread_ctx_t ctx[MAX_THREADS];
-
 void init_thread_ctx(void);
 
 

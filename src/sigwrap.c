@@ -245,25 +245,26 @@ void user_rt_sigreturn(void)
 	context->eip = (long)state_restore;            /* not user code       */
 	frame.uc.uc_stack = (stack_t)
 	{
-		.ss_sp = &get_thread_ctx()->sigwrap_stack,
+		.ss_sp = local_ctx->sigwrap_stack,
 		.ss_flags = 0,
-		.ss_size = sizeof( ctx[0].sigwrap_stack )
+		.ss_size = sizeof( local_ctx->sigwrap_stack )
 	};
 	load_rt_sigframe(__NR_rt_sigreturn, &frame);
 }
 
 static void altstack_setup(void)
 {
+	thread_ctx_t *local_ctx = get_thread_ctx();
 	long ret;
 
 	stack_t sigwrap_altstack =
 	{
-		.ss_sp = &get_thread_ctx()->sigwrap_stack,
+		.ss_sp = local_ctx->sigwrap_stack,
 		.ss_flags = 0,
-		.ss_size = sizeof( ctx[0].sigwrap_stack )
+		.ss_size = sizeof( local_ctx->sigwrap_stack )
 	};
 
-	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &get_thread_ctx()->altstack)) )
+	if ( (ret=sys_sigaltstack(&sigwrap_altstack, &local_ctx->altstack)) )
 		die("altstack_setup: sigaltstack failed: %d", ret);
 }
 

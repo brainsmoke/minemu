@@ -184,10 +184,11 @@ static char *jit_fragment_translate(char *addr, long len, char *entry,
 
 static char *jit_fragment(char *fragment, long len, char *entry)
 {
+	thread_ctx_t *local_ctx = get_thread_ctx();
 	char *jit_entry;
 	char *mapping[len+1];
-	char *jit_fragment_page = get_thread_ctx()->jit_fragment_page;
-	long code_sz = sizeof( ctx[0].jit_fragment_page );
+	char *jit_fragment_page = local_ctx->jit_fragment_page;
+	long code_sz = sizeof( local_ctx->jit_fragment_page );
 
 	/* two-pass, we build up the jump-mapping beforehand */
 	            jit_fragment_translate(fragment, len, entry, jit_fragment_page, code_sz, mapping);
