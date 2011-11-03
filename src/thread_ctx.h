@@ -67,11 +67,11 @@ struct thread_ctx_s
 	                                  sizeof(sighandler_ctx_t *) -
 	                                  sizeof(stack_t)];
 	ijmp_t jit_return_addr;                   /* normally */
-	ijmp_t runtime_ijmp_addr;                 /*   read   */
+	ijmp_t runtime_ijmp_addr;                 /*   read-  */
 	ijmp_t jit_fragment_exit_addr;            /*   only   */
 	long *sigwrap_stack_top;                  /*   for    */
 	long *scratch_stack_top;                  /* catching */
-	thread_ctx_t *my_addr;                    /*  stack   */
+	thread_ctx_t *my_addr;                    /*  stack-  */
 	file_ctx_t *files;                        /* underrun */
 	sighandler_ctx_t *sighandler;             /*   bugs   */
 	stack_t altstack;                         /*    :-)   */
