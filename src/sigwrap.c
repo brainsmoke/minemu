@@ -55,11 +55,6 @@ void unblock_signals(void)
 	syscall_intr(__NR_sigprocmask, SIG_SETMASK, (long)&get_thread_ctx()->old_sigset, (long)NULL, 0,0,0);
 }
 
-/* our sighandler bookkeeping:
- *
- */
-struct kernel_sigaction user_sigaction_list[KERNEL_NSIG];
-
 #define __USER_CS (0x73)
 #define __USER_DS (0x7b)
 
@@ -139,7 +134,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	thread_ctx_t *local_ctx = get_thread_ctx();
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
 	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
-	struct kernel_sigaction *action = &local_ctx->sigaction_list[sig];
+	struct kernel_sigaction *action = &local_ctx->sighandler->sigaction_list[sig];
 	struct _fpstate *fpstate;
 	struct sigcontext *context;
 	unsigned long *sigmask, *extramask;
@@ -287,7 +282,7 @@ void sigwrap_init(void)
 	unprotect_ctx();
 	altstack_setup();
 	protect_ctx();
-	memset(get_thread_ctx()->sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
+	memset(get_thread_ctx()->sighandler->sigaction_list, 0, KERNEL_NSIG*sizeof(struct kernel_sigaction));
 
 	struct kernel_sigaction act =
 	{
@@ -391,16 +386,16 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 		return ret;
 
 	if (oact)
-		*oact = local_ctx->sigaction_list[sig];
+		*oact = local_ctx->sighandler->sigaction_list[sig];
 
 	if (act)
 	{
 		if ( act->handler == (kernel_sighandler_t)SIG_ERR ||
 		     act->handler == (kernel_sighandler_t)SIG_DFL ||
 		     act->handler == (kernel_sighandler_t)SIG_IGN )
-			local_ctx->sigaction_list[sig] = *act;
+			local_ctx->sighandler->sigaction_list[sig] = *act;
 		else
-			ret = sys_rt_sigaction(sig, &wrap, &local_ctx->sigaction_list[sig], sigsetsize);
+			ret = sys_rt_sigaction(sig, &wrap, &local_ctx->sighandler->sigaction_list[sig], sigsetsize);
 	}
 
 	if (ret)

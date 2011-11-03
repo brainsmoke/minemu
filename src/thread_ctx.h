@@ -33,9 +33,24 @@ typedef struct
 
 } jmp_map_t;
 
-typedef struct thread_ctx_s thread_ctx_t;
 
 typedef long (*ijmp_t)(void);
+
+typedef struct
+{
+	char fd_type[1024];
+	long lock;
+
+} file_ctx_t;
+
+typedef struct
+{
+	struct kernel_sigaction sigaction_list[KERNEL_NSIG];
+	long lock;
+
+} sighandler_ctx_t;
+
+typedef struct thread_ctx_s thread_ctx_t;
 
 struct thread_ctx_s
 {
@@ -48,8 +63,8 @@ struct thread_ctx_s
 	char jit_fragment_page[0x1000 - 3*sizeof(ijmp_t) -
 	                                2*sizeof(long *) -
 	                                  sizeof(thread_ctx_t *) -
-	                                  sizeof(char *) -
-	                                  sizeof(struct kernel_sigaction *) -
+	                                  sizeof(file_ctx_t *) -
+	                                  sizeof(sighandler_ctx_t *) -
 	                                  sizeof(stack_t)];
 	ijmp_t jit_return_addr;                   /* normally */
 	ijmp_t runtime_ijmp_addr;                 /*   read   */
@@ -57,8 +72,8 @@ struct thread_ctx_s
 	long *sigwrap_stack_top;                  /*   for    */
 	long *scratch_stack_top;                  /* catching */
 	thread_ctx_t *my_addr;                    /*  stack   */
-	char *fd_type;                            /* underrun */
-	struct kernel_sigaction *sigaction_list;  /*   bugs   */
+	file_ctx_t *files;                        /* underrun */
+	sighandler_ctx_t *sighandler;             /*   bugs   */
 	stack_t altstack;                         /*    :-)   */
 
 	long scratch_stack[0x2400 - 10 - sizeof(kernel_sigset_t)/sizeof(long)];
