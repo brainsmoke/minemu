@@ -24,7 +24,7 @@
 #include <assert.h>
 
 #include "mm.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 /* export some of our nice preprocessor defines to our linker file */
 

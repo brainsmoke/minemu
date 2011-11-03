@@ -27,7 +27,7 @@
 #include "codeexec.h"
 #include "taint_code.h"
 #include "opcodes.h"
-#include "thread_ctx.h"
+#include "threads.h"
 #include "error.h"
 
 int fd_vprintf(int fd, const char *format, va_list ap)

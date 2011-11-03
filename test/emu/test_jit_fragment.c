@@ -27,7 +27,7 @@
 #include "hexdump.h"
 #include "jit_code.h"
 #include "taint.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 char *jit_fragment_exit_addr;
 
