@@ -51,6 +51,10 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 		case __NR_rt_sigreturn:
 		case __NR_execve:
 		case __NR_exit_group:
+
+//		case __NR_exit:
+//		case __NR_clone:
+
 			break;
 		case __NR_access:
 			if ( arg1 && strcmp("/etc/ld.so.nohwcap", (char *)arg1) == 0 )
@@ -75,6 +79,11 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			return ret;
 		case __NR_vfork:
 			call = __NR_fork;
+		case __NR_fork:
+			ret = syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
+			if (ret == 0)
+				{/* TODO unshare */}
+			return ret;
 		default:
 			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 	}
