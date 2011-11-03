@@ -25,7 +25,7 @@
 #include "locks.h"
 
 #define JMP_CACHE_SIZE (0x10000)
-#define MAX_THREADS 32
+#define MAX_THREADS 64
 
 typedef struct
 {
