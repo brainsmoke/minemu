@@ -24,7 +24,7 @@
 #include "error.h"
 //#include "opcodes.h"
 #include "jit_code.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 /*       .____.____.____.____.
  * xmm5  |    scratch reg    |

@@ -30,7 +30,7 @@
 #include "taint.h"
 #include "debug.h"
 #include "taint_dump.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 long syscall_emu(long call, long arg1, long arg2, long arg3,
                             long arg4, long arg5, long arg6)

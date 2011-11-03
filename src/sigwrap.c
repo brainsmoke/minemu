@@ -32,7 +32,7 @@
 #include "debug.h"
 #include "taint.h"
 #include "taint_dump.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 /*
  * wrapper around signals, preventing signals being delivered on the

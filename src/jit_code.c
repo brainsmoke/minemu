@@ -28,7 +28,7 @@
 #include "taint.h"
 #include "debug.h"
 #include "mm.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 int call_strategy = PRESEED_ON_CALL;
 

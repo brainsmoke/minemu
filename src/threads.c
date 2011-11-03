@@ -18,7 +18,7 @@
 
 #include <sys/mman.h>
 
-#include "thread_ctx.h"
+#include "threads.h"
 #include "syscalls.h"
 #include "runtime.h"
 #include "error.h"

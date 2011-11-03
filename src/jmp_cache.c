@@ -20,7 +20,7 @@
 #include "lib.h"
 #include "error.h"
 #include "jmp_cache.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 #define HASH_OFFSET(i, addr) (((unsigned long)(i)-(unsigned long)(addr))&0xfffful)
 

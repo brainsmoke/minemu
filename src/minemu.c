@@ -31,7 +31,7 @@
 #include "codemap.h"
 #include "sigwrap.h"
 #include "options.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
 int minemu_main(int argc, char *argv[], char **envp, long *auxv)

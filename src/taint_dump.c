@@ -29,7 +29,7 @@
 
 #include "taint_dump.h"
 #include "hexdump.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 int dump_on_exit = 0;
 int dump_all = 0;

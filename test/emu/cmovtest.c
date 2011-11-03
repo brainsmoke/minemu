@@ -29,7 +29,7 @@
 #include "taint.h"
 #include "opcodes.h"
 #include "jit_code.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 int fd_vprintf(int fd, const char *format, va_list ap)
 {

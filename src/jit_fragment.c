@@ -28,7 +28,7 @@
 #include "syscalls.h"
 #include "mm.h"
 #include "debug.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 /* On the event of a signal we may need to finish the emulation of an instruction.
  * So we need to translate our jit code of one emulated instruction into code which

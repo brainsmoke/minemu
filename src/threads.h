@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef THREAD_CTX_H
-#define THREAD_CTX_H
+#ifndef THREADS_H
+#define THREADS_H
 
 #include <stddef.h>
 #include "sigwrap.h"
@@ -108,4 +108,4 @@ void init_thread_ctx(void);
 
 
 
-#endif /* THREAD_CTX_H */
+#endif /* THREADS_H */

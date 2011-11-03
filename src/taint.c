@@ -29,7 +29,7 @@
 #include "lib.h"
 #include "mm.h"
 #include "taint.h"
-#include "thread_ctx.h"
+#include "threads.h"
 
 int taint_flag = TAINT_ON;
 
