@@ -78,6 +78,7 @@ struct thread_ctx_s
 
 	long scratch_stack[0x2400 - 10 - sizeof(kernel_sigset_t)/sizeof(long)];
 
+/* this */
 	long user_esp; /* scratch_stack_top points here */
 	long user_eip;
 	long jit_eip;
@@ -92,6 +93,7 @@ struct thread_ctx_s
 	long flags_tmp;
 
 	kernel_sigset_t old_sigset;
+/* gets copied in clone_relocate_stack() as well */
 };
 
 inline thread_ctx_t *get_thread_ctx(void)
@@ -111,10 +113,5 @@ void user_exit(long status);
 void mutex_init(long *lock);
 void mutex_lock(long *lock);
 void mutex_unlock(long *lock);
-
-/* release the lock and exit, without thouching the stack after
- * releasing the lock
- */
-void mutex_unlock_exit(long status, long *lock);
 
 #endif /* THREADS_H */

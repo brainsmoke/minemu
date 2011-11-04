@@ -42,6 +42,8 @@ int main(void)
 	printf("#define CTX__JIT_FRAGMENT_SAVED_ESP (0x%lx)\n", offsetof(thread_ctx_t, jit_fragment_saved_esp));
 	printf("#define CTX__IJMP_TAINT (0x%lx)\n", offsetof(thread_ctx_t, ijmp_taint));
 	printf("#define CTX__FLAGS_TMP (0x%lx)\n", offsetof(thread_ctx_t, flags_tmp));
+	printf("#define CTX__MY_ADDR (0x%lx)\n", offsetof(thread_ctx_t, my_addr));
+	printf("#define CTX__SIZE (0x%lx)\n", sizeof(thread_ctx_t));
 	assert( (sizeof(thread_ctx_t) & 0xfff) == 0);
 	assert( (offsetof(thread_ctx_t, fault_page0) & 0xfff) == 0);
 	assert( (offsetof(thread_ctx_t, sigwrap_stack) & 0xfff) == 0);

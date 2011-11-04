@@ -100,6 +100,15 @@ void init_threads(void)
 	init_tls(new_ctx, sizeof(thread_ctx_t));
 }
 
+/* release the lock and exit, without thouching the stack after
+ * releasing the lock
+ */
+void mutex_unlock_exit(long status, long *lock);
+
+long clone_relocate_stack(unsigned long flags, unsigned long sp,
+                          void *parent_tid, long dummy, void *child_tid,
+                          long stack_diff);
+
 long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long dummy, void *child_tid)
 {
 	long ret;
@@ -111,13 +120,11 @@ long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long du
 		new_ctx = alloc_ctx();
 		mutex_unlock(&thread_lock);
 		init_thread_ctx(new_ctx);
-		/* TODO relocate stack */
-	}
+		int stack_diff = (long)new_ctx - (long)get_thread_ctx();
+		/* I need to change a "this is the most ugly hack ever" comment somewhere else */
+		ret = clone_relocate_stack(flags, sp, parent_tid, dummy, child_tid, stack_diff);
+		/* after this point we may be on a different stack, with the bp chain fixed */
 
-	ret = sys_clone(flags, sp, parent_tid, dummy, child_tid);
-
-	if (flags & CLONE_VM)
-	{
 		if (ret < 0)
 		{
 			mutex_lock(&thread_lock);
@@ -126,12 +133,15 @@ long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long du
 		}
 		else if (ret == 0)
 		{
+			new_ctx->user_esp = sp;
 			init_tls(new_ctx, sizeof(thread_ctx_t));
 		}
 	}
-	else if (ret == 0)
+	else
 	{
-		unshare_ctx(get_thread_ctx());
+		ret = sys_clone(flags, sp, parent_tid, dummy, child_tid);
+		if (ret == 0)
+			unshare_ctx(get_thread_ctx());
 	}
 		
 	return ret;

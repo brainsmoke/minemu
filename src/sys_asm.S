@@ -27,6 +27,7 @@ pushf
 push %ecx
 push %edx
 push %ebp
+xor %ebp, %ebp
 push %edi
 push %esi
 push %edx
@@ -34,7 +35,8 @@ push %ecx
 push %ebx
 push %eax
 call syscall_emu
-lea 28(%esp), %esp
+lea 24(%esp), %esp
+pop %ebp
 pop %edx
 pop %ecx
 popf
