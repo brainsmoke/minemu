@@ -540,7 +540,7 @@ static int generate_ijump(char *dest, instr_t *instr, trans_t *trans)
 	int len_taint=0, i;
 
 	if ( taint_flag == TAINT_ON )
-		len_taint = taint_ijmp(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+		len_taint = taint_ijmp(dest, instr->p[2], &instr->addr[instr->mrm], TAINT_OFFSET);
 	else
 		len_taint = gen_code(dest, "66 0f ef ed");
 
@@ -636,7 +636,7 @@ static int generate_icall(char *dest, instr_t *instr, trans_t *trans)
 	 * change the address in-place
 	 */
 	if ( taint_flag == TAINT_ON )
-		len_taint = taint_icall(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+		len_taint = taint_icall(dest, instr->p[2], &instr->addr[instr->mrm], TAINT_OFFSET);
 	else
 		len_taint = gen_code(dest, "66 0f ef ed");
 

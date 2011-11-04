@@ -23,8 +23,8 @@
 
 int offset_mem(char *dst_mrm, char *src_mrm, long offset);
 
-int taint_ijmp(char *dest, char *mrm, long offset);
-int taint_icall(char *dest, char *mrm, long offset);
+int taint_ijmp(char *dest, int p2, char *mrm, long offset);
+int taint_icall(char *dest, int p2, char *mrm, long offset);
 
 /* TAINT COPY */
 

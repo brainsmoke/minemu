@@ -217,22 +217,28 @@ static int direct_copy_mem32_to_mem32(char *dest, char *from_mrm, char *to_mrm, 
 	return len;
 }
 
-int taint_ijmp(char *dest, char *mrm, long offset)
+int taint_ijmp(char *dest, int p2, char *mrm, long offset)
 {
 	if (!is_memop(mrm))
 		return scratch_load_reg32(dest, mrm[0]&0x7, 0);
+
+	if (p2)
+	{
+		dest[0] = p2;
+		dest++;
+	}
 
 	memcpy(dest, insertps, 4);
 	int len = 5+offset_mem(&dest[4], mrm, offset);
 	dest[4] = ( dest[4] &~0x38 ) | ( scratch_reg()<<3 ); 
 	dest[len-1] = 0xe;
-	return len;
+	return len+(p2?1:0);
 }
 
-int taint_icall(char *dest, char *mrm, long offset)
+int taint_icall(char *dest, int p2, char *mrm, long offset)
 {
 	int len = taint_erase_push32(dest, offset);
-	return len+taint_ijmp(&dest[len], mrm, offset);
+	return len+taint_ijmp(&dest[len], p2, mrm, offset);
 }
 
 /* TAINT_COPY
