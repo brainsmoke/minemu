@@ -79,7 +79,10 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 	     (!contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char *)sp)) )
 		sp = (unsigned long) local_ctx->altstack.ss_sp - local_ctx->altstack.ss_size;
 
-//	else if ( ((context->ss & 0xffff) != __USER_DS) &&
+	/* assert that we restored to the shielded state */
+	if ((context->ss & 0xffff) == __USER_DS)
+		die("wrong user segwent");
+
 	else if ( ((context->ss & 0xffff) != SHIELD_SEGMENT) &&
 	         !(action->flags & SA_RESTORER) &&
 	          (action->restorer) )
@@ -171,10 +174,6 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	}
 
 	finish_instruction(context);
-	context->ds =
-	context->es =
-	context->ss = SHIELD_SEGMENT;
-	context->cs = __USER_CS;
 
 	get_xmm5((unsigned char *)&fpstate->_xmm[5]);
 	get_xmm6((unsigned char *)&fpstate->_xmm[6]);
@@ -197,6 +196,10 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	/* Most evil hack ever! We 'deliver' the user's signal by modifying our own sigframe
 	 * to match the user process' state at signal delivery, and call sigreturn.
 	 */
+	context->ds =
+	context->es =
+	context->ss = SHIELD_SEGMENT;
+	context->cs = __USER_CS;
 
 	local_ctx->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
 	context->eip = (long)state_restore;            /* code, not user code                     */
@@ -292,7 +295,7 @@ void sigwrap_init(void)
 	struct kernel_sigaction act =
 	{
 		.handler = sigwrap_handler,
-		.flags = SA_ONSTACK,
+		.flags = SA_ONSTACK|SA_SIGINFO,
 	};
 
 	memset(&act.mask, 0xff, sizeof(act.mask));

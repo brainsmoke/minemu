@@ -49,8 +49,8 @@ movl 0x24(%eax), %edx
 movl 0x28(%eax), %ecx
 
 # RESTORE SHIELD
-mov 0x00(%eax), %gs
 mov 0x08(%eax), %es
+mov 0x48(%eax), %ss
 mov 0x0C(%eax), %ds
 
 movl %cs:0x2C(%eax), %eax
@@ -67,6 +67,12 @@ xchg %fs:CTX__JIT_FRAGMENT_SAVED_ESP, %esp
 
 xchg %eax, (%esp)                    # (struct sigcontext *)%eax / user %eax
 pushf
+
+mov %fs, 0x04(%eax)
+mov %gs, 0x00(%eax)
+movl $(SHIELD_SEGMENT), 0x08(%eax) # %es
+movl $(SHIELD_SEGMENT), 0x0C(%eax) # %ds
+movl $(SHIELD_SEGMENT), 0x48(%eax) # %ss
 
 # restore sigcontext
 movl %edi, 0x10(%eax)
