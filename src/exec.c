@@ -25,6 +25,7 @@
 #include "load_elf.h"
 #include "load_script.h"
 #include "options.h"
+#include "threads.h"
 
 int can_load_binary(elf_prog_t *prog)
 {
@@ -65,8 +66,7 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	new_argv[0] = argv[0];
 	user_argv = option_args_setup(&new_argv[1], filename);
 	memcpy(user_argv, argv, sizeof(char *)*(count+1));
-	sys_execve("/proc/self/exe", new_argv, envp);
-	die("user_execve failed");
+	sys_execve_or_die("/proc/self/exe", new_argv, envp);
 	return 0xdeadbeef;
 }
 

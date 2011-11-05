@@ -41,6 +41,8 @@ static thread_ctx_t *alloc_ctx(void)
 			ctx_map[i] = 1;
 			return &ctx[i];
 		}
+
+	return NULL;
 }
 
 static void free_ctx(thread_ctx_t *c)
@@ -106,44 +108,45 @@ void init_threads(void)
 void mutex_unlock_exit(long status, long *lock);
 
 long clone_relocate_stack(unsigned long flags, unsigned long sp,
-                          void *parent_tid, long dummy, void *child_tid,
+                          void *parent_tid, void *tls, void *child_tid,
                           long stack_diff);
 
-long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long dummy, void *child_tid)
+long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, void *tls, void *child_tid)
 {
 	long ret;
-	thread_ctx_t *new_ctx = NULL;
+	thread_ctx_t *child_ctx = NULL;
 
 	if (flags & CLONE_VM)
 	{
 		mutex_lock(&thread_lock);
-		new_ctx = alloc_ctx();
+		child_ctx = alloc_ctx();
 		mutex_unlock(&thread_lock);
-		init_thread_ctx(new_ctx);
-		int stack_diff = (long)new_ctx - (long)get_thread_ctx();
+		init_thread_ctx(child_ctx);
+		int stack_diff = (long)child_ctx - (long)get_thread_ctx();
 		/* I need to change a "this is the most ugly hack ever" comment somewhere else */
-		ret = clone_relocate_stack(flags, sp, parent_tid, dummy, child_tid, stack_diff);
+		ret = clone_relocate_stack(flags, sp, parent_tid, tls, child_tid, stack_diff);
 		/* after this point we may be on a different stack, with the bp chain fixed */
 
 		if (ret < 0)
 		{
 			mutex_lock(&thread_lock);
-			free_ctx(new_ctx);
+			free_ctx(child_ctx);
 			mutex_unlock(&thread_lock);
 		}
 		else if (ret == 0)
-		{
-			new_ctx->user_esp = sp;
-			init_tls(new_ctx, sizeof(thread_ctx_t));
-		}
+			init_tls(child_ctx, sizeof(thread_ctx_t));
 	}
 	else
 	{
-		ret = sys_clone(flags, sp, parent_tid, dummy, child_tid);
+		child_ctx = get_thread_ctx();
+		ret = sys_clone(flags, 0, parent_tid, tls, child_tid);
 		if (ret == 0)
-			unshare_ctx(get_thread_ctx());
+			unshare_ctx(child_ctx);
 	}
-		
+
+	if (ret == 0 && sp)
+		child_ctx->user_esp = sp;
+
 	return ret;
 }
 
@@ -155,3 +158,11 @@ void user_exit(long status)
 	mutex_unlock_exit(status, &thread_lock);
 }
 
+long mutex_unlock_execve_or_die(char *filename, char *argv[], char *envp[], long *lock);
+long sys_execve_or_die(char *filename, char *argv[], char *envp[])
+{
+	mutex_lock(&thread_lock);
+	free_ctx(get_thread_ctx());
+	/* do not touch the scratch stack after releasing it */
+	mutex_unlock_execve_or_die(filename, argv, envp, &thread_lock);
+}

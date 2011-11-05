@@ -131,14 +131,14 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
 
 		case __NR_vfork:
-			ret = user_clone(SIGCHLD, 0, NULL, 0, NULL);
+			ret = user_clone(SIGCHLD, 0, NULL, NULL, NULL);
 //			ret = user_clone(CLONE_VFORK | CLONE_VM | SIGCHLD, 0, NULL, NULL, NULL);
 			break;
 		case __NR_fork:
-			ret = user_clone(SIGCHLD, 0, NULL, 0, NULL);
+			ret = user_clone(SIGCHLD, 0, NULL, NULL, NULL);
 			break;
 		case __NR_clone:
-			ret = user_clone(arg1, arg2, (void *)arg3, arg4, (void*)arg5);
+			ret = user_clone(arg1, arg2, (void *)arg3, (void *)arg4, (void*)arg5);
 			break;
 		case __NR_exit:
 			user_exit(arg1);

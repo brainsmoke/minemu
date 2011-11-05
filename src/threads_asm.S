@@ -17,6 +17,7 @@
 # limitations under the License.
 
 #include <asm/unistd.h>
+#define SIGKILL      9
 #include "asm_consts_gen.h"
 
 .text
@@ -58,10 +59,31 @@ ret
 mutex_unlock_exit:
 movl 8(%esp), %edx
 movl 4(%esp), %ebx
-movl __NR_exit, %eax
+movl $(__NR_exit), %eax
 sfence
 movl $0, (%edx)
 int $0x80
+ud2
+
+.global mutex_unlock_execve_or_die # ( char *filename, char *argv[], char *envp[], long *lock_addr )
+.type mutex_unlock_execve_or_die, @function
+mutex_unlock_execve_or_die:
+movl 0x10(%esp), %esi
+movl 0x0C(%esp), %edx
+movl 0x08(%esp), %ecx
+movl 0x04(%esp), %ebx
+movl $(__NR_execve), %eax
+sfence
+movl $0, (%esi)
+int $0x80
+movl $(__NR_gettid), %eax
+int $0x80
+movl %eax, %ebx
+movl %eax, %ecx
+movl $(SIGKILL), %edx
+movl $(__NR_tgkill), %eax
+int $0x80
+ud2
 
 # This wil break HARD with -fomit-frame-pointers
 #

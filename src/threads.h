@@ -106,8 +106,10 @@ void unprotect_ctx(void);
 
 void init_threads(void);
 
-long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, long dummy, void *child_tid);
+long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, void *tls, void *child_tid);
 void user_exit(long status);
+
+long sys_execve_or_die(char *filename, char *argv[], char *envp[]);
 
 
 void mutex_init(long *lock);
