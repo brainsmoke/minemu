@@ -154,7 +154,7 @@ static int fd_printnum(int fd, unsigned long num, long base, int pad, int numpad
 /* very simple printf for debugging purposes */
 int fd_vprintf(int fd, const char *format, va_list ap)
 {
-	int i=0, n_out = 0, numpad, pad;
+	int i=0,j=0, n_out = 0, numpad, pad;
 	char c, *s;
 	unsigned long num;
 
@@ -163,10 +163,10 @@ int fd_vprintf(int fd, const char *format, va_list ap)
 		i++;
 
 		if (c != '%')
-		{
-			n_out += sys_write(fd, &c, 1);
 			continue;
-		}
+
+		if (i-1 - j)
+			n_out += sys_write(fd, &format[j], i-1 - j);
 
 		numpad=0;
 		pad = ' ';
@@ -211,7 +211,11 @@ int fd_vprintf(int fd, const char *format, va_list ap)
 		}
 
 		i++;
+		j=i;
 	}
+
+	if (i-j)
+		n_out += sys_write(fd, &format[j], i-j);
 
 	return n_out;
 }
