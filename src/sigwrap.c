@@ -79,7 +79,8 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 	     (!contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char *)sp)) )
 		sp = (unsigned long) local_ctx->altstack.ss_sp - local_ctx->altstack.ss_size;
 
-	else if ( ((context->ss & 0xffff) != __USER_DS) &&
+//	else if ( ((context->ss & 0xffff) != __USER_DS) &&
+	else if ( ((context->ss & 0xffff) != SHIELD_SEGMENT) &&
 	         !(action->flags & SA_RESTORER) &&
 	          (action->restorer) )
 		sp = (unsigned long) action->restorer;
@@ -163,9 +164,17 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
 		                context->esp, context->ebp, context->esi, context->edi, };
 		do_taint_dump(regs);
+		if (sig == SIGSEGV)
+			asm("movl $0, 0"::);
+		else
+			asm("ud2"::);
 	}
 
 	finish_instruction(context);
+	context->ds =
+	context->es =
+	context->ss = SHIELD_SEGMENT;
+	context->cs = __USER_CS;
 
 	get_xmm5((unsigned char *)&fpstate->_xmm[5]);
 	get_xmm6((unsigned char *)&fpstate->_xmm[6]);
@@ -189,11 +198,6 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	 * to match the user process' state at signal delivery, and call sigreturn.
 	 */
 
-	context->ds =
-	context->es =
-	context->ss = SHIELD_SEGMENT;
-	context->cs = __USER_CS;
-
 	local_ctx->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
 	context->eip = (long)state_restore;            /* code, not user code                     */
 	context->eax = sig;
@@ -207,10 +211,10 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	}
 	else
 	{
-//print_sigframe(sigframe);
 		context->esp = (long)sigframe;
 		context->ecx = 0;
 		context->edx = 0;
+//print_sigframe(sigframe);
 	}
 
 	*sigmask   |= action->mask.bitmask[0];
