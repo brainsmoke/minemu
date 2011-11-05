@@ -68,6 +68,9 @@ clean:
 
 -include .dep/*/*.d .dep/test/*/*.d
 
+$(EMU_OBJECTS) $(EMU_ASM_OBJECTS): src/asm_consts_gen.h
+src/runtime_asm.o-tmp src/reloc_runtime_asm.o-tmp: src/asm_consts_gen.h
+
 strip: $(TARGETS)
 	$(STRIP) $(TARGETS)
 
