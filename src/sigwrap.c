@@ -46,13 +46,19 @@
 int try_block_signals(void)
 {
 	kernel_sigset_t blockall;
-	memset(&blockall, 0, sizeof(blockall));
-	return !syscall_intr(__NR_sigprocmask, SIG_BLOCK, (long)&blockall, (long)&get_thread_ctx()->old_sigset, 0,0,0);
+	memset(&blockall, 0xff, sizeof(blockall));
+	return !syscall_intr(__NR_rt_sigprocmask, SIG_BLOCK,
+	                     (long)&blockall,
+	                     (long)&get_thread_ctx()->old_sigset,
+	                     sizeof(kernel_sigset_t),0,0);
 }
 
 void unblock_signals(void)
 {
-	syscall_intr(__NR_sigprocmask, SIG_SETMASK, (long)&get_thread_ctx()->old_sigset, (long)NULL, 0,0,0);
+	syscall_intr(__NR_rt_sigprocmask, SIG_SETMASK,
+	             (long)&get_thread_ctx()->old_sigset,
+	             (long)NULL,
+	             sizeof(kernel_sigset_t),0,0);
 }
 
 #define __USER_CS (0x73)
