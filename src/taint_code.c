@@ -1446,4 +1446,157 @@ int taint_lea(char *dest, char *mrm, long _)
 	return len;
 }
 
+int taint_cmpxchg8_pre(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return 0;
+
+	memcpy(dest, movapd_6_to_5, 4);
+	int len = 4+scratch_load_mem8(&dest[4], mrm, offset);
+	dest[len-1] = reg8_index[0]; /* patch to load into %al column */
+	return len;
+}
+
+int taint_cmpxchg8_reg(char *dest, int cmpreg, int replacereg, long offset)
+{
+	memcpy(dest, "\x74\x18"
+	             "\x64\x66\x0f\x3a\x14\x35????\x00"
+	             "\x64\x66\x0f\x3a\x20\x35????\x00"
+	             "\xeb\x16"
+	             "\x64\x66\x0f\x3a\x14\x35????\x00"
+	             "\x64\x66\x0f\x3a\x20\x35????\x00", 48);
+
+	dest[12] = reg8_index[cmpreg];
+	dest[23] = reg8_index[0];
+	dest[36] = reg8_index[replacereg];
+	dest[47] = reg8_index[cmpreg];
+
+	imm_to(&dest[ 8], offsetof(thread_ctx_t, taint_tmp));
+	imm_to(&dest[19], offsetof(thread_ctx_t, taint_tmp));
+	imm_to(&dest[32], offsetof(thread_ctx_t, taint_tmp));
+	imm_to(&dest[43], offsetof(thread_ctx_t, taint_tmp));
+	return 48;
+}
+
+int taint_cmpxchg8_post(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_cmpxchg8_reg(dest, mrm[0]&0x7, (mrm[0]&0x38)>>3, offset);
+
+	dest[0]='\x74';
+	dest[1]=6+2;
+	scratch_blend_reg16(&dest[2], 0);
+	int len = 10+taint_copy_reg8_to_mem8(&dest[10], mrm, offset);
+	dest[8]='\xeb';
+	dest[9]=len-10;
+	return len;
+}
+
+int taint_cmpxchg16_pre(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return 0;
+
+	int len = scratch_load_mem16(dest, mrm, offset);
+	dest[len-1] = 0; /* patch to load into %ax column */
+	return len;
+}
+
+int taint_cmpxchg16_reg(char *dest, int cmpreg, int replacereg, long offset)
+{
+	dest[0] = '\x74';
+	int pre_len = 2+taint_copy_reg16_to_reg16(&dest[2], cmpreg, 0);
+	dest[1] = pre_len+2-2;
+	dest[pre_len] = '\xeb';
+	int len = pre_len+2+taint_copy_reg16_to_reg16(&dest[pre_len+2], replacereg, cmpreg);
+	dest[pre_len+1] = len - (pre_len+2);
+	return len;
+}
+
+int taint_cmpxchg16_post(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_cmpxchg16_reg(dest, mrm[0]&0x7, (mrm[0]&0x38)>>3, offset);
+
+	dest[0]='\x74';
+	dest[1]=6+2;
+	scratch_blend_reg16(&dest[2], 0);
+	int len = 10+taint_copy_reg16_to_mem16(&dest[10], mrm, offset);
+	dest[8]='\xeb';
+	dest[9]=len-10;
+	return len;
+}
+
+int taint_cmpxchg32_reg(char *dest, int cmpreg, int replacereg, long offset)
+{
+	dest[0] = '\x74';
+	int pre_len = 2+taint_copy_reg32_to_reg32(&dest[2], cmpreg, 0);
+	dest[1] = pre_len+2-2;
+	dest[pre_len] = '\xeb';
+	int len = pre_len+2+taint_copy_reg32_to_reg32(&dest[pre_len+2], replacereg, cmpreg);
+	dest[pre_len+1] = len - (pre_len+2);
+	return len;
+}
+
+int taint_cmpxchg32_pre(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return 0;
+
+	int len = scratch_load_mem32(dest, mrm, offset);
+	dest[len-1] = 0xe;
+	return len;
+}
+
+int taint_cmpxchg32_post(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return taint_cmpxchg32_reg(dest, mrm[0]&0x7, (mrm[0]&0x38)>>3, offset);
+
+	dest[0]='\x74';
+	dest[1]=6+2;
+	scratch_blend_reg32(&dest[2], 0);
+	int len = 10+taint_copy_reg32_to_mem32(&dest[10], mrm, offset);
+	dest[8]='\xeb';
+	dest[9]=len-10;
+	return len;
+}
+
+int taint_cmpxchg8b_pre(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return 0;
+
+	memcpy(dest, "\x66\x0f\x12", 3);
+	int len = 3+offset_mem(&dest[3], mrm, offset);
+	dest[3] = ( dest[3] &~0x38 ) | ( scratch_reg()<<3 ); 
+
+	memcpy(&dest[len], "\x66\x0f\x70\xed\x50", 5);
+	return len+5;
+}
+
+int taint_cmpxchg8b_post(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return 0;
+
+	dest[0]='\x74';
+	dest[1]=6+2;
+	memcpy(&dest[2], "\x66\x0f\x3a\x0e\xf5\x33", 6);
+	int len_pre = 10;
+	int len = len_pre+taint_copy_reg32_to_mem32(&dest[len_pre], mrm, offset);
+	dest[len_pre+4] = ( dest[len_pre+4] &~0x38 ) | ( taint_reg(3)<<3 ); 
+	dest[len-1] = taint_index(3);
+
+	len_pre = len;
+
+	len = len_pre+taint_copy_reg32_to_mem32(&dest[len_pre], mrm, offset+4);
+	dest[len_pre+4] = ( dest[len_pre+4] &~0x38 ) | ( taint_reg(2)<<3 ); 
+	dest[len-1] = taint_index(1);
+
+	dest[8]='\xeb';
+	dest[9]=len-10;
+	return len;
+}
+
 

@@ -149,6 +149,19 @@ char *mrm_tests[] =
 	NULL
 };
 
+char *mrm_cmpxchg8b[] = 
+{
+	"\x08",
+	"\x09",
+	"\x0a",
+	"\x0b",
+	"\x0c\x24",
+	"\x4d\x00",
+	"\x0e",
+	"\x0f",
+	NULL
+};
+
 int is_memop(char *mrm)
 {
     return (mrm[0] & 0xC0) != 0xC0;
@@ -332,6 +345,15 @@ void ref_copy_mem32_to_reg32(char *mrm, long off)
 	taint_regs[reg] = *(long *)(addr+off);
 }
 
+void ref_copy_mem32_to_eax(char *mrm, long off)
+{
+	int reg = 0;
+	if (!is_memop(mrm)) { ref_copy_reg32_to_reg32(mrm[0]&0x7, reg); return; }
+	char *addr = do_lea(mrm);
+
+	taint_regs[reg] = *(long *)(addr+off);
+}
+
 void ref_copy_mem16_to_reg16(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
@@ -341,9 +363,28 @@ void ref_copy_mem16_to_reg16(char *mrm, long off)
 	taint_regs[reg] = (taint_regs[reg]&0xFFFF0000) | (*(long *)(addr+off)&0xFFFF);
 }
 
+void ref_copy_mem16_to_ax(char *mrm, long off)
+{
+	int reg = 0;
+	if (!is_memop(mrm)) { ref_copy_reg16_to_reg16(mrm[0]&0x7, reg); return; }
+	char *addr = do_lea(mrm);
+
+	taint_regs[reg] = (taint_regs[reg]&0xFFFF0000) | (*(long *)(addr+off)&0xFFFF);
+}
+
 void ref_copy_mem8_to_reg8(char *mrm, long off)
 {
 	int reg = (mrm[0]>>3)&0x7;
+	if (!is_memop(mrm)) { ref_copy_reg8_to_reg8(mrm[0]&0x7, reg); return; }
+	char *addr = do_lea(mrm);
+	char *t = get_byte_reg(reg);
+
+	*t = *(char *)(addr+off);
+}
+
+void ref_copy_mem8_to_al(char *mrm, long off)
+{
+	int reg = 0;
 	if (!is_memop(mrm)) { ref_copy_reg8_to_reg8(mrm[0]&0x7, reg); return; }
 	char *addr = do_lea(mrm);
 	char *t = get_byte_reg(reg);
@@ -796,6 +837,76 @@ void ref_copy_pusha16(long off)
 	regs_test[4]=tmp;
 }
 
+
+void ref_cmpxchg8(int flags, char *mrm, long off)
+{
+	if (flags & 0x40)
+		ref_copy_reg8_to_mem8(mrm, off);
+	else
+		ref_copy_mem8_to_al(mrm, off);
+}
+
+void ref_cmpxchg16(int flags, char *mrm, long off)
+{
+	if (flags & 0x40)
+		ref_copy_reg16_to_mem16(mrm, off);
+	else
+		ref_copy_mem16_to_ax(mrm, off);
+}
+
+void ref_cmpxchg32(int flags, char *mrm, long off)
+{
+	if (flags & 0x40)
+		ref_copy_reg32_to_mem32(mrm, off);
+	else
+		ref_copy_mem32_to_eax(mrm, off);
+}
+
+void ref_cmpxchg8b(int flags, char *mrm, long off)
+{
+	if (!is_memop(mrm))
+		return;
+
+	char *addr = do_lea(mrm);
+	if (flags & 0x40)
+	{
+		*(long*)(addr+off)   = taint_regs[3];
+		*(long*)(addr+off+4) = taint_regs[1];
+	}
+	else
+	{
+		taint_regs[0] = *(long*)(addr+off);
+		taint_regs[2] = *(long*)(addr+off+4);
+	}
+}
+
+void test_cmpxchg(int (*taint_pre)(char *, char *, long),
+                  int (*taint_post)(char *, char *, long),
+                  void (*ref_op)(int, char *, long))
+{
+	int i, j, f;
+	char mrm[16];
+
+	for (f=0x200; f<0x300; f++) if ( (f & 0x28) == 0 && (f & 0x2) )
+		for (i=0; i<8; i++)
+			for (j=0; mrm_tests[j]; j++)
+			{
+				memcpy(mrm, mrm_tests[j], mrm_len(mrm_tests[j]));
+				mrm[0] |= i<<3;
+				setup();
+				regs_test[8] = f;
+				ref_op(f, mrm, offset);
+				backup();
+				regs_test[8] = f;
+				load_fx(fx_test);
+				oplen = taint_pre(opcode, mrm, offset);
+				oplen += taint_post(&opcode[oplen], mrm, offset);
+				codeexec((char *)opcode, oplen, (long *)regs_test);
+				save_fx(fx_test);
+				diff();
+			}
+}
+
 void test_mem(int (*taint_op)(char *, char *, long), void (*ref_op)(char *, long))
 {
 	int i, j;
@@ -1147,6 +1258,11 @@ int main(int argc, char **argv)
 
 	test_impl(taint_leave32, ref_leave32);
 	test_impl(taint_leave16, ref_leave16);
+
+	test_cmpxchg(taint_cmpxchg8_pre, taint_cmpxchg8_post, ref_cmpxchg8);
+	test_cmpxchg(taint_cmpxchg16_pre, taint_cmpxchg16_post, ref_cmpxchg16);
+	test_cmpxchg(taint_cmpxchg32_pre, taint_cmpxchg32_post, ref_cmpxchg32);
+	test_cmpxchg(taint_cmpxchg8b_pre, taint_cmpxchg8b_post, ref_cmpxchg8b);
 
 	mrm_generator(test_lea);
 

@@ -157,6 +157,16 @@ int taint_enter16(char *dest, long offset);
 
 int taint_lea(char *dest, char *mrm, long offset);
 
+/* CMPXCHG */
+
+int taint_cmpxchg8_pre(char *dest, char *mrm, long offset);
+int taint_cmpxchg8_post(char *dest, char *mrm, long offset);
+int taint_cmpxchg16_pre(char *dest, char *mrm, long offset);
+int taint_cmpxchg16_post(char *dest, char *mrm, long offset);
+int taint_cmpxchg32_pre(char *dest, char *mrm, long offset);
+int taint_cmpxchg32_post(char *dest, char *mrm, long offset);
+int taint_cmpxchg8b_pre(char *dest, char *mrm, long offset);
+int taint_cmpxchg8b_post(char *dest, char *mrm, long offset);
 
 #endif /* TAINT_CODE_H */
 
