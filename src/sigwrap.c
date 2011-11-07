@@ -53,6 +53,16 @@ int try_block_signals(void)
 	                     sizeof(kernel_sigset_t),0,0);
 }
 
+int block_signals(void)
+{
+	kernel_sigset_t blockall;
+	memset(&blockall, 0xff, sizeof(blockall));
+	return syscall4(__NR_rt_sigprocmask, SIG_BLOCK,
+	                     (long)&blockall,
+	                     (long)&get_thread_ctx()->old_sigset,
+	                     sizeof(kernel_sigset_t));
+}
+
 void unblock_signals(void)
 {
 	syscall_intr(__NR_rt_sigprocmask, SIG_SETMASK,

@@ -24,6 +24,7 @@
 
 
 int try_block_signals(void);
+int block_signals(void);
 void unblock_signals(void);
 void sigwrap_init(void);
 void load_sigframe(long call, void *frame);
