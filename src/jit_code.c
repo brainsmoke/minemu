@@ -252,6 +252,9 @@ union
 
 #define SE  SYSENTER
 
+#define CX8 CMPXCHG8
+#define CXG CMPXCHG
+#define CX8B CMPXCHG8B
 #define XXX (C) /* todo */
 #define PRIV (C)
 #define MM (U)
@@ -338,8 +341,8 @@ const unsigned char jit_action[] =
 /* 8? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC ,
 /* 9? */  BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM,
 /* A? */  TEP,  C , XXX,  C , XXX, XXX,  C ,  C , TEP,  C ,PRIV,  C , XXX, XXX, XXX,TOMR,
-/* B? */  XXX, XXX,  C ,  C ,  C ,  C ,BZMR,TZMR, XXX,  C ,  C ,  C ,  C ,  C ,BZMR,TZMR,
-/* C? */ BORM,TORM,  MM,TCRM,  MM,  MM,  MM,  MM,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
+/* B? */  CX8, CXG,  C ,  C ,  C ,  C ,BZMR,TZMR, XXX,  C ,  C ,  C ,  C ,  C ,BZMR,TZMR,
+/* C? */ BORM,TORM,  MM,TCRM,  MM,  MM,  MM,CX8B,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
 /* D? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
 /* E? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
 /* F? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
@@ -815,6 +818,34 @@ static int copy_instr(char *dest, instr_t *instr, trans_t *trans)
 	return trans->len;
 }
 
+static int taint_cmpxchg8(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len = taint_cmpxchg8_pre(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	copy_instr(&dest[len], instr, trans);
+	len += trans->len;
+	len += taint_cmpxchg8_post(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+	return trans->len = len;
+}
+
+static int taint_cmpxchg(char *dest, instr_t *instr, trans_t *trans)
+{
+	int op16 = (instr->p[3] == 0x66);
+	int len = (op16?taint_cmpxchg16_pre:taint_cmpxchg32_pre)(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	copy_instr(&dest[len], instr, trans);
+	len += trans->len;
+	len += (op16?taint_cmpxchg16_post:taint_cmpxchg32_post)(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+	return trans->len = len;
+}
+
+static int taint_cmpxchg8b(char *dest, instr_t *instr, trans_t *trans)
+{
+	int len = taint_cmpxchg8b_pre(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	copy_instr(&dest[len], instr, trans);
+	len += trans->len;
+	len += taint_cmpxchg8b_post(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+	return trans->len = len;
+}
+
 static int taint_rep(char *dest, instr_t *instr, trans_t *trans)
 {
 	int act = jit_action[instr->op]^TAINT, op16 = (instr->p[3] == 0x66);
@@ -986,6 +1017,12 @@ void translate_op(char *dest, instr_t *instr, trans_t *trans,
 	}
 	else if (action == SYSENTER)
 		generate_linux_sysenter(dest, trans);
+	else if (action == CMPXCHG8)
+		taint_cmpxchg8(dest, instr, trans);
+	else if (action == CMPXCHG)
+		taint_cmpxchg(dest, instr, trans);
+	else if (action == CMPXCHG8B)
+		taint_cmpxchg8b(dest, instr, trans);
 	else
 			die("unimplemented action: %d", action);
 }

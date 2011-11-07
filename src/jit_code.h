@@ -83,6 +83,10 @@ int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
 #define INT                    (0x40)
 #define SYSENTER               (0x41)
 
+#define CMPXCHG8               (0x42)
+#define CMPXCHG                (0x43)
+#define CMPXCHG8B              (0x44)
+
 #define JOIN (CONTROL|12)
 
 extern const unsigned char jit_action[];
