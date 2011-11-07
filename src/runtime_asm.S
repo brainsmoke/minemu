@@ -18,6 +18,7 @@
 .text
 #include "asm_consts_gen.h"
 #include "segments.h"
+#include "opcodes.h"
 
 .global runtime_cache_resolution_start
 runtime_cache_resolution_start:
@@ -111,6 +112,24 @@ mov %fs:CTX__FLAGS_TMP, %eax
 sahf
 movl %edx, %fs:CTX__JIT_EIP
 jmp jit_return
+
+.global cpuid_emu
+.type cpuid_emu, @function
+cpuid_emu:
+xchg %eax, %fs:CTX__FLAGS_TMP
+lahf
+xchg %eax, %fs:CTX__FLAGS_TMP
+cmpl $1, %eax
+cpuid
+jne 1f
+# mask SSE registers in feature set
+andl $(CPUID_FEATURE_INFO_ECX_MASK), %ecx
+andl $(CPUID_FEATURE_INFO_EDX_MASK), %edx
+1:
+xchg %eax, %fs:CTX__FLAGS_TMP
+sahf
+xchg %eax, %fs:CTX__FLAGS_TMP
+jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
 
 .global runtime_cache_resolution_end
 runtime_cache_resolution_end:

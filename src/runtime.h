@@ -33,6 +33,7 @@ long reloc_runtime_ijmp(void);
 
 long int80_emu(void);
 long linux_sysenter_emu(void);
+long cpuid_emu(void);
 
 extern char syscall_intr_critical_start[], syscall_intr_critical_end[],
             runtime_cache_resolution_start[], runtime_cache_resolution_end[],

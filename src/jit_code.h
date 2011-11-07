@@ -86,6 +86,7 @@ int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
 #define CMPXCHG8               (0x42)
 #define CMPXCHG                (0x43)
 #define CMPXCHG8B              (0x44)
+#define CPUID                  (0x45)
 
 #define JOIN (CONTROL|12)
 

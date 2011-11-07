@@ -97,6 +97,7 @@ src/reloc_runtime_asm.o: %.o: %.o-tmp
 	           --redefine-sym runtime_cache_resolution_end=reloc_runtime_cache_resolution_end \
 	           --redefine-sym runtime_ret=reloc_runtime_ret \
 	           --redefine-sym runtime_ijmp=reloc_runtime_ijmp \
+	           --redefine-sym cpuid_emu=reloc_cpuid_emu \
 	           --redefine-sym jit_return=reloc_jit_return $< $@
 
 $(TESTCASES_ASM_OBJECTS): %.o: %_asm.S

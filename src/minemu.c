@@ -31,6 +31,7 @@
 #include "codemap.h"
 #include "sigwrap.h"
 #include "options.h"
+#include "opcodes.h"
 #include "threads.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
@@ -111,6 +112,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		die("unable to execute binary: %d", -ret);
 
 	init_vdso(get_aux(prog.auxv, AT_SYSINFO_EHDR));
+	set_aux(prog.auxv, AT_HWCAP, get_aux(prog.auxv, AT_HWCAP) & CPUID_FEATURE_INFO_EDX_MASK);
 
 	emu_start(prog.entry, prog.sp);
 

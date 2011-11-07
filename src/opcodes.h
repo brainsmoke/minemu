@@ -19,6 +19,11 @@
 #ifndef OPCODES_H
 #define OPCODES_H
 
+#define CPUID_FEATURE_INFO_ECX_MASK (0xc007cdec)
+#define CPUID_FEATURE_INFO_EDX_MASK (0xf87fffff)
+
+#ifndef __ASSEMBLER__
+
 #include <unistd.h>
 
 #include "lib.h"
@@ -42,5 +47,7 @@ typedef struct
 
 int read_op(char *addr, instr_t *instr, int max_len);
 int op_size(char *addr, int max_len);
+
+#endif /* __ASSEMBLER__ */
 
 #endif /* OPCODES_H */

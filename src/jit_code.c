@@ -255,6 +255,7 @@ union
 #define CX8 CMPXCHG8
 #define CXG CMPXCHG
 #define CX8B CMPXCHG8B
+#define CPUI CPUID
 #define XXX (C) /* todo */
 #define PRIV (C)
 #define MM (U)
@@ -340,7 +341,7 @@ const unsigned char jit_action[] =
 /* 7? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  C ,PRIV,PRIV,  C ,  C ,  MM,  MM,  MM,  MM,
 /* 8? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC ,
 /* 9? */  BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM, BEM,
-/* A? */  TEP,  C , XXX,  C , XXX, XXX,  C ,  C , TEP,  C ,PRIV,  C , XXX, XXX, XXX,TOMR,
+/* A? */  TEP,  C ,CPUI,  C , XXX, XXX,  C ,  C , TEP,  C ,PRIV,  C , XXX, XXX, XXX,TOMR,
 /* B? */  CX8, CXG,  C ,  C ,  C ,  C ,BZMR,TZMR, XXX,  C ,  C ,  C ,  C ,  C ,BZMR,TZMR,
 /* C? */ BORM,TORM,  MM,TCRM,  MM,  MM,  MM,CX8B,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
 /* D? */   MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,  MM,
@@ -529,6 +530,23 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 
 	len += jump_to(&dest[len], (void *)(long)int80_emu);
 	*trans = (trans_t){ .len=len };
+	return len;
+}
+
+static int generate_cpuid(char *dest, instr_t *instr, trans_t *trans)
+{
+	int retaddr_index;
+	int len = gen_code(
+		dest,
+
+		"64 C7 05 L &DEADBEEF",    /* movl $post_addr, jit_eip */
+
+		offsetof(thread_ctx_t, jit_eip), &retaddr_index
+	);
+
+	len += jump_to(&dest[len], (void *)(long)cpuid_emu);
+	*trans = (trans_t){ .len=len };
+	imm_to(&dest[retaddr_index], (long)dest+trans->len);
 	return len;
 }
 
@@ -1023,6 +1041,8 @@ void translate_op(char *dest, instr_t *instr, trans_t *trans,
 		taint_cmpxchg(dest, instr, trans);
 	else if (action == CMPXCHG8B)
 		taint_cmpxchg8b(dest, instr, trans);
+	else if (action == CPUID)
+		generate_cpuid(dest, instr, trans);
 	else
 			die("unimplemented action: %d", action);
 }
