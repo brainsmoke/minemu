@@ -45,7 +45,7 @@ int load_binary(elf_prog_t *prog)
 		return load_script(prog);
 }
 
-extern char *minemu_stack_bottom[];
+extern long *minemu_stack_bottom;
 
 long user_execve(char *filename, char *argv[], char *envp[])
 {
@@ -62,7 +62,7 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
 	 */
-	char **new_argv = &minemu_stack_bottom[- count - option_args_count() - 2], **user_argv;
+	char **new_argv = &((char **)minemu_stack_bottom)[- count - option_args_count() - 2], **user_argv;
 	new_argv[0] = argv[0];
 	user_argv = option_args_setup(&new_argv[1], filename);
 	memcpy(user_argv, argv, sizeof(char *)*(count+1));

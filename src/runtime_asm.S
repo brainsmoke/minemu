@@ -173,8 +173,9 @@ jmp *%fs:CTX__JIT_RETURN_ADDR
 #
 runtime_jit:
 movl 4(%esp), %eax
-movl %esp, minemu_stack_bottom      # switch to jit stack
-movl $minemu_stack_bottom, %esp     #
+movl %esp, %edx                     # switch to jit stack
+movl minemu_stack_bottom, %esp      #
+push %edx
 push %eax                           # address to be translated
 call jit
 addl $4, %esp

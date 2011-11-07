@@ -34,7 +34,7 @@
 #include "codemap.h"
 #include "load_elf.h"
 
-unsigned long sysenter_reentry;
+unsigned long sysenter_reentry, minemu_stack_bottom;
 
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)

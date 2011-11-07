@@ -55,8 +55,6 @@ extern char minemu_end[], minemu_code_start[], minemu_code_end[];
 #define USER_STACK_PAGES (0x8000UL)
 #define USER_STACK_SIZE (USER_STACK_PAGES * PG_SIZE)
 #define VDSO_SIZE  (PG_SIZE)
-#define MINEMU_STACK_BOTTOM (0xBFF70000UL)
-
 
 #include <sys/mman.h>
 

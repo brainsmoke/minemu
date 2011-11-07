@@ -48,13 +48,10 @@ ret
 .global emu_start
 .type emu_start, @function
 emu_start: # (long eip, long esp)
-movl 4(%esp), %esi           # load user %eip from arg1
-movl 8(%esp), %ebp           # load user's stack pointer from arg2
-
-mov %fs:CTX__SCRATCH_STACK_TOP, %esp # move the stack out of emulator memory
-movl %ebp, %esp                      # load user stack
-movl %esi, %eax              # user %eip
-xor %ecx, %ecx               # clear registers and flags
+movl %esp, minemu_stack_bottom   # save orig stack address for runtime_jit()
+movl 4(%esp), %eax               # load user %eip from arg1
+movl 8(%esp), %esp               # load user's stack pointer from arg2
+xor %ecx, %ecx                   # clear registers and flags
 xor %edx, %edx
 xor %ebx, %ebx
 xor %ebp, %ebp
