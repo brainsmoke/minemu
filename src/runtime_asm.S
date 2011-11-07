@@ -35,12 +35,13 @@ mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 push %edi
 push %esi
 push %ebp
-push 12(%esp)       # user %esp
+push %fs:CTX__USER_ESP
 push %ebx
 push %edx
 push %ecx
 push %eax
 push %esp           # *(long)regs
+call block_signals
 call do_taint_dump
 ud2
 
