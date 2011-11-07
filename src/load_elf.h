@@ -53,5 +53,4 @@ void set_aux(long *auxv, long id, long val);
 long get_aux(long *auxv, long id);
 long strings_count(char **s);
 
-
 #endif /* LOAD_ELF_H */

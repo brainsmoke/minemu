@@ -47,7 +47,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 
 	argv = parse_options(&argv[1]);
 
-	init_minemu_mem(envp);
+	init_minemu_mem(auxv);
 	sigwrap_init();
 	jit_init();
 

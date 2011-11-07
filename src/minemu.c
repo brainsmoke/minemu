@@ -49,7 +49,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	if ( (progname == NULL) && (argv[0][0] == '/') )
 		progname = argv[0];
 
-	init_minemu_mem(envp);
+	init_minemu_mem(auxv);
 	init_shield(TAINT_END);
 	init_threads();
 	sigwrap_init();

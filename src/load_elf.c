@@ -42,21 +42,6 @@
 #define AT_RANDOM 25
 #endif
 
-/* relocate the stack */
-
-static long get_stack_random_shift(char **envp)
-{
-	char *max = (char *)envp;
-	for ( ; *envp ; envp++ )
-		if ( *envp > max )
-			max = *envp;
-
-	if (max == 0)
-		return 0;
-	else
-		return 0x1000000 - (PAGE_NEXT((long)max) & 0xfff000);
-}
-
 static long auxv_count(long *auxv)
 {
 	long c=0;
@@ -116,6 +101,12 @@ static char *stack_push_data(char *sp, void *src, size_t n)
 	return memcpy(sp -= n, src, n);
 }
 
+/* relocate the stack */
+static long get_stack_random_shift(long *auxv)
+{
+	return 0x1000000 - (PAGE_NEXT((long)get_aux(auxv, AT_EXECFN)) & 0xfff000);
+}
+
 static int init_user_stack(elf_prog_t *prog, int prot)
 {
 	long err = do_mmap2(prog->task_size-prog->stack_size, prog->stack_size,prot,
@@ -134,7 +125,7 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 	     *base_platform = (char *)get_aux(prog->auxv, AT_BASE_PLATFORM),
 	     *rand_bytes    = (char *)get_aux(prog->auxv, AT_RANDOM);
 
-	char *sp = (char *)(prog->task_size-get_stack_random_shift(prog->envp));
+	char *sp = (char *)(prog->task_size-get_stack_random_shift(prog->auxv));
 
 	sp -= sizeof(long);
 	sp = prog->filename = stack_push_string(sp, prog->filename);

@@ -60,7 +60,7 @@ extern char minemu_end[], minemu_code_start[], minemu_code_end[];
 
 #include <sys/mman.h>
 
-void init_minemu_mem(char **envp);
+void init_minemu_mem(long *auxv);
 
 unsigned long set_brk_min(unsigned long brk);
 

@@ -24,9 +24,6 @@
 #ifndef AT_EXECFN
 #define AT_EXECFN 31
 #endif
-#ifndef AT_BASE_PLATFORM
-#define AT_BASE_PLATFORM 24
-#endif
 
 #include "mm.h"
 #include "error.h"
@@ -35,6 +32,7 @@
 #include "runtime.h"
 #include "jit.h"
 #include "codemap.h"
+#include "load_elf.h"
 
 unsigned long sysenter_reentry;
 
@@ -167,19 +165,14 @@ unsigned long init_vdso(unsigned long vdso)
 	add_code_region((char *)vdso, 0x1000, 0, 0, 0, 0); /* vdso */
 }
 
-unsigned long stack_top(char **envp)
+unsigned long stack_top(long *auxv)
 {
-	unsigned long max = (long)envp;
-	for ( ; *envp ; envp++ )
-		if ( (unsigned long)*envp > max )
-			max = (unsigned long)*envp;
-
-	return PAGE_NEXT((unsigned long)max);
+	return PAGE_NEXT((unsigned long)get_aux(auxv, AT_EXECFN));
 }
 
-unsigned long high_user_addr(char **envp)
+unsigned long high_user_addr(long *auxv)
 {
-	return stack_top(envp) <= 0xC0000000 ? 0xC0000000 : 0xFFFFE000;
+	return stack_top(auxv) <= 0xC0000000UL ? 0xC0000000UL : 0xFFFFE000UL;
 }
 
 static void fill_last_page_hack(void)
@@ -198,7 +191,7 @@ void unshield(void)
 	sys_mprotect(JIT_START, JIT_SIZE, PROT_READ|PROT_WRITE);
 }
 
-void init_minemu_mem(char **envp)
+void init_minemu_mem(long *auxv)
 {
 	long ret = 0;
 
@@ -212,7 +205,8 @@ void init_minemu_mem(char **envp)
 	 * in the future (I hope so.)
 	 */
 	ret |= sys_mmap2(TAINT_START, TAINT_SIZE,
-	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+//	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
 
 	ret |= sys_mmap2(JIT_START, JIT_SIZE,
@@ -225,8 +219,8 @@ void init_minemu_mem(char **envp)
 
 	fill_last_page_hack();
 
-	if ( high_user_addr(envp) > stack_top(envp) )
-		ret |= sys_mmap2(stack_top(envp), high_user_addr(envp)-stack_top(envp),
+	if ( high_user_addr(auxv) > stack_top(auxv) )
+		ret |= sys_mmap2(stack_top(auxv), high_user_addr(auxv)-stack_top(auxv),
 		                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 		                 -1, 0);
 
