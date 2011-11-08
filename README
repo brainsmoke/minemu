@@ -6,10 +6,6 @@ NOTES:
 - it requires a CPU with support for SSE 4.1 instructions
   (45nm intel Core 2 Duo, and up.)
 
-- The file /etc/ld.so.nohwcap must be present to make user
-  programs avoid vector instructions (there is no CPUID emulation yet.)
-  An attempt to execute an MMX/SSE instruction will result in a SIGILL.
-
 - the kernel must always allow memory overcommitting (instead of
   depending on heuristics.) This can be achieved by setting the sysctl:
 
