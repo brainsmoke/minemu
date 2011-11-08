@@ -45,7 +45,7 @@ typedef struct
 
 typedef struct
 {
-	struct kernel_sigaction sigaction_list[KERNEL_NSIG];
+	struct kernel_sigaction sigaction_list[KERNEL_NSIG+1];
 	long lock;
 
 } sighandler_ctx_t;
