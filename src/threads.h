@@ -116,4 +116,14 @@ void mutex_init(long *lock);
 void mutex_lock(long *lock);
 void mutex_unlock(long *lock);
 
+inline void siglock(thread_ctx_t *ctx)
+{
+	mutex_lock(&ctx->sighandler->lock);
+}
+
+inline void sigunlock(thread_ctx_t *ctx)
+{
+	mutex_unlock(&ctx->sighandler->lock);
+}
+
 #endif /* THREADS_H */

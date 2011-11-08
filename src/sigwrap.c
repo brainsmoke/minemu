@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "syscalls.h"
 #include "sigwrap.h"
@@ -152,6 +153,7 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 {
 	thread_ctx_t *local_ctx = get_thread_ctx();
+	siglock(local_ctx);
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
 	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
 	struct kernel_sigaction *action = &local_ctx->sighandler->sigaction_list[sig];
@@ -240,6 +242,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	*extramask |= action->mask.bitmask[1];
 
 	/* let the kernel 'deliver' a signal using (rt_)sigreturn! */
+	sigunlock(local_ctx);
 }
 
 void user_sigreturn(void)
@@ -390,40 +393,40 @@ long user_sigaction(int sig, const struct kernel_old_sigaction *act,
 long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
                                       struct kernel_sigaction *oact, size_t sigsetsize)
 {
-	long ret;
+	long ret = -EINVAL;
 	struct kernel_sigaction wrap;
 	thread_ctx_t *local_ctx = get_thread_ctx();
 
-	/* TODO test readability of memory */
+	if (sigsetsize != sizeof(kernel_sigset_t))
+		return ret;
+
+	/* TODO: do -EFAULT magic on SIGSEGV */
 	if (act)
 	{
 		wrap = *act;
-		wrap.handler = sigwrap_handler;
+
+		if ( act->handler != (kernel_sighandler_t)SIG_ERR &&
+		     act->handler != (kernel_sighandler_t)SIG_DFL &&
+		     act->handler != (kernel_sighandler_t)SIG_IGN )
+			wrap.handler = sigwrap_handler;
+
 		wrap.flags |= SA_ONSTACK;
 		wrap.flags &=~ SA_NODEFER;
 		memset(&wrap.mask, 0xff, sizeof(wrap.mask));
 	}
 
-	ret = sys_rt_sigaction(sig, act, oact, sigsetsize);
+	siglock(local_ctx);
+	ret = sys_rt_sigaction(sig, &wrap, NULL, sigsetsize);
 
-	if (ret)
-		return ret;
-
-	if (oact)
+	if (!ret && oact)
 		*oact = local_ctx->sighandler->sigaction_list[sig];
 
-	if (act)
+	if (!ret && act)
 	{
-		if ( act->handler == (kernel_sighandler_t)SIG_ERR ||
-		     act->handler == (kernel_sighandler_t)SIG_DFL ||
-		     act->handler == (kernel_sighandler_t)SIG_IGN )
-			local_ctx->sighandler->sigaction_list[sig] = *act;
-		else
-			ret = sys_rt_sigaction(sig, &wrap, &local_ctx->sighandler->sigaction_list[sig], sigsetsize);
+		local_ctx->sighandler->sigaction_list[sig] = *act;
+		local_ctx->sighandler->sigaction_list[sig].mask.bitmask[0] &=~ ( 1<<(SIGKILL-1) | 1<<(SIGSTOP-1) );
 	}
-
-	if (ret)
-		die("user_rt_sigaction: sys_rt_sigaction() failed %d", ret);
+	sigunlock(local_ctx);
 
 	return ret;
 }
