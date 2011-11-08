@@ -206,11 +206,15 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	{
 		rt_sigframe = copy_rt_sigframe(rt_sigframe, &action, context);
 		taint_mem(rt_sigframe, sizeof(*rt_sigframe), 0x00);
+		if (action.flags & SA_RESTORER)
+			rt_sigframe->pretcode = (char *)(long)action.restorer;
 	}
 	else
 	{
 		sigframe = copy_sigframe(sigframe, &action, context);
 		taint_mem(sigframe, sizeof(*sigframe), 0x00);
+		if (action.flags & SA_RESTORER)
+			sigframe->pretcode = (char *)(long)action.restorer;
 	}
 
 	/* Most evil hack ever! We 'deliver' the user's signal by modifying our own sigframe
@@ -419,7 +423,7 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 			wrap.handler = sigwrap_handler;
 
 		wrap.flags |= SA_ONSTACK;
-		wrap.flags &=~ SA_NODEFER;
+		wrap.flags &=~ SA_NODEFER|SA_RESTORER;
 		memset(&wrap.mask, 0xff, sizeof(wrap.mask));
 	}
 
