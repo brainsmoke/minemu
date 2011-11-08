@@ -35,7 +35,7 @@ lock cmpxchg %edx, (%ebx)
 loopnew spin
 jne 1f
 pop %ebx
-lfence
+mfence
 ret
 1:
 movl $(__NR_sched_yield), %eax
@@ -50,7 +50,7 @@ mutex_init:
 .type mutex_unlock, @function
 mutex_unlock:
 movl 4(%esp), %edx
-sfence
+mfence
 movl $0, (%edx)
 ret
 
@@ -60,7 +60,7 @@ mutex_unlock_exit:
 movl 8(%esp), %edx
 movl 4(%esp), %ebx
 movl $(__NR_exit), %eax
-sfence
+mfence
 movl $0, (%edx)
 int $0x80
 ud2
@@ -73,7 +73,7 @@ movl 0x0C(%esp), %edx
 movl 0x08(%esp), %ecx
 movl 0x04(%esp), %ebx
 movl $(__NR_execve), %eax
-sfence
+mfence
 movl $0, (%esi)
 int $0x80
 movl $(__NR_gettid), %eax
