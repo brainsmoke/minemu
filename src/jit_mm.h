@@ -23,6 +23,6 @@ void jit_mm_init(void);
 
 void jit_free(void *p);
 void *jit_alloc(unsigned long size);
-void *jit_realloc(void *p, unsigned long size);
+unsigned long jit_size(void *p);
 
 #endif /* JIT_MM_H */

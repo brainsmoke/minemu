@@ -87,15 +87,9 @@ static int get_alloc_block(void *p)
 	return i;
 }
 
-void *jit_realloc(void *p, unsigned long size)
+unsigned long jit_size(void *p)
 {
-	if (p == NULL)
-		return jit_alloc(size);
-
-	if (size > blocks[get_alloc_block(p)]*block_size)
-		die("requested block size too big");
-
-	return p;
+	return -blocks[get_alloc_block(p)]*block_size;
 }
 
 void jit_free(void *p)

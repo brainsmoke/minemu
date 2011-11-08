@@ -201,7 +201,7 @@ typedef struct
 #define CHUNK_OFFSET(x) ( (long)(x) - (long)(hdr) )
 #define DIV_CEIL(x, d) ( ( (long)(x)+(long)(d)-1)/(long)(d) )
 
-static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes)
+static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes, char *jit_end)
 {
 	long n_frames = DIV_CEIL(hdr->len, FRAME_SIZE);
 
@@ -228,6 +228,9 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 				j++;
 			}
 		}
+
+		if ((unsigned long)&table[j+1] > (unsigned long)jit_end)
+			die("jit chunk too large %x %x", &table[j+1], (unsigned long)jit_end);
 
 		table[j] = sizes[i];
 		s_off   += sizes[i].orig;
@@ -428,21 +431,13 @@ static void jit_fill_mapping(code_map_t *map, unsigned long *mapping,
 	}
 }
 
-static char *jit_map_resize(code_map_t *map, unsigned long new_len)
+static void jit_map_resize(code_map_t *map, unsigned long new_len)
 {
-	char *new_addr = jit_realloc(map->jit_addr, new_len);
-
-	if ( (map->jit_addr) && (new_addr != map->jit_addr) )
+	if ( new_len > jit_size(map->jit_addr) )
 		die("jmp mapping resize is not supported");
-//		move_jmp_mappings(map->jit_addr, map->jit_len, new_addr);
 
-	map->jit_addr = new_addr;
 	map->jit_len = new_len;
-
-	return new_addr;
 }
-
-#define CHUNK_INCREASE (0x1000)
 
 #define TRANSLATED(m) ((unsigned long)(m+0x1000)>0x1000)
 /*#define UNTRANSLATED  ((unsigned long) 0)*/
@@ -473,7 +468,8 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	              entry = entry_addr-addr,
 	              s_off = entry_addr-addr,
 	              d_off = map->jit_len+sizeof(jit_chunk_t),
-	              chunk_base = map->jit_len;
+	              chunk_base = map->jit_len,
+	              max_len = jit_size(jit_addr);
 	int stop = 0;
 
 	instr_t instr;
@@ -483,8 +479,8 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 
 	while (stop == 0)
 	{
-		if ( map->jit_len < d_off+TRANSLATED_MAX_SIZE )
-			jit_addr=jit_map_resize(map, d_off+CHUNK_INCREASE);
+		if ( d_off+TRANSLATED_MAX_SIZE > max_len )
+			die("jmp mapping too big, additional allocation not implemented");
 
 		mapping[s_off] = d_off;
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
@@ -538,7 +534,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		.n_ops = n_ops,
 	};
 
-	jit_chunk_create_lookup_mapping(hdr, sizes);
+	jit_chunk_create_lookup_mapping(hdr, sizes, &jit_addr[max_len]);
 	jit_map_resize(map, chunk_base+hdr->chunk_len);
 
 	return hdr;
@@ -583,7 +579,7 @@ char *jit(char *addr)
 
 	if (map && map->jit_addr == NULL)
 	{
-		map->jit_addr = jit_realloc(map->jit_addr, map->len*4+(map->len/2));
+		map->jit_addr = jit_alloc(map->len*4+(map->len/2));
 
 		try_load_jit_cache(map);
 	}
