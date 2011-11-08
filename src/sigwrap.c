@@ -153,18 +153,23 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 {
 	thread_ctx_t *local_ctx = get_thread_ctx();
-	siglock(local_ctx);
 	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
 	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
-	struct kernel_sigaction *action = &local_ctx->sighandler->sigaction_list[sig];
 	struct _fpstate *fpstate;
 	struct sigcontext *context;
 	unsigned long *sigmask, *extramask;
 
+	siglock(local_ctx);
+	struct kernel_sigaction action = local_ctx->sighandler->sigaction_list[sig];
+	if ( action.flags & SA_ONESHOT )
+		memset(&local_ctx->sighandler->sigaction_list[sig], 0, sizeof(struct kernel_sigaction));
+
+	sigunlock(local_ctx);
+
 	if ( (sig < 0) || (sig >= KERNEL_NSIG) )
 		die("bad signo. %d", sig);
 
-	if ( action->flags & SA_SIGINFO )
+	if ( action.flags & SA_SIGINFO )
 	{
 		context = &rt_sigframe->uc.uc_mcontext;
 		sigmask = &rt_sigframe->uc.uc_sigmask.bitmask[0];
@@ -197,17 +202,14 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	get_xmm6((unsigned char *)&fpstate->_xmm[6]);
 	get_xmm7((unsigned char *)&fpstate->_xmm[7]);
 
-	if ( action->flags & SA_ONESHOT )
-		memset(action, 0, sizeof(*action));
-
-	if ( action->flags & SA_SIGINFO )
+	if ( action.flags & SA_SIGINFO )
 	{
-		rt_sigframe = copy_rt_sigframe(rt_sigframe, action, context);
+		rt_sigframe = copy_rt_sigframe(rt_sigframe, &action, context);
 		taint_mem(rt_sigframe, sizeof(*rt_sigframe), 0x00);
 	}
 	else
 	{
-		sigframe = copy_sigframe(sigframe, action, context);
+		sigframe = copy_sigframe(sigframe, &action, context);
 		taint_mem(sigframe, sizeof(*sigframe), 0x00);
 	}
 
@@ -219,11 +221,11 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	context->ss = SHIELD_SEGMENT;
 	context->cs = __USER_CS;
 
-	local_ctx->user_eip = (long)action->handler;   /* jump into jit (or in this case runtime) */
-	context->eip = (long)state_restore;            /* code, not user code                     */
+	local_ctx->user_eip = (long)action.handler;   /* jump into jit (or in this case runtime) */
+	context->eip = (long)state_restore;           /* code, not user code                     */
 	context->eax = sig;
 
-	if ( action->flags & SA_SIGINFO )
+	if ( action.flags & SA_SIGINFO )
 	{
 		context->esp = (long)rt_sigframe;
 		context->ecx = (long)&rt_sigframe->uc;
@@ -238,11 +240,10 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 //print_sigframe(sigframe);
 	}
 
-	*sigmask   |= action->mask.bitmask[0];
-	*extramask |= action->mask.bitmask[1];
+	*sigmask   |= action.mask.bitmask[0];
+	*extramask |= action.mask.bitmask[1];
 
 	/* let the kernel 'deliver' a signal using (rt_)sigreturn! */
-	sigunlock(local_ctx);
 }
 
 void user_sigreturn(void)
