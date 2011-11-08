@@ -242,6 +242,13 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	*sigmask   |= action.mask.bitmask[0];
 	*extramask |= action.mask.bitmask[1];
+	if ( !(action.flags & SA_NODEFER) )
+	{
+		if (sig <= 32)
+			*sigmask |= 1UL << (sig-1);
+		else
+			*extramask |= 1UL << (sig-33);
+	}
 
 	/* let the kernel 'deliver' a signal using (rt_)sigreturn! */
 }
