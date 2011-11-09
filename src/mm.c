@@ -207,6 +207,10 @@ void init_minemu_mem(long *auxv)
 	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
 
+	ret |= sys_mmap2(MINEMU_END, 0x1000,
+	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 -1, 0);
+
 	fill_last_page_hack();
 
 	if ( high_user_addr(auxv) > stack_top(auxv) )
