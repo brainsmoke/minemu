@@ -230,7 +230,7 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 		}
 
 		if ((unsigned long)&table[j+1] > (unsigned long)jit_end)
-			die("jit chunk too large %x %x", &table[j+1], (unsigned long)jit_end);
+			die("jit chunk too large");
 
 		table[j] = sizes[i];
 		s_off   += sizes[i].orig;
@@ -554,11 +554,17 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 
 	jit_fill_mapping(map, mapping, map->len+1);
 
+	char *base = (char *)PAGE_BASE(&map->jit_addr[map->jit_len]);
+	unsigned long len = PAGE_NEXT(jit_size(map->jit_addr)-map->jit_len);
+	sys_mprotect(base, len, PROT_READ|PROT_WRITE|PROT_EXEC);
+
 	jit_translate_chunk(map, entry_addr, &jmp_heap, mapping);
 
 	while (heap_get(&jmp_heap, &j))
 		while (!try_resolve_jmp(map, j.addr, &map->jit_addr[j.off], mapping))
 			jit_translate_chunk(map, j.addr, &jmp_heap, mapping);
+
+	sys_mprotect(base, len, PROT_READ|PROT_EXEC);
 }
 
 void jit_init(void)
@@ -572,8 +578,6 @@ char *jit(char *addr)
 
 	if (jit_addr != NULL)
 		return jit_addr;
-
-	unshield();
 
 	code_map_t *map = find_code_map(addr);
 
@@ -599,8 +603,6 @@ char *jit(char *addr)
 
 	if (jit_addr == NULL)
 		die("jit failed");
-
-	shield();
 
 	return jit_addr;
 }

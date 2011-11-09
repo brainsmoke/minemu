@@ -110,7 +110,7 @@ int try_load_jit_cache(code_map_t *map)
 	unsigned long size = fd_filesize(fd);
 
 	char *addr = (char *)sys_mmap2(map->jit_addr, size,
-	                               PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
+	                               PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED,
 	                               fd, map->pgoffset);
 	
 

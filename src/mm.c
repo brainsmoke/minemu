@@ -181,16 +181,6 @@ static void fill_last_page_hack(void)
 	clear(buf, 0x2000);
 }
 
-void shield(void)
-{
-	sys_mprotect(JIT_START, JIT_SIZE, PROT_READ|PROT_EXEC);
-}
-
-void unshield(void)
-{
-	sys_mprotect(JIT_START, JIT_SIZE, PROT_READ|PROT_WRITE);
-}
-
 void init_minemu_mem(long *auxv)
 {
 	long ret = 0;
