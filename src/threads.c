@@ -24,6 +24,7 @@
 #include "runtime.h"
 #include "error.h"
 #include "mm.h"
+#include "jmp_cache.h"
 
 static thread_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
 static sighandler_ctx_t sighandler;
@@ -82,6 +83,15 @@ static void init_thread_ctx(thread_ctx_t *local_ctx)
 
 	sys_mprotect(&local_ctx->fault_page0, 0x1000, PROT_NONE);
 	sys_mprotect(&local_ctx->jit_fragment_page, PG_SIZE, PROT_EXEC|PROT_READ);
+}
+
+/* no need for locking, the only risk is doing too much work */
+void purge_caches(char *addr, unsigned long len)
+{
+	int i;
+	for (i=0; i<MAX_THREADS; i++)
+		if (ctx_map[i] == 1)
+			clear_jmp_cache(&ctx[i], addr, len);
 }
 
 void protect_ctx(void)

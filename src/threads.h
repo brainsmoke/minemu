@@ -111,6 +111,7 @@ void user_exit(long status);
 
 long sys_execve_or_die(char *filename, char *argv[], char *envp[]);
 
+void purge_caches(char *addr, unsigned long len);
 
 void mutex_init(long *lock);
 void mutex_lock(long *lock);

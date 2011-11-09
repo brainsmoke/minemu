@@ -21,6 +21,7 @@
 
 #include "lib.h"
 #include "mm.h"
+#include "syscalls.h"
 
 #include "jit.h"
 #include "codemap.h"
@@ -98,6 +99,8 @@ void jit_free(void *p)
 
 	if (!p)
 		return;
+
+	sys_mmap2(p, jit_size(p), PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
 
 	this = get_alloc_block(p);
 	blocks[this] = -blocks[this];

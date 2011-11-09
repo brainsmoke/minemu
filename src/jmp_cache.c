@@ -51,9 +51,9 @@ void add_jmp_mapping(char *addr, char *jit_addr)
 
 }
 
-static void jmp_cache_clear(char *addr, unsigned long len)
+void clear_jmp_cache(thread_ctx_t *ctx, char *addr, unsigned long len)
 {
-	jmp_map_t *jmp_cache = get_thread_ctx()->jmp_cache;
+	jmp_map_t *jmp_cache = ctx->jmp_cache;
 
 	int i, last=-1 /* make compiler happy */ ;
 	char *tmp_addr, *tmp_jit_addr;
@@ -100,21 +100,4 @@ char *find_jmp_mapping(char *addr)
 
 	return NULL;
 }
-
-void clear_jmp_mappings(char *addr, unsigned long len)
-{
-	jmp_cache_clear(addr, len);
-}
-
-/* only possible with some dynamic linking mechanism, probably not worth it anyway
-void move_jmp_mappings(char *jit_addr, unsigned long jit_len, char *new_addr)
-{
-	int i;
-	long diff = (long)new_addr-(long)jit_addr;
-
-	for (i=0; i<JMP_CACHE_SIZE; i++)
-		if ( !contains(jit_addr, jit_len, jmp_cache[i].jit_addr) )
-			jmp_cache[i].jit_addr += diff;
-}
-*/
 

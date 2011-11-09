@@ -48,6 +48,7 @@ int fd_printf(int fd, const char *format, ...)
 void runtime_ijmp(void) { die("calling placeholder"); }
 void jit_return(void) { die("calling placeholder"); }
 void jit_fragment_exit(void) { die("calling placeholder"); }
+void clear_jmp_cache(void) { die("calling placeholder"); }
 
 char user_sigaction_list[1];
 

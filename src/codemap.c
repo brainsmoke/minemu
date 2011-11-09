@@ -35,8 +35,8 @@ static long codemap_lock=0;
 
 static void clear_code_map(unsigned int i)
 {
-	clear_jmp_mappings(codemaps[i].addr, codemaps[i].len);
 	jit_free(codemaps[i].jit_addr);
+	purge_caches(codemaps[i].addr, codemaps[i].len);
 	/* */
 }
 

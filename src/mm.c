@@ -200,7 +200,7 @@ void init_minemu_mem(long *auxv)
 	                 -1, 0);
 
 	ret |= sys_mmap2(JIT_START, JIT_SIZE,
-	                 PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
 
 	ret |= sys_mmap2(MINEMU_END, PAGE_BASE(c-0x1000)-MINEMU_END,
