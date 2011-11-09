@@ -21,6 +21,8 @@
 
 #include "opcodes.h"
 
+extern long jit_lock;
+
 void jit_init(void);
 char *jit(char *addr);
 char *jit_lookup_addr(char *addr);

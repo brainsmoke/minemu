@@ -132,6 +132,7 @@ void add_code_region(char *addr, unsigned long len, unsigned long long inode,
 
 void del_code_region(char *addr, unsigned long len)
 {
+	mutex_lock(&jit_lock);
 	mutex_lock(&codemap_lock);
 	int i = n_codemaps-1;
 
@@ -172,5 +173,6 @@ void del_code_region(char *addr, unsigned long len)
 		i = n_codemaps-1;
 	}
 	mutex_unlock(&codemap_lock);
+	mutex_unlock(&jit_lock);
 }
 
