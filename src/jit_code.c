@@ -757,7 +757,7 @@ static int generate_cross_map_jump(char *dest, char *jmp_addr, trans_t *trans)
 		dest,
 		"66 0F 3A 22 E1 00"   /* pinsrd $0, %ecx, %xmm4       */
 		"66 0F 3A 22 D8 00"   /* pinsrd $0, %eax, %xmm3       */
-		"B8 L",               /* mov jmp_addr, %eax           */
+		"B8 L"                /* mov jmp_addr, %eax           */
 		"B9 00 00 00 00",     /* mov $0x0,%ecx                */
 
 		jmp_addr
