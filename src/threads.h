@@ -117,6 +117,8 @@ void mutex_init(long *lock);
 void mutex_lock(long *lock);
 void mutex_unlock(long *lock);
 
+void atomic_clear_8bytes(char *location, char *orig_val);
+
 inline void commit(void)
 {
 	__asm__ __volatile__ ("mfence"::);

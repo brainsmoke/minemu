@@ -24,7 +24,11 @@
 
 #define HASH_OFFSET(i, addr) (((unsigned long)(i)-(unsigned long)(addr))&0xfffful)
 
-/* jump tables */
+static void atomic_clear_entry(jmp_map_t *map, char *addr, char *jit_addr)
+{
+	jmp_map_t orig = { .addr = addr, .jit_addr = jit_addr };
+	atomic_clear_8bytes((char *)map, (char *)&orig);
+}
 
 void add_jmp_mapping(char *addr, char *jit_addr)
 {
@@ -60,8 +64,9 @@ void clear_jmp_cache(thread_ctx_t *ctx, char *addr, unsigned long len)
 
 	for (i=0; i<JMP_CACHE_SIZE; i++)
 	{
-		if ( contains(addr, len, CACHE_MANGLE(jmp_cache[i].addr)) )
-			jmp_cache[i] = (jmp_map_t) { .addr = NULL, .jit_addr = NULL };
+		char *mang_addr = jmp_cache[i].addr;
+		if ( contains(addr, len, CACHE_MANGLE(mang_addr)) )
+			atomic_clear_entry(&jmp_cache[i], mang_addr, jmp_cache[i].jit_addr);
 
 		if ( jmp_cache[i].addr == NULL )
 			last = i;

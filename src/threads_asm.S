@@ -85,6 +85,22 @@ movl $(__NR_tgkill), %eax
 int $0x80
 ud2
 
+.global atomic_clear_8bytes
+.type atomic_clear_8bytes, @function
+atomic_clear_8bytes:
+push %edi
+movl 0x8(%esp), %edi
+movl 0xC(%esp), %eax
+movl 4(%eax), %edx
+movl  (%eax), %eax
+push %ebx
+xor %ebx, %ebx
+xor %ecx, %ecx
+lock cmpxchg8b (%edi)
+pop %ebx
+pop %edi
+ret
+
 # This wil break HARD with -fomit-frame-pointers
 #
 #
