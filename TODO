@@ -3,8 +3,6 @@
 
 Later:
 
-- Threads support
-
 - clean up src/jit_code.c, remove register constants in opcodes
   use the appropriate helper functions.
 
