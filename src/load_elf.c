@@ -107,7 +107,7 @@ static long get_stack_random_shift(long *auxv)
 	return 0x1000000 - (PAGE_NEXT((long)get_aux(auxv, AT_EXECFN)) & 0xfff000);
 }
 
-static int init_user_stack(elf_prog_t *prog, int prot)
+static int alloc_user_stack(elf_prog_t *prog, int prot)
 {
 	long err = do_mmap2(prog->task_size-prog->stack_size, prog->stack_size,prot,
 	                    MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
@@ -115,6 +115,11 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 	if (err & PG_MASK)
 		return -1;
 
+	return 0;
+}
+
+static void init_user_stack(elf_prog_t *prog, int prot)
+{
 	long argc = strings_count(prog->argv),
 	     envc = strings_count(prog->envp),
 	     auxc = auxv_count(prog->auxv);
@@ -166,7 +171,6 @@ static int init_user_stack(elf_prog_t *prog, int prot)
 	set_aux(prog->auxv, AT_ENTRY, prog->bin.base + prog->bin.hdr.e_entry);
 
 	prog->sp = (long *)sp;
-	return 0;
 }
 
 /* loading the binary */
@@ -468,6 +472,9 @@ static int try_load_elf(elf_prog_t *prog, long bailout)
 	if (bailout)
 		return 0;
 
+	int stack_prot = get_stack_prot(bin);
+	err = alloc_user_stack(prog, stack_prot);
+
 	if ( mmap_binary(bin, 0) & PG_MASK )
 		raise(SIGKILL);
 
@@ -475,14 +482,13 @@ static int try_load_elf(elf_prog_t *prog, long bailout)
 		raise(SIGKILL);
 
 	/* set up stack */
-	int stack_prot = get_stack_prot(bin);
 
 	bin->phdr = mapped_phdr(bin);
 
 	if ( has_interp )
 		interp->phdr = mapped_phdr(interp);
 	
-	err = init_user_stack(prog, stack_prot);
+	init_user_stack(prog, stack_prot);
 
 	if (err & PG_MASK)
     	raise(SIGKILL);
