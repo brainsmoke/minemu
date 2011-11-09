@@ -423,12 +423,12 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 			wrap.handler = sigwrap_handler;
 
 		wrap.flags |= SA_ONSTACK;
-		wrap.flags &=~ SA_NODEFER|SA_RESTORER;
+		wrap.flags &=~ ( SA_NODEFER | SA_RESTORER );
 		memset(&wrap.mask, 0xff, sizeof(wrap.mask));
 	}
 
 	siglock(local_ctx);
-	ret = sys_rt_sigaction(sig, &wrap, NULL, sigsetsize);
+	ret = sys_rt_sigaction(sig, act ? &wrap : NULL, NULL, sigsetsize);
 
 	if (!ret && oact)
 		*oact = local_ctx->sighandler->sigaction_list[sig];
