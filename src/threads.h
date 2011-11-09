@@ -116,6 +116,11 @@ void mutex_init(long *lock);
 void mutex_lock(long *lock);
 void mutex_unlock(long *lock);
 
+inline void commit(void)
+{
+	__asm__ __volatile__ ("mfence"::);
+}
+
 inline void siglock(thread_ctx_t *ctx)
 {
 	mutex_lock(&ctx->sighandler->lock);

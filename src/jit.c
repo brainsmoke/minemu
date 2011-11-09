@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "syscalls.h"
 #include "jit_cache.h"
+#include "threads.h"
 
 long jit_lock = 0;
 
@@ -438,7 +439,9 @@ static void jit_map_resize(code_map_t *map, unsigned long new_len)
 	if ( new_len > jit_size(map->jit_addr) )
 		die("jmp mapping resize is not supported");
 
+	commit();
 	map->jit_len = new_len;
+	commit();
 }
 
 #define TRANSLATED(m) ((unsigned long)(m+0x1000)>0x1000)
