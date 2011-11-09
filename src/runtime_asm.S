@@ -172,6 +172,11 @@ jmp *%fs:CTX__JIT_RETURN_ADDR
 # total miss, we have to translate some code
 #
 runtime_jit:
+
+push $jit_lock
+call mutex_lock
+addl $4, %esp
+
 movl 4(%esp), %eax
 movl %esp, %edx                     # switch to jit stack
 movl minemu_stack_bottom, %esp      #
@@ -180,5 +185,12 @@ push %eax                           # address to be translated
 call jit
 addl $4, %esp
 pop %esp                            # revert to scratch stack
+push %eax
+
+push $jit_lock
+call mutex_unlock
+addl $4, %esp
+
+pop %eax
 ret
 

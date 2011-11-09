@@ -35,6 +35,8 @@
 #include "syscalls.h"
 #include "jit_cache.h"
 
+long jit_lock = 0;
+
 #define TRANSLATED_MAX_SIZE (255)
 
 unsigned long min(unsigned long a, unsigned long b) { return a<b ? a:b; }
