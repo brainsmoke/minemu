@@ -26,10 +26,12 @@
 #include "jmp_cache.h"
 #include "codemap.h"
 #include "runtime.h"
+#include "threads.h"
 
 #define MAX_CODEMAPS (32768)
 static code_map_t codemaps[MAX_CODEMAPS];
 static unsigned n_codemaps = 0;
+static long codemap_lock=0;
 
 static void clear_code_map(unsigned int i)
 {
@@ -40,34 +42,50 @@ static void clear_code_map(unsigned int i)
 
 static void del_code_map(unsigned int i)
 {
-	clear_code_map(i);
-
 	for (; i<n_codemaps; i++)
 		codemaps[i] = codemaps[i+1];
 
 	n_codemaps--;
+
+	clear_code_map(i);
 }
 
 code_map_t *find_code_map(char *addr)
 {
+	mutex_lock(&codemap_lock);
+
 	unsigned int i;
+	code_map_t *map = NULL;
 
 	for (i=0; i<n_codemaps; i++)
 		if (contains(codemaps[i].addr, codemaps[i].len, addr))
-			return &codemaps[i];
+		{
+			map = &codemaps[i];
+			break;
+		}
 
-	return NULL;
+	mutex_unlock(&codemap_lock);
+
+	return map;
 }
 
 code_map_t *find_jit_code_map(char *jit_addr)
 {
+	mutex_lock(&codemap_lock);
+
 	unsigned int i;
+	code_map_t *map = NULL;
 
 	for (i=0; i<n_codemaps; i++)
 		if (contains(codemaps[i].jit_addr, codemaps[i].jit_len, jit_addr))
-			return &codemaps[i];
+		{
+			map = &codemaps[i];
+			break;
+		}
 
-	return NULL;
+	mutex_unlock(&codemap_lock);
+
+	return map;
 }
 
 static void add_code_map(code_map_t *map)
@@ -107,11 +125,14 @@ void add_code_region(char *addr, unsigned long len, unsigned long long inode,
 		.pgoffset = pgoffset,
 	};
 
+	mutex_lock(&codemap_lock);
 	add_code_map(&map);
+	mutex_unlock(&codemap_lock);
 }
 
 void del_code_region(char *addr, unsigned long len)
 {
+	mutex_lock(&codemap_lock);
 	int i = n_codemaps-1;
 
 	while (i >= 0)
@@ -150,5 +171,6 @@ void del_code_region(char *addr, unsigned long len)
 
 		i = n_codemaps-1;
 	}
+	mutex_unlock(&codemap_lock);
 }
 
