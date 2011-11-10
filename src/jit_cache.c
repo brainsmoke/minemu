@@ -53,16 +53,18 @@ static char *get_cache_filename(char *buf, code_map_t *map, int pid)
 	strcat(buf, "/i");
 	hexcat(buf, map->inode >> 32);
 	hexcat(buf, map->inode & 0xffffffff);
-	strcat(buf, "d");
+	strcat(buf, "-d");
 	hexcat(buf, map->dev >> 32);
 	hexcat(buf, map->dev & 0xffffffff);
-	strcat(buf, "m");
+	strcat(buf, "-m");
 	hexcat(buf, map->mtime);
-	strcat(buf, "a");
+	strcat(buf, "-a");
 	hexcat(buf, (unsigned long)map->addr);
-	strcat(buf, "j");
+	strcat(buf, "-l");
+	hexcat(buf, (unsigned long)map->len);
+	strcat(buf, "-j");
 	hexcat(buf, (unsigned long)map->jit_addr);
-	strcat(buf, "p");
+	strcat(buf, "-p");
 	hexcat(buf, map->pgoffset);
 	if ( call_strategy == LAZY_CALL )
 		strcat(buf, "L");
