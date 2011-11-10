@@ -44,6 +44,24 @@ void jit_mm_init(void)
 	blocks[0] = n_blocks;
 }
 
+void print_jit_stats(void)
+{
+	long i;
+	for (i=0;i<n_blocks;)
+	{
+		if (blocks[i] < 0)
+		{
+			debug("Taken: %x", -blocks[i]*block_size);
+			i -= blocks[i];
+		}
+		else
+		{
+			debug("Free: %x", blocks[i]*block_size);
+			i += blocks[i];
+		}
+	}
+}
+
 void *jit_alloc(unsigned long size)
 {
 	long i, blocks_needed = size/block_size+1;
@@ -66,6 +84,7 @@ void *jit_alloc(unsigned long size)
 			return (void *)(JIT_START+i*block_size);
 		}
 	}
+	print_jit_stats();
 	die("jit_alloc(): requested block size too big: %d", size);
 	return NULL;
 }

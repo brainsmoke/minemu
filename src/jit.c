@@ -588,7 +588,7 @@ char *jit(char *addr)
 
 	if (map && map->jit_addr == NULL)
 	{
-		map->jit_addr = jit_alloc(map->len*4+(map->len/2));
+		map->jit_addr = jit_alloc(map->len*5);
 
 		try_load_jit_cache(map);
 	}
