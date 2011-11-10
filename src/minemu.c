@@ -33,12 +33,12 @@
 #include "options.h"
 #include "opcodes.h"
 #include "threads.h"
+#include "jit_cache.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
 int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);
-
 	if (ADDR_NO_RANDOMIZE & ~pers)
 	{
 		sys_personality(ADDR_NO_RANDOMIZE | pers);
@@ -46,6 +46,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	}
 
 	argv = parse_options(argv);
+
 	if ( (progname == NULL) && (argv[0][0] == '/') )
 		progname = argv[0];
 
