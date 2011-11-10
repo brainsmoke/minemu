@@ -117,6 +117,10 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	set_aux(prog.auxv, AT_HWCAP, get_aux(prog.auxv, AT_HWCAP) & CPUID_FEATURE_INFO_EDX_MASK);
 	set_aux(prog.auxv, AT_SYSINFO_EHDR, vdso);
 
+	long sysinfo = get_aux(prog.auxv, AT_SYSINFO);
+	if (sysinfo)
+		set_aux(prog.auxv, AT_SYSINFO, (sysinfo & 0xfff) + vdso);
+
 	emu_start(prog.entry, prog.sp);
 
 	sys_exit(1);
