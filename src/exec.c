@@ -45,28 +45,31 @@ int load_binary(elf_prog_t *prog)
 		return load_script(prog);
 }
 
-extern long *minemu_stack_bottom;
+static char *exec_argv[65536+10];
 
 long user_execve(char *filename, char *argv[], char *envp[])
 {
+	unsigned long count = strings_count(argv);
+	if ( count + option_args_count() + 2 > sizeof(exec_argv)/sizeof(char*) )
+		return -E2BIG;
+
 	elf_prog_t prog =
 	{
 		.filename = filename,
 		.argv     = argv,
 		.envp     = envp,
 	};
-	long ret = can_load_binary(&prog), count = strings_count(argv);
+	long ret = can_load_binary(&prog);
 	if (ret)
 		return ret;
 
 	/* abuse our minemu stack as allocated memory, our scratch stack is too small
 	 * for exceptionally large argvs
 	 */
-	char **new_argv = &((char **)minemu_stack_bottom)[- count - option_args_count() - 2], **user_argv;
-	new_argv[0] = argv[0];
-	user_argv = option_args_setup(&new_argv[1], filename);
+	exec_argv[0] = argv[0];
+	char **user_argv = option_args_setup(&exec_argv[1], filename);
 	memcpy(user_argv, argv, sizeof(char *)*(count+1));
-	sys_execve_or_die("/proc/self/exe", new_argv, envp);
+	sys_execve_or_die("/proc/self/exe", exec_argv, envp);
 	return 0xdeadbeef;
 }
 
