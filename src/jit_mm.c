@@ -112,6 +112,41 @@ unsigned long jit_size(void *p)
 	return -blocks[get_alloc_block(p)]*block_size;
 }
 
+unsigned long jit_resize(void *p, unsigned long newsize)
+{
+	long blocks_needed = newsize/block_size+1;
+	long i = get_alloc_block(p);
+
+	blocks_needed -= -blocks[i];
+
+	if ( blocks_needed < 0 )
+	{
+		blocks[i + -blocks[i] - -blocks_needed] = -blocks_needed;
+		if (blocks[i + -blocks[i]] > 0)
+		{
+			blocks[i + -blocks[i] - -blocks_needed] += blocks[i + -blocks[i]];
+			blocks[i + -blocks[i]] = 0;
+		}
+	}
+
+	if ( blocks_needed > 0 )
+	{
+		if (blocks[i + -blocks[i]] >= blocks_needed)
+		{
+			blocks[i + -blocks[i] + blocks_needed] = blocks[i + -blocks[i]] - blocks_needed;
+			blocks[i + -blocks[i]] = 0;
+			sys_mmap2(&((char *)p)[-blocks[i]*block_size], blocks_needed*block_size,
+			          PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+		}
+		else
+			die("cannot resize current jit block");
+	}
+
+	blocks[i] -= blocks_needed;
+		
+	return -blocks[get_alloc_block(p)]*block_size;
+}
+
 void jit_free(void *p)
 {
 	long this, next;

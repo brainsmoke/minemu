@@ -24,5 +24,6 @@ void jit_mm_init(void);
 void jit_free(void *p);
 void *jit_alloc(unsigned long size);
 unsigned long jit_size(void *p);
+unsigned long jit_resize(void *p, unsigned long newsize);
 
 #endif /* JIT_MM_H */

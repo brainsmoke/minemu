@@ -24,7 +24,7 @@
 #include "segments.h"
 
 #define JMP_CACHE_SIZE (0x10000)
-#define MAX_THREADS 64
+#define MAX_THREADS 32
 
 typedef struct
 {

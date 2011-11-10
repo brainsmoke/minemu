@@ -204,7 +204,8 @@ typedef struct
 #define CHUNK_OFFSET(x) ( (long)(x) - (long)(hdr) )
 #define DIV_CEIL(x, d) ( ( (long)(x)+(long)(d)-1)/(long)(d) )
 
-static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes, char *jit_end)
+static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes,
+                                            char *base, unsigned long max_len)
 {
 	long n_frames = DIV_CEIL(hdr->len, FRAME_SIZE);
 
@@ -232,8 +233,11 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 			}
 		}
 
-		if ((unsigned long)&table[j+1] > (unsigned long)jit_end)
-			die("jit chunk too large");
+		if ((unsigned long)&table[j+1] > (unsigned long)&base[max_len])
+		{
+			max_len += max_len/2;
+			jit_resize(base, max_len);
+		}
 
 		table[j] = sizes[i];
 		s_off   += sizes[i].orig;
@@ -485,7 +489,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	while (stop == 0)
 	{
 		if ( d_off+TRANSLATED_MAX_SIZE > max_len )
-			die("jmp mapping too big, additional allocation not implemented");
+			jit_resize(jit_addr, max_len+max_len/2);
 
 		mapping[s_off] = d_off;
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
@@ -539,7 +543,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 		.n_ops = n_ops,
 	};
 
-	jit_chunk_create_lookup_mapping(hdr, sizes, &jit_addr[max_len]);
+	jit_chunk_create_lookup_mapping(hdr, sizes, jit_addr, max_len);
 	jit_map_resize(map, chunk_base+hdr->chunk_len);
 
 	return hdr;
@@ -552,10 +556,10 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 {
 	jmp_heap_t jmp_heap;
 	rel_jmp_t j;
-	rel_jmp_t jumps[map->len/8]; /* mostly unused */
+	rel_jmp_t jumps[map->len/4]; /* mostly unused */
 	unsigned long mapping[map->len+1]; /* waste of memory :-( */
 
-	heap_init(&jmp_heap, jumps, map->len/8);
+	heap_init(&jmp_heap, jumps, map->len/4);
 
 	jit_fill_mapping(map, mapping, map->len+1);
 
@@ -588,7 +592,7 @@ char *jit(char *addr)
 
 	if (map && map->jit_addr == NULL)
 	{
-		map->jit_addr = jit_alloc(map->len*5);
+		map->jit_addr = jit_alloc(map->len*4 + map->len/2);
 
 		try_load_jit_cache(map);
 	}
