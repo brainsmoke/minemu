@@ -552,10 +552,10 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 {
 	jmp_heap_t jmp_heap;
 	rel_jmp_t j;
-	rel_jmp_t jumps[map->len]; /* mostly unused */
+	rel_jmp_t jumps[map->len/8]; /* mostly unused */
 	unsigned long mapping[map->len+1]; /* waste of memory :-( */
 
-	heap_init(&jmp_heap, jumps, map->len+1);
+	heap_init(&jmp_heap, jumps, map->len/8);
 
 	jit_fill_mapping(map, mapping, map->len+1);
 
