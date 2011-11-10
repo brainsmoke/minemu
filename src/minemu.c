@@ -39,15 +39,17 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);
 
-	if (ADDR_COMPAT_LAYOUT & ~pers)
+	if (ADDR_NO_RANDOMIZE & ~pers)
 	{
-		sys_personality(ADDR_COMPAT_LAYOUT | pers);
+		sys_personality(ADDR_NO_RANDOMIZE | pers);
 		sys_execve("/proc/self/exe", argv, envp);
 	}
 
 	argv = parse_options(argv);
 	if ( (progname == NULL) && (argv[0][0] == '/') )
 		progname = argv[0];
+
+	copy_vdso(USER_END-USER_STACK_SIZE-0x1000, get_aux(auxv, AT_SYSINFO_EHDR));
 
 	init_minemu_mem(auxv);
 	init_shield(TAINT_END);
@@ -111,8 +113,8 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 	if (ret < 0)
 		die("unable to execute binary: %d", -ret);
 
-	init_vdso(get_aux(prog.auxv, AT_SYSINFO_EHDR));
 	set_aux(prog.auxv, AT_HWCAP, get_aux(prog.auxv, AT_HWCAP) & CPUID_FEATURE_INFO_EDX_MASK);
+	set_aux(prog.auxv, AT_SYSINFO_EHDR, vdso);
 
 	emu_start(prog.entry, prog.sp);
 

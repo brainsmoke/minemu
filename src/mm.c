@@ -34,7 +34,7 @@
 #include "codemap.h"
 #include "load_elf.h"
 
-unsigned long sysenter_reentry, minemu_stack_bottom;
+unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
 
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)
@@ -152,8 +152,18 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 	return ret;
 }
 
-unsigned long init_vdso(unsigned long vdso)
+void copy_vdso(unsigned long addr, unsigned long orig)
 {
+	vdso = addr; vdso_orig = orig;
+
+	long ret = user_mmap2(addr, 0x1000, PROT_READ|PROT_WRITE,
+	                      MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+
+	if (ret & PG_MASK)
+		die("connot alloc vdso", ret);
+
+	memcpy((char *)vdso, (char *)vdso_orig, 0x1000);
+
 	long off = memscan((char *)vdso, 0x1000, "\x5d\x5a\x59\xc3", 4);
 
 	if (off < 0)
@@ -161,8 +171,7 @@ unsigned long init_vdso(unsigned long vdso)
 	else
 		sysenter_reentry = vdso + off;
 
-	sys_mmap2(vdso+TAINT_OFFSET, 0x1000, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
-	add_code_region((char *)vdso, 0x1000, 0, 0, 0, 0); /* vdso */
+	user_mprotect(vdso, 0x1000, PROT_READ|PROT_EXEC);
 }
 
 unsigned long stack_top(long *auxv)

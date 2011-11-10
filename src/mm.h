@@ -27,8 +27,9 @@
 #define PAGE_NEXT(a) (PAGE_BASE((a)-1UL)+PG_SIZE)
 
 #define HIGH_PAGE (0x100000UL)
-#define USER_PAGES ( (HIGH_PAGE) /3 )
-#define JIT_PAGES (0x8000UL)
+//#define USER_PAGES ( (HIGH_PAGE) /3 )
+#define USER_PAGES ( 0x50000 )
+#define JIT_PAGES (0x14000UL)
 
 #define USER_SIZE (USER_PAGES * PG_SIZE)
 #define TAINT_SIZE (USER_SIZE)
@@ -52,11 +53,13 @@ extern char minemu_end[], minemu_code_start[], minemu_code_end[];
 
 /* misc */
 
-#define USER_STACK_PAGES (0x8000UL)
+#define USER_STACK_PAGES (0x6000UL)
 #define USER_STACK_SIZE (USER_STACK_PAGES * PG_SIZE)
 #define VDSO_SIZE  (PG_SIZE)
 
 #include <sys/mman.h>
+
+extern unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
 
 void init_minemu_mem(long *auxv);
 
@@ -86,7 +89,7 @@ unsigned long user_munmap(unsigned long addr, size_t length);
 
 unsigned long user_mprotect(unsigned long addr, size_t length, long prot);
 
-unsigned long init_vdso(unsigned long vdso);
+void copy_vdso(unsigned long addr, unsigned long orig);
 
 void shield(void);
 void unshield(void);

@@ -204,6 +204,9 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	if ( action.flags & SA_SIGINFO )
 	{
+		if (contains((char *)vdso_orig, 0x1000, rt_sigframe->pretcode))
+			rt_sigframe->pretcode += vdso - vdso_orig;
+
 		rt_sigframe = copy_rt_sigframe(rt_sigframe, &action, context);
 		taint_mem(rt_sigframe, sizeof(*rt_sigframe), 0x00);
 		if (action.flags & SA_RESTORER)
@@ -211,6 +214,9 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	}
 	else
 	{
+		if (contains((char *)vdso_orig, 0x1000, sigframe->pretcode))
+			sigframe->pretcode += vdso - vdso_orig;
+
 		sigframe = copy_sigframe(sigframe, &action, context);
 		taint_mem(sigframe, sizeof(*sigframe), 0x00);
 		if (action.flags & SA_RESTORER)
