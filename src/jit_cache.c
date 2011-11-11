@@ -27,6 +27,7 @@
 #include "syscalls.h"
 #include "error.h"
 #include "jit_code.h"
+#include "jit_mm.h"
 #include "taint.h"
 
 static char cache_dir_buf[PATH_MAX+1] = { 0, };
@@ -115,6 +116,8 @@ int try_load_jit_cache(code_map_t *map)
 	                               PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED,
 	                               fd, map->pgoffset);
 	
+	while (jit_size(map->jit_addr) < size)
+		jit_resize(map->jit_addr, (jit_size(map->jit_addr)*3)/2 );
 
 	if (addr != map->jit_addr)
 		die("try_load_jit_cache: mmap failed"); 
