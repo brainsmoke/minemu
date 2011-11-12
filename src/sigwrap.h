@@ -23,13 +23,6 @@
 #include <ucontext.h>
 
 
-int try_block_signals(void);
-int block_signals(void);
-void unblock_signals(void);
-void sigwrap_init(void);
-void load_sigframe(long call, void *frame);
-void load_rt_sigframe(long call, void *frame);
-
 #define KERNEL_NSIG (64)
 typedef struct
 {
@@ -82,6 +75,13 @@ struct kernel_rt_sigframe {
     struct _fpstate fpstate;
     char retcode[8];
 };
+
+int try_block_signals(void);
+int block_signals(void);
+void unblock_signals(void);
+void sigwrap_init(void);
+void load_sigframe(struct kernel_sigframe *frame);
+void load_rt_sigframe(struct kernel_rt_sigframe *frame);
 
 long user_sigaltstack(const stack_t *ss, stack_t *oss);
 

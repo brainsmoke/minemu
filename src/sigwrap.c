@@ -149,12 +149,12 @@ static struct kernel_rt_sigframe *copy_rt_sigframe(struct kernel_rt_sigframe *fr
 	return copy;
 }
 
-
 static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 {
 	thread_ctx_t *local_ctx = get_thread_ctx();
-	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) (((long)&sig)-4);
-	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    (((long)&sig)-4);
+	char *return_stackp = (char *)(((long)&sig)-4);
+	struct kernel_rt_sigframe *rt_sigframe = (struct kernel_rt_sigframe *) return_stackp;
+	struct kernel_sigframe    *sigframe    = (struct kernel_sigframe *)    return_stackp;
 	struct _fpstate *fpstate;
 	struct sigcontext *context;
 	unsigned long *sigmask, *extramask;
@@ -204,20 +204,22 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	if ( action.flags & SA_SIGINFO )
 	{
+		rt_sigframe = copy_rt_sigframe(rt_sigframe, &action, context);
+
 		if (contains((char *)vdso_orig, 0x1000, rt_sigframe->pretcode))
 			rt_sigframe->pretcode += vdso - vdso_orig;
 
-		rt_sigframe = copy_rt_sigframe(rt_sigframe, &action, context);
 		taint_mem(rt_sigframe, sizeof(*rt_sigframe), 0x00);
 		if (action.flags & SA_RESTORER)
 			rt_sigframe->pretcode = (char *)(long)action.restorer;
 	}
 	else
 	{
+		sigframe = copy_sigframe(sigframe, &action, context);
+
 		if (contains((char *)vdso_orig, 0x1000, sigframe->pretcode))
 			sigframe->pretcode += vdso - vdso_orig;
 
-		sigframe = copy_sigframe(sigframe, &action, context);
 		taint_mem(sigframe, sizeof(*sigframe), 0x00);
 		if (action.flags & SA_RESTORER)
 			sigframe->pretcode = (char *)(long)action.restorer;
@@ -226,6 +228,19 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	/* Most evil hack ever! We 'deliver' the user's signal by modifying our own sigframe
 	 * to match the user process' state at signal delivery, and call sigreturn.
 	 */
+
+	/* signal state */
+	*sigmask   |= action.mask.bitmask[0];
+	*extramask |= action.mask.bitmask[1];
+	if ( !(action.flags & SA_NODEFER) )
+	{
+		if (sig <= 32)
+			*sigmask |= 1UL << (sig-1);
+		else
+			*extramask |= 1UL << (sig-33);
+	}
+
+	/* registers */
 	context->ds =
 	context->es =
 	context->ss = SHIELD_SEGMENT;
@@ -240,27 +255,15 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 		context->esp = (long)rt_sigframe;
 		context->ecx = (long)&rt_sigframe->uc;
 		context->edx = (long)&rt_sigframe->info;
-//print_rt_sigframe(rt_sigframe);
+		load_rt_sigframe((struct kernel_rt_sigframe *) return_stackp);
 	}
 	else
 	{
 		context->esp = (long)sigframe;
 		context->ecx = 0;
 		context->edx = 0;
-//print_sigframe(sigframe);
+		load_sigframe((struct kernel_sigframe *) return_stackp);
 	}
-
-	*sigmask   |= action.mask.bitmask[0];
-	*extramask |= action.mask.bitmask[1];
-	if ( !(action.flags & SA_NODEFER) )
-	{
-		if (sig <= 32)
-			*sigmask |= 1UL << (sig-1);
-		else
-			*extramask |= 1UL << (sig-33);
-	}
-
-	/* let the kernel 'deliver' a signal using (rt_)sigreturn! */
 }
 
 void user_sigreturn(void)
@@ -274,7 +277,7 @@ void user_sigreturn(void)
 	
 	local_ctx->user_eip = context->eip;            /* jump into jit code, */
 	context->eip = (long)state_restore;            /* not user code       */
-	load_sigframe(__NR_sigreturn, &frame);
+	load_sigframe(&frame);
 }
 
 void user_rt_sigreturn(void)
@@ -293,7 +296,7 @@ void user_rt_sigreturn(void)
 		.ss_flags = 0,
 		.ss_size = sizeof( local_ctx->sigwrap_stack )
 	};
-	load_rt_sigframe(__NR_rt_sigreturn, &frame);
+	load_rt_sigframe(&frame);
 }
 
 static void altstack_setup(void)

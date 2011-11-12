@@ -15,11 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#include <asm/unistd.h>
+
 .global load_sigframe
 .type load_sigframe, @function
 load_sigframe:
-movl 4(%esp), %eax
-movl 8(%esp), %esp
+movl $(__NR_sigreturn), %eax
+movl 4(%esp), %esp
 lea  8(%esp), %esp
 int $0x80
 ud2
@@ -27,8 +29,8 @@ ud2
 .global load_rt_sigframe
 .type load_rt_sigframe, @function
 load_rt_sigframe:
-movl 4(%esp), %eax
-movl 8(%esp), %esp
+movl $(__NR_rt_sigreturn), %eax
+movl 4(%esp), %esp
 lea  4(%esp), %esp
 int $0x80
 ud2
