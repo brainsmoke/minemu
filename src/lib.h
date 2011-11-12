@@ -34,6 +34,8 @@ long read_at(int fd, off_t off, void *buf, size_t size);
 char *numcat(char *dest, long l);
 char *hexcat(char *dest, unsigned long ul);
 
+unsigned long hexread(const char *s);
+
 /* dest is assumed to be a buffer of at least PATH_MAX+1 bytes */
 int absdir(char *dest, const char *dir);
 

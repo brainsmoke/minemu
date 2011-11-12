@@ -301,6 +301,26 @@ char *hexcat(char *dest, unsigned long ul)
 	return dest;
 }
 
+unsigned long hexread(const char *s)
+{
+	unsigned long n=0UL;
+	int i;
+
+	for(i=0; i<2*(int)sizeof(unsigned long); i++)
+	{
+		if ( (unsigned int)(s[i]-'0') < 10 )
+			n |= s[i]-0x30;
+		else if ( (unsigned int)((s[i]&~0x20)-'A') < 6 )
+			n |= (s[i]&~0x20)-'A';
+		else
+			break;
+
+		n <<= 4;
+	}
+
+	return n;
+}
+
 /* dest is assumed to be a buffer of at least PATH_MAX+1 bytes */
 int absdir(char *dest, const char *dir)
 {

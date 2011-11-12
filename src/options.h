@@ -25,6 +25,6 @@ void version(void);
 char **parse_options(char **argv);
 
 long option_args_count(void);
-char **option_args_setup(char **argv, char *filename);
+char **option_args_setup(char **argv, char *filename, char *sigset_buf);
 
 #endif /* OPTIONS_H */

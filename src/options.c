@@ -25,8 +25,29 @@
 #include "taint_dump.h"
 #include "jit_code.h"
 #include "taint.h"
+#include "sigwrap.h"
+#include "threads.h"
 
 char *progname = NULL;
+
+static void load_sigset(char *sigset_buf)
+{
+	if (strlen(sigset_buf) < 16)
+		return;
+
+	kernel_sigset_t mask;
+	((unsigned long *)&mask)[0] = hexread(sigset_buf);
+	((unsigned long *)&mask)[1] = hexread(&sigset_buf[8]);
+	get_thread_ctx()->old_sigset = mask;
+}
+
+static void save_sigset(char *sigset_buf)
+{
+	sigset_buf[0] = '\0';
+	kernel_sigset_t mask = get_thread_ctx()->old_sigset;
+	hexcat(sigset_buf,  ((unsigned long *)&mask)[0]);
+	hexcat(sigset_buf,  ((unsigned long *)&mask)[1]);
+}
 
 void usage(char *arg0)
 {
@@ -87,6 +108,8 @@ char **parse_options(char **argv)
 			set_taint_dump_dir(*++argv);
 		else if ( strcmp(*argv, "-exec") == 0 )
 			progname = *++argv;
+		else if ( strcmp(*argv, "-sigmask") == 0 )
+			load_sigset(*++argv);
 		else if ( strcmp(*argv, "-help") == 0 )
 			usage(arg0);
 		else if ( strcmp(*argv, "-version") == 0 ||
@@ -120,7 +143,7 @@ char **parse_options(char **argv)
 
 long option_args_count(void)
 {
-	return 2 + /* -exec ... */
+	return 2 + /* -exec ... */ 2 + /* -sigmask ... */
 	       (get_jit_cache_dir()              ? 2 : 0) +
 	       (get_taint_dump_dir()             ? 2 : 0) +
 	       (dump_on_exit                     ? 1 : 0) +
@@ -130,7 +153,7 @@ long option_args_count(void)
 	       1; /* -- */
 }
 
-char **option_args_setup(char **argv, char *filename)
+char **option_args_setup(char **argv, char *filename, char *sigset_buf)
 {
 	char *taint_dump_dir = get_taint_dump_dir();
 	char *cache_dir = get_jit_cache_dir();
@@ -139,6 +162,11 @@ char **option_args_setup(char **argv, char *filename)
 
 	argv[i  ] = "-exec";
 	argv[i+1] = filename;
+	i += 2;
+
+	save_sigset(sigset_buf);
+	argv[i  ] = "-sigmask";
+	argv[i+1] = sigset_buf;
 	i += 2;
 
 	if (cache_dir)

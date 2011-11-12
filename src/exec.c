@@ -67,7 +67,8 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	 * for exceptionally large argvs
 	 */
 	exec_argv[0] = argv[0];
-	char **user_argv = option_args_setup(&exec_argv[1], filename);
+	char maskbuf[17];
+	char **user_argv = option_args_setup(&exec_argv[1], filename, maskbuf);
 	memcpy(user_argv, argv, sizeof(char *)*(count+1));
 	sys_execve_or_die("/proc/self/exe", exec_argv, envp);
 	return 0xdeadbeef;

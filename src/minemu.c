@@ -45,6 +45,8 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 		sys_execve("/proc/self/exe", argv, envp);
 	}
 
+	init_threads();
+
 	argv = parse_options(argv);
 
 	if ( (progname == NULL) && (argv[0][0] == '/') )
@@ -54,8 +56,8 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 
 	init_minemu_mem(auxv);
 	init_shield(TAINT_END);
-	init_threads();
 	sigwrap_init();
+	unblock_signals();
 	jit_init();
 
 	elf_prog_t prog =
