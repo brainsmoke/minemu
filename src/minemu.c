@@ -17,6 +17,7 @@
  */
 
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #include <linux/personality.h>
 #include <string.h>
 #include <errno.h>
@@ -36,9 +37,11 @@
 #include "jit_cache.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
-int minemu_main(int argc, char *argv[], char **envp, long *auxv)
+int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
 {
 	unsigned long pers = sys_personality(0xffffffff);
+	char **argv = orig_argv;
+
 	if (ADDR_NO_RANDOMIZE & ~pers)
 	{
 		sys_personality(ADDR_NO_RANDOMIZE | pers);
@@ -112,6 +115,16 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 			path = next;
 		}
 	}
+
+	/* hide minemu command line for pretty ps output */
+	copy_cmdline(orig_argv, prog.argv);
+	char *process_name = strrchr(prog.filename, '/');
+	if (process_name)
+		process_name++;
+	else
+		process_name = prog.filename;
+
+	sys_prctl(PR_SET_NAME, process_name, 0,0,0);
 
 	if (ret < 0)
 		die("unable to execute binary: %d", -ret);

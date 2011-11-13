@@ -78,6 +78,16 @@ char *strchr(const char *s, int c)
 		return NULL;
 }
 
+char *strrchr(const char *s, int c)
+{
+	char *last=NULL;
+	for (;*s; s++)
+		if (*s == c)
+			last = (char *)s; /* hrmmr :-) */
+
+	return last;
+}
+
 int memcmp(const void *v1, const void *v2, size_t n)
 {
 	const char *s1=v1, *s2=v2;
@@ -319,6 +329,23 @@ unsigned long hexread(const char *s)
 	}
 
 	return n;
+}
+
+void copy_cmdline(char **dest, char **src)
+{
+	char **wipe=dest;
+
+	for (;*wipe; wipe++)
+		memset(*wipe, ' ', strlen(*wipe)+1);
+
+	if (*src)
+		strcpy(*dest, *src);
+
+	for (src++; *src; src++)
+	{
+		strcat(*dest, " ");
+		strcat(*dest, *src);
+	}
 }
 
 /* dest is assumed to be a buffer of at least PATH_MAX+1 bytes */

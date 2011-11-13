@@ -36,6 +36,8 @@ char *hexcat(char *dest, unsigned long ul);
 
 unsigned long hexread(const char *s);
 
+void copy_cmdline(char **dest, char **src);
+
 /* dest is assumed to be a buffer of at least PATH_MAX+1 bytes */
 int absdir(char *dest, const char *dir);
 

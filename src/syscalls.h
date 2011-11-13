@@ -124,4 +124,7 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_clone(a, b, c, d, e) \
 	syscall5(SYS_clone, (long)(a), (long)(b), (long)(c), (long)(d), (long)(e))
 
+#define sys_prctl(a, b, c, d, e) \
+	syscall5(SYS_prctl, (long)(a), (long)(b), (long)(c), (long)(d), (long)(e))
+
 #endif /* SYSCALLS_H */

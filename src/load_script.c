@@ -105,10 +105,12 @@ static int try_load_script(elf_prog_t *prog, long bailout)
 
 	err = load_elf(prog);
 
-	/* loading binary failed */
-
-	prog->argv = old_argv;
-	prog->filename = script_name;
+	if (err)
+	{
+		/* loading binary failed */
+		prog->argv = old_argv;
+		prog->filename = script_name;
+	}
 
 	return err;
 }
