@@ -19,19 +19,30 @@
 
 .global load_sigframe
 .type load_sigframe, @function
+
+.global do_sigreturn
+.type do_sigreturn, @function
+
 load_sigframe:
-movl $(__NR_sigreturn), %eax
 movl 4(%esp), %esp
-lea  8(%esp), %esp
+pop %eax
+do_sigreturn:
+pop %eax
+movl $(__NR_sigreturn), %eax
 int $0x80
 ud2
 
 .global load_rt_sigframe
 .type load_rt_sigframe, @function
+
+.global do_rt_sigreturn
+.type do_rt_sigreturn, @function
+
 load_rt_sigframe:
-movl $(__NR_rt_sigreturn), %eax
 movl 4(%esp), %esp
-lea  4(%esp), %esp
+pop %eax
+do_rt_sigreturn:
+movl $(__NR_rt_sigreturn), %eax
 int $0x80
 ud2
 

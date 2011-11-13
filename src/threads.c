@@ -25,6 +25,7 @@
 #include "error.h"
 #include "mm.h"
 #include "jmp_cache.h"
+#include "sigwrap.h"
 
 static thread_ctx_t __attribute__ ((aligned (0x1000))) ctx[MAX_THREADS];
 static sighandler_ctx_t sighandler;
@@ -110,6 +111,9 @@ void init_threads(void)
 	mutex_init(&thread_lock);
 	init_thread_ctx(new_ctx);
 	init_tls(new_ctx, sizeof(thread_ctx_t));
+	unprotect_ctx();
+	altstack_setup();
+	protect_ctx();
 }
 
 /* release the lock and exit, without thouching the stack after
@@ -144,7 +148,12 @@ long user_clone(unsigned long flags, unsigned long sp, void *parent_tid, void *t
 			mutex_unlock(&thread_lock);
 		}
 		else if (ret == 0)
+		{
 			init_tls(child_ctx, sizeof(thread_ctx_t));
+			unprotect_ctx();
+			altstack_setup();
+			protect_ctx();
+		}
 	}
 	else
 	{

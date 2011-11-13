@@ -60,9 +60,10 @@ struct kernel_sigframe {
     char *pretcode;
     int sig;
     struct sigcontext sc;
-    struct _fpstate fpstate;
+    struct _fpstate fpstate_unused;
     unsigned long extramask[KERNEL_NSIG/8/sizeof(long)-1];
     char retcode[8];
+	/* fpstate */
 };
 
 struct kernel_rt_sigframe {
@@ -72,13 +73,14 @@ struct kernel_rt_sigframe {
     void *puc;
     struct siginfo info;
     struct kernel_ucontext uc;
-    struct _fpstate fpstate;
     char retcode[8];
+	/* fpstate */
 };
 
 int try_block_signals(void);
 int block_signals(void);
 void unblock_signals(void);
+void altstack_setup(void);
 void sigwrap_init(void);
 void load_sigframe(struct kernel_sigframe *frame);
 void load_rt_sigframe(struct kernel_rt_sigframe *frame);
@@ -93,6 +95,9 @@ long user_rt_sigaction(int sig, const struct kernel_sigaction *act,
 
 void user_sigreturn(void);
 void user_rt_sigreturn(void);
+
+void do_sigreturn(void);
+void do_rt_sigreturn(void);
 
 unsigned long user_signal(int sig, void (*handler) (int, siginfo_t *, void *));
 

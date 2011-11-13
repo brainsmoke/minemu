@@ -60,6 +60,8 @@ void jit_fragment_exit(void) { die("calling placeholder"); }
 void cpuid_emu(void) { die("calling placeholder"); }
 void clear_jmp_cache(void) { die("calling placeholder"); }
 
+void altstack_setup(void){}
+
 char user_sigaction_list[1];
 int taint_flag = TAINT_ON;
 

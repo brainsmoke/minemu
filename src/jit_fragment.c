@@ -241,6 +241,13 @@ void finish_instruction(struct sigcontext *context)
 
 	protect_ctx();
 
+	if (context->fpstate) /* very likely :-) */
+	{
+		get_xmm5((unsigned char *)&context->fpstate->_xmm[5]);
+		get_xmm6((unsigned char *)&context->fpstate->_xmm[6]);
+		get_xmm7((unsigned char *)&context->fpstate->_xmm[7]);
+	}
+
 	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
 	if ( (char *)context->eip != jit_op_start )
 		die("instruction pointer (%x) not at opcode start after jit_fragment_run()", context->eip);
