@@ -189,8 +189,8 @@ void print_rt_sigframe(struct kernel_rt_sigframe *frame)
 	print_siginfo(&frame->info);
 	debug("@ %x", &frame->uc);
 	print_ucontext(&frame->uc);
-	debug("@ %x", &frame->fpstate);
-	print_fpstate(&frame->fpstate);
+	debug("@ %x", frame->uc.uc_mcontext.fpstate);
+	print_fpstate(frame->uc.uc_mcontext.fpstate);
 	debug("@ %x", &frame->retcode);
 	hexdump(out, &frame->retcode, 8, 0, 1, rt_sigframe_post_desc, NULL, NULL);
 }
@@ -200,7 +200,7 @@ void print_rt_sigframe_diff(struct kernel_rt_sigframe *frame1, struct kernel_rt_
 	hexdump_diff(out, frame1, 16, frame2, 16, sizeof(long), 0, 1, rt_sigframe_pre_desc);
 	print_siginfo_diff(&frame1->info, &frame2->info);
 	print_ucontext_diff(&frame1->uc, &frame2->uc);
-	print_fpstate_diff(&frame1->fpstate, &frame2->fpstate);
+	print_fpstate_diff(frame1->uc.uc_mcontext.fpstate, frame2->uc.uc_mcontext.fpstate);
 	hexdump_diff(out, &frame1->retcode, 8, &frame2->retcode, 8, sizeof(long), 0, 1, rt_sigframe_post_desc);
 }
 
@@ -211,8 +211,8 @@ void print_sigframe(struct kernel_sigframe *frame)
 	hexdump(out, frame, 8, 0, 1, sigframe_pre_desc, NULL, NULL);
 	debug("@ %x", &frame->sc);
 	print_sigcontext(&frame->sc);
-	debug("@ %x", &frame->fpstate);
-	print_fpstate(&frame->fpstate);
+	debug("@ %x", frame->sc.fpstate);
+	print_fpstate(frame->sc.fpstate);
 	debug("@ %x", &frame->extramask);
 	hexdump(out, &frame->extramask, 12, 0, 1, sigframe_post_desc, NULL, NULL);
 }
@@ -221,7 +221,7 @@ void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe 
 {
 	hexdump_diff(out, frame1, 8, frame2, 8, sizeof(long), 0, 1, sigframe_pre_desc);
 	print_sigcontext_diff(&frame1->sc, &frame2->sc);
-	print_fpstate_diff(&frame1->fpstate, &frame2->fpstate);
+	print_fpstate_diff(frame1->sc.fpstate, frame2->sc.fpstate);
 	hexdump_diff(out, &frame1->extramask, 12, &frame2->extramask, 12, sizeof(long), 0, 1, sigframe_post_desc);
 }
 
