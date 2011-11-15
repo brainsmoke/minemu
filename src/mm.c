@@ -172,7 +172,6 @@ void copy_vdso(unsigned long addr, unsigned long orig)
 		sysenter_reentry = vdso + off;
 
 	user_mprotect(vdso, 0x1000, PROT_READ|PROT_EXEC);
-	sys_mprotect(vdso, 0x1000, PROT_READ|PROT_EXEC);
 }
 
 unsigned long stack_top(long *auxv)
