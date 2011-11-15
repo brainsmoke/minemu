@@ -79,7 +79,7 @@ void unblock_signals(void)
 #define SA_RESTORER        (0x04000000)
 #endif
 
-static unsigned long fpstate_minsize = sizeof(struct _fpstate);
+static unsigned long fpstate_size = sizeof(struct _fpstate);
 
 void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *context, long size)
 {
@@ -141,11 +141,11 @@ static void *copy_frame_to_user(void *frame, struct kernel_sigaction *action,
 	thread_ctx_t *local_ctx = get_thread_ctx();
 	char *sigstack_end = (char *)local_ctx->sigwrap_stack + sizeof(local_ctx->sigwrap_stack);
 
-	unsigned long         size = (unsigned long)sigstack_end - (unsigned long)frame;
-	unsigned long fpstate_size = (unsigned long)sigstack_end - (unsigned long)context->fpstate;
+	unsigned long            size = (unsigned long)sigstack_end - (unsigned long)frame;
+	unsigned long fpstate_minsize = (unsigned long)sigstack_end - (unsigned long)context->fpstate;
 
-	if (fpstate_minsize < fpstate_size)
-		fpstate_minsize = fpstate_size;
+	if (fpstate_size < fpstate_minsize)
+		fpstate_size = fpstate_minsize;
 
 	void *copy = get_sigframe_addr(action, context, size);
 
