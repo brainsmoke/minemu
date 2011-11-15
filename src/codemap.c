@@ -33,21 +33,23 @@ static code_map_t codemaps[MAX_CODEMAPS];
 static unsigned n_codemaps = 0;
 static long codemap_lock=0;
 
-static void clear_code_map(unsigned int i)
+static void clear_code_map(char *addr, unsigned long len, char *jit_addr)
 {
-	jit_free(codemaps[i].jit_addr);
-	purge_caches(codemaps[i].addr, codemaps[i].len);
+	jit_free(jit_addr);
+	purge_caches(addr, len);
 	/* */
 }
 
 static void del_code_map(unsigned int i)
 {
+	code_map_t orig = codemaps[i];
 	for (; i<n_codemaps; i++)
 		codemaps[i] = codemaps[i+1];
 
 	n_codemaps--;
 
-	clear_code_map(i);
+	if (orig.jit_addr)
+		clear_code_map(orig.addr, orig.len, orig.jit_addr);
 }
 
 code_map_t *find_code_map(char *addr)
