@@ -113,8 +113,8 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 	return (void*)sp;
 }
 
-static void sigframe_patch_pointers(struct kernel_sigframe *old,
-                                    struct kernel_sigframe *new)
+static void sigframe_patch_pointers(struct kernel_sigframe *new,
+                                    struct kernel_sigframe *old)
 {
 	*(long*)&new->sc.fpstate += (long)new - (long)old;
 
@@ -122,8 +122,8 @@ static void sigframe_patch_pointers(struct kernel_sigframe *old,
 		new->pretcode = &new->retcode[0];
 }
 
-static void rt_sigframe_patch_pointers(struct kernel_rt_sigframe *old,
-                                       struct kernel_rt_sigframe *new)
+static void rt_sigframe_patch_pointers(struct kernel_rt_sigframe *new,
+                                       struct kernel_rt_sigframe *old)
 {
 	*(long*)&new->uc.uc_mcontext.fpstate += (long)new - (long)old;
 
@@ -158,7 +158,7 @@ static struct kernel_rt_sigframe *copy_rt_sigframe_to_user(struct kernel_rt_sigf
                                                            struct kernel_sigaction *action)
 {
 	struct kernel_rt_sigframe *copy = copy_frame_to_user(frame, action, &frame->uc.uc_mcontext);
-	rt_sigframe_patch_pointers(frame, copy);
+	rt_sigframe_patch_pointers(copy, frame);
 
 	if (contains((char *)vdso_orig, 0x1000, copy->pretcode))
 		copy->pretcode += vdso - vdso_orig;
@@ -173,7 +173,7 @@ static struct kernel_sigframe *copy_sigframe_to_user(struct kernel_sigframe *fra
                                                      struct kernel_sigaction *action)
 {
 	struct kernel_sigframe *copy = copy_frame_to_user(frame, action, &frame->sc);
-	sigframe_patch_pointers(frame, copy);
+	sigframe_patch_pointers(copy, frame);
 
 	if (contains((char *)vdso_orig, 0x1000, copy->pretcode))
 		copy->pretcode += vdso - vdso_orig;
