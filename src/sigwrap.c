@@ -184,6 +184,27 @@ static struct kernel_sigframe *copy_sigframe_to_user(struct kernel_sigframe *fra
 	return copy;
 }
 
+static void dump_on_error(int sig, struct sigcontext *context)
+{
+	if ( (sig == SIGSEGV) || (sig == SIGILL) || (sig == SIGFPE) )
+	{
+		sys_read(-1, context->cr2, -1);
+		sys_read(-1, context->eip, -1);
+
+		if (!get_taint_dump_dir())
+			return;
+
+		get_thread_ctx()->user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
+		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
+		                context->esp, context->ebp, context->esi, context->edi, };
+		do_taint_dump(regs);
+		if (sig == SIGSEGV)
+			asm("movl $0, 0"::);
+		else
+			asm("ud2"::);
+	}
+}
+
 static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 {
 	thread_ctx_t *local_ctx = get_thread_ctx();
@@ -208,17 +229,7 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	else
 		context = &sigframe->sc;
 
-	if ( (sig == SIGSEGV) || (sig == SIGILL) || (sig == SIGFPE) )
-	{
-		local_ctx->user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
-		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
-		                context->esp, context->ebp, context->esi, context->edi, };
-		do_taint_dump(regs);
-		if (sig == SIGSEGV)
-			asm("movl $0, 0"::);
-		else
-			asm("ud2"::);
-	}
+	dump_on_error(sig, context);
 
 	finish_instruction(context);
 
@@ -344,8 +355,11 @@ void sigwrap_init(void)
 	};
 
 	memset(&act.mask, 0xff, sizeof(act.mask));
-	sys_rt_sigaction(SIGSEGV, &act, NULL, sizeof(act.mask));
-	sys_rt_sigaction(SIGILL, &act, NULL, sizeof(act.mask));
+	if (get_taint_dump_dir())
+	{
+		sys_rt_sigaction(SIGSEGV, &act, NULL, sizeof(act.mask));
+		sys_rt_sigaction(SIGILL, &act, NULL, sizeof(act.mask));
+	}
 }
 
 /* the emulator blocks signals */
