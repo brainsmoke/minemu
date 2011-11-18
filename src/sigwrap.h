@@ -22,60 +22,7 @@
 #include <signal.h>
 #include <ucontext.h>
 
-
-#define KERNEL_NSIG (64)
-typedef struct
-{
-	unsigned long bitmask[KERNEL_NSIG/8/sizeof(long)];
-
-} kernel_sigset_t;
-
-struct kernel_ucontext
-{
-    unsigned long uc_flags;
-    struct kernel_ucontext *uc_link;
-    stack_t uc_stack;
-    struct sigcontext uc_mcontext;
-    kernel_sigset_t uc_sigmask;
-};
-
-typedef void (*kernel_sighandler_t)(int, siginfo_t *, void *);
-
-struct kernel_old_sigaction
-{
-	kernel_sighandler_t handler;
-	kernel_sigset_t mask;
-	unsigned long flags;
-	void (*restorer) (void);
-};
-
-struct kernel_sigaction {
-	kernel_sighandler_t handler;
-	unsigned long flags;
-	void (*restorer) (void);
-	kernel_sigset_t mask;
-};
-
-struct kernel_sigframe {
-    char *pretcode;
-    int sig;
-    struct sigcontext sc;
-    struct _fpstate fpstate_unused;
-    unsigned long extramask[KERNEL_NSIG/8/sizeof(long)-1];
-    char retcode[8];
-	/* fpstate */
-};
-
-struct kernel_rt_sigframe {
-    char *pretcode;
-    int sig;
-    struct siginfo *pinfo;
-    void *puc;
-    struct siginfo info;
-    struct kernel_ucontext uc;
-    char retcode[8];
-	/* fpstate */
-};
+#include "kernel_compat.h"
 
 int try_block_signals(void);
 int block_signals(void);

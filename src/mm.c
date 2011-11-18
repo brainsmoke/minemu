@@ -33,6 +33,7 @@
 #include "jit.h"
 #include "codemap.h"
 #include "load_elf.h"
+#include "kernel_compat.h"
 
 unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
 
@@ -78,9 +79,6 @@ unsigned long user_brk(unsigned long new_brk)
 	return brk_cur;
 }
 
-#define _LARGEFILE64_SOURCE 1
-#include <asm/stat.h>
-
 unsigned long user_old_mmap(struct kernel_mmap_args *a)
 {
 	if (a->offset & PG_MASK)
@@ -106,7 +104,7 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 		sys_mmap2(ret+TAINT_OFFSET, length, new_prot, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
 		if (prot & PROT_EXEC)
 		{
-			struct stat64 s;
+			struct kernel_stat64 s;
 			if ( (fd < 0) || (sys_fstat64(fd, &s) != 0) )
 				memset(&s, 0, sizeof(s));
 

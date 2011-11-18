@@ -35,7 +35,6 @@ void print_ucontext_diff(struct kernel_ucontext *uc1, struct kernel_ucontext *uc
 void print_rt_sigframe_diff(struct kernel_rt_sigframe *frame1, struct kernel_rt_sigframe *frame2);
 void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe *frame2);
 
-struct stat64;
-void print_stat(const struct stat64 *s);
+void print_stat(const struct kernel_stat64 *s);
 
 #endif /* DEBUG_H */

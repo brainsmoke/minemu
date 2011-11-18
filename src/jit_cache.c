@@ -29,17 +29,15 @@
 #include "jit_code.h"
 #include "jit_mm.h"
 #include "taint.h"
+#include "kernel_compat.h"
 
 static char cache_dir_buf[PATH_MAX+1] = { 0, };
 
 static char *cache_dir = NULL;
 
-#define _LARGEFILE64_SOURCE 1
-#include <asm/stat.h>
-
 unsigned long fd_filesize(int fd)
 {
-	struct stat64 s;
+	struct kernel_stat64 s;
 	if ( sys_fstat64(fd, &s) < 0 )
 		die("fd_filesize: sys_fstat64() failed");
 

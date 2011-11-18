@@ -225,10 +225,7 @@ void print_sigframe_diff(struct kernel_sigframe *frame1, struct kernel_sigframe 
 	hexdump_diff(out, &frame1->extramask, 12, &frame2->extramask, 12, sizeof(long), 0, 1, sigframe_post_desc);
 }
 
-#define _LARGEFILE64_SOURCE 1
-#include <asm/stat.h>
-
-void print_stat(const struct stat64 *s)
+void print_stat(const struct kernel_stat64 *s)
 {
 	hexdump(out, s, sizeof(*s), 0, 0, stat64_desc, NULL, NULL);
 }
