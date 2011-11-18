@@ -233,7 +233,7 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 			}
 		}
 
-		if ((unsigned long)&table[j+1] > (unsigned long)&base[max_len])
+		while ((unsigned long)&table[j+1] > (unsigned long)&base[max_len])
 		{
 			max_len += max_len/2;
 			jit_resize(base, max_len);
@@ -438,16 +438,6 @@ static void jit_fill_mapping(code_map_t *map, unsigned long *mapping,
 	}
 }
 
-static void jit_map_resize(code_map_t *map, unsigned long new_len)
-{
-	if ( new_len > jit_size(map->jit_addr) )
-		die("jmp mapping resize is not supported");
-
-	commit();
-	map->jit_len = new_len;
-	commit();
-}
-
 #define TRANSLATED(m) ((unsigned long)(m+0x1000)>0x1000)
 /*#define UNTRANSLATED  ((unsigned long) 0)*/
 #define NEEDED        ((unsigned long)-1)
@@ -489,7 +479,10 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	while (stop == 0)
 	{
 		if ( d_off+TRANSLATED_MAX_SIZE > max_len )
-			jit_resize(jit_addr, max_len+max_len/2);
+		{
+			max_len += max_len/2;
+			jit_resize(jit_addr, max_len);
+		}
 
 		mapping[s_off] = d_off;
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
@@ -544,7 +537,9 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	};
 
 	jit_chunk_create_lookup_mapping(hdr, sizes, jit_addr, max_len);
-	jit_map_resize(map, chunk_base+hdr->chunk_len);
+	commit();
+	map->jit_len += hdr->chunk_len;
+	commit();
 
 	return hdr;
 }
