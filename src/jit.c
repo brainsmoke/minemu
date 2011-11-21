@@ -532,7 +532,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	{
 		.addr = &addr[entry],
 		.len = s_off-entry,
-		.chunk_len = d_off-chunk_base, /* to be extrended during lookup map creation */
+		.chunk_len = d_off-chunk_base, /* to be extended during lookup map creation */
 		.n_ops = n_ops,
 	};
 
