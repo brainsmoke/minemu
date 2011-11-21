@@ -20,10 +20,12 @@
 #define JIT_H
 
 #include "opcodes.h"
+#include "codemap.h"
 
 extern long jit_lock;
 
 void jit_init(void);
+void jit_resize(code_map_t *map, unsigned long cur_size);
 char *jit(char *addr);
 char *jit_lookup_addr(char *addr);
 char *jit_rev_lookup_addr(char *jit_addr, char **jit_op_start, long *jit_op_len);

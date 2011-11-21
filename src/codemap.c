@@ -35,7 +35,7 @@ static long codemap_lock=0;
 
 static void clear_code_map(char *addr, unsigned long len, char *jit_addr)
 {
-	jit_free(jit_addr);
+	jit_mem_free(jit_addr);
 	purge_caches(addr, len);
 	/* */
 }

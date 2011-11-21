@@ -29,6 +29,7 @@
 #include "error.h"
 #include "jit_code.h"
 #include "jit_mm.h"
+#include "jit.h"
 #include "taint.h"
 #include "kernel_compat.h"
 
@@ -109,24 +110,18 @@ int try_load_jit_cache(code_map_t *map)
 	if (fd < 0)
 		return -1;
 
-	unsigned long mmap_size = map->len*4 + map->len/2;
 	unsigned long size = fd_filesize(fd);
 
-	while (mmap_size < size)
-		mmap_size += mmap_size/2;
-
-	jit_resize(map->jit_addr, mmap_size );
-
-	char *addr = (char *)sys_mmap2(map->jit_addr, PAGE_NEXT(mmap_size),
+	char *addr = (char *)sys_mmap2(map->jit_addr, PAGE_NEXT(size),
 	                               PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED,
 	                               fd, 0);
 
 	if (addr != map->jit_addr)
 		die("try_load_jit_cache: mmap failed"); 
 
-	map->jit_len = size;
-
 	sys_close(fd);
+
+	jit_resize(map, size);
 	return -1;
 }
 

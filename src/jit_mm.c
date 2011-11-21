@@ -32,16 +32,25 @@
 
 #define BLOCK_SIZE 65536
 
-static short blocks[JIT_SIZE/BLOCK_SIZE];
+/* Blocks[i] is negative for blocks i which are the start
+ * of an allocated region, -blocks[i] gives the number of blocks
+ * allocated.
+ *
+ * Blocks[i] is positive for the start of an unallocated
+ * region and gives the number of free blocks until the next
+ * allocated region (or until the end of JIT code memory.)
+ */
+static short blocks[JIT_SIZE/BLOCK_SIZE + 1];
 static long n_blocks;
 static unsigned long block_size;
 
-void jit_mm_init(void)
+void jit_mem_init(void)
 {
 	block_size = BLOCK_SIZE;
 	n_blocks = JIT_SIZE/block_size;
-	memset(blocks, 0, n_blocks*sizeof(short));
+	memset(blocks, 0, sizeof(blocks));
 	blocks[0] = n_blocks;
+	blocks[n_blocks] = 0;
 }
 
 void print_jit_stats(void)
@@ -62,33 +71,6 @@ void print_jit_stats(void)
 	}
 }
 
-void *jit_alloc(unsigned long size)
-{
-	long i, blocks_needed = size/block_size+1;
-
-	if (blocks_needed < 1)
-		blocks_needed = 1;
-
-	for (i=0;i<n_blocks;)
-	{
-		if (blocks[i] < 0)
-			i -= blocks[i];
-		else if (blocks[i] < blocks_needed)
-			i += blocks[i];
-		else
-		{
-			if (blocks[i] > blocks_needed)
-				blocks[i+blocks_needed] = blocks[i]-blocks_needed;
-
-			blocks[i] = -blocks_needed;
-			return (void *)(JIT_START+i*block_size);
-		}
-	}
-	print_jit_stats();
-	die("jit_alloc(): requested block size too big: %d", size);
-	return NULL;
-}
-
 static int get_alloc_block(void *p)
 {
 	unsigned long offset = (unsigned long)p - JIT_START;
@@ -107,61 +89,141 @@ static int get_alloc_block(void *p)
 	return i;
 }
 
-unsigned long jit_size(void *p)
+static void *get_alloc_pointer(long i)
 {
-	return -blocks[get_alloc_block(p)]*block_size;
+	if (i>=n_blocks)
+		die("get_alloc_pointer(): bad block index: %d", i);
+
+	return (void *)(JIT_START + i * block_size);
 }
 
-unsigned long jit_resize(void *p, unsigned long newsize)
+static void use_blocks(long i, long count)
 {
-	long blocks_needed = newsize/block_size+1;
-	long i = get_alloc_block(p);
+	long ret = sys_mprotect(get_alloc_pointer(i), count*block_size,
+	   	                    PROT_READ|PROT_WRITE);
 
-	blocks_needed -= -blocks[i];
+	if (ret & PG_MASK)
+		die("use_blocks(): mprotect: %d", ret);
+}
 
-	if ( blocks_needed < 0 )
+static void disuse_blocks(long i, long count)
+{
+	long ret = sys_mmap2(get_alloc_pointer(i), count*block_size,
+	   	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+
+	if (ret & PG_MASK)
+		die("disuse_blocks(): mmap: %d", ret);
+}
+
+static long get_max_index(void)
+{
+	long max_blocks = 0, max_index = -1, i;
+
+	for (i=0;i<n_blocks;)
 	{
-		blocks[i + -blocks[i] - -blocks_needed] = -blocks_needed;
-		if (blocks[i + -blocks[i]] > 0)
+		if (blocks[i] > 0)
 		{
-			blocks[i + -blocks[i] - -blocks_needed] += blocks[i + -blocks[i]];
-			blocks[i + -blocks[i]] = 0;
-		}
-	}
-
-	if ( blocks_needed > 0 )
-	{
-		if (blocks[i + -blocks[i]] >= blocks_needed)
-		{
-			blocks[i + -blocks[i] + blocks_needed] = blocks[i + -blocks[i]] - blocks_needed;
-			blocks[i + -blocks[i]] = 0;
-			sys_mmap2(&((char *)p)[-blocks[i]*block_size], blocks_needed*block_size,
-			          PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+			if (blocks[i] > max_blocks)
+			{
+				max_blocks = blocks[i];
+				max_index = i;
+			}
+			i += blocks[i];
 		}
 		else
-			die("cannot resize current jit block");
+			i -= blocks[i];
 	}
 
-	blocks[i] -= blocks_needed;
+	return max_index;
+}
+
+void *jit_mem_balloon(void *p)
+{
+	long base, new;
+
+	if (p)
+	{
+		base = get_alloc_block(p);
+		new = base + -blocks[base];
+	}
+	else
+	{
+		base = new = get_max_index();
+		if (base == -1)
+			return NULL;
 		
+		p = get_alloc_pointer(base);
+	}
+
+	if (blocks[new] > 0)
+	{
+		use_blocks(new, blocks[new]);
+		long newblocks = blocks[new];
+		blocks[new] = 0;
+		blocks[base] -= newblocks;
+	}
+
+	return p;
+}
+
+unsigned long jit_mem_size(void *p)
+{
 	return -blocks[get_alloc_block(p)]*block_size;
 }
 
-void jit_free(void *p)
+unsigned long jit_mem_try_resize(void *p, unsigned long requested_size)
 {
-	long this, next;
+	long base, next, newnext;
+	base = get_alloc_block(p);
+	next = base + -blocks[base];
 
+	long diff = (requested_size+block_size+(requested_size?-1:0))/block_size -
+	            -blocks[base];
+
+	newnext = next + diff;
+
+	if ( diff < 0 )
+	{
+		blocks[newnext] = -diff;
+		disuse_blocks(newnext, -diff);
+		if (blocks[next] > 0) /* next region is free space */
+		{
+			blocks[newnext] += blocks[next];
+			blocks[next] = 0;
+		}
+		blocks[base] -= diff;
+	}
+
+	if ( diff > 0 )
+	{
+		if (blocks[next] > 0) /* next region is free space */
+		{
+			if (blocks[next] < diff)
+				diff = blocks[next]; /* since it's best effort */
+
+			use_blocks(next, diff);
+			blocks[newnext] = blocks[next] - diff;
+			blocks[next] = 0;
+			blocks[base] -= diff;
+		}
+	}
+
+	return -blocks[base]*block_size;
+}
+
+void jit_mem_free(void *p)
+{
 	if (!p)
 		return;
 
-	sys_mmap2(p, jit_size(p), PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+	long base, next;
+	base = get_alloc_block(p);
+	blocks[base] = -blocks[base];
+	disuse_blocks(base, blocks[base]);
 
-	this = get_alloc_block(p);
-	blocks[this] = -blocks[this];
-
-	while ( (next=this+blocks[this]) < n_blocks && blocks[next] > 0 )
+	while ( (next=base+blocks[base]) < n_blocks && blocks[next] > 0 )
 	{
-		blocks[this] += blocks[next];
+		blocks[base] += blocks[next];
 		blocks[next] = 0;
 	}
 }

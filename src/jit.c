@@ -233,11 +233,8 @@ static void jit_chunk_create_lookup_mapping(jit_chunk_t *hdr, size_pair_t *sizes
 			}
 		}
 
-		while ((unsigned long)&table[j+1] > (unsigned long)&base[max_len])
-		{
-			max_len += max_len/2;
-			jit_resize(base, max_len);
-		}
+		if ((unsigned long)&table[j+1] > (unsigned long)&base[max_len])
+			die("out of JIT memory");
 
 		table[j] = sizes[i];
 		s_off   += sizes[i].orig;
@@ -459,16 +456,15 @@ static int try_resolve_jmp(code_map_t *map, char *jmp_addr, char *imm_addr,
 /* Translate a chunk of chunk of code
  *
  */
-static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
+static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr, unsigned long chunk_base,
                                         jmp_heap_t *jmp_heap, unsigned long *mapping)
 {
 	char *jit_addr=map->jit_addr, *addr=map->addr;
 	unsigned long n_ops = 0,
 	              entry = entry_addr-addr,
 	              s_off = entry_addr-addr,
-	              d_off = map->jit_len+sizeof(jit_chunk_t),
-	              chunk_base = map->jit_len,
-	              max_len = jit_size(jit_addr);
+	              d_off = chunk_base+sizeof(jit_chunk_t),
+	              max_len = jit_mem_size(jit_addr);
 	int stop = 0;
 
 	instr_t instr;
@@ -479,10 +475,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	while (stop == 0)
 	{
 		if ( d_off+TRANSLATED_MAX_SIZE > max_len )
-		{
-			max_len += max_len/2;
-			jit_resize(jit_addr, max_len);
-		}
+			die("out of JIT memory");
 
 		mapping[s_off] = d_off;
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
@@ -537,11 +530,21 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr,
 	};
 
 	jit_chunk_create_lookup_mapping(hdr, sizes, jit_addr, max_len);
-	commit();
-	map->jit_len += hdr->chunk_len;
-	commit();
 
 	return hdr;
+}
+
+void jit_resize(code_map_t *map, unsigned long cur_size)
+{
+	unsigned long est_size = map->len*4 + map->len/2;
+	if (est_size < cur_size)
+		est_size = cur_size;
+
+	jit_mem_try_resize(map->jit_addr, est_size);
+
+	commit();
+	map->jit_len = cur_size;
+	commit();
 }
 
 /* Translates all reachable code from map starting from entry_addr
@@ -553,27 +556,40 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 	rel_jmp_t j;
 	rel_jmp_t jumps[map->len/4]; /* mostly unused */
 	unsigned long mapping[map->len+1]; /* waste of memory :-( */
+	unsigned long chunk_base = map->jit_len;
+	jit_chunk_t *hdr;
 
 	heap_init(&jmp_heap, jumps, map->len/4);
 
 	jit_fill_mapping(map, mapping, map->len+1);
 
-	char *base = (char *)PAGE_BASE(&map->jit_addr[map->jit_len]);
-	unsigned long len = PAGE_NEXT(jit_size(map->jit_addr)-map->jit_len);
-	sys_mprotect(base, len, PROT_READ|PROT_WRITE|PROT_EXEC);
+	unsigned long base_off = PAGE_BASE(map->jit_len);
+	char *base = &map->jit_addr[base_off];
 
-	jit_translate_chunk(map, entry_addr, &jmp_heap, mapping);
+	sys_mprotect(base, jit_mem_size(map->jit_addr)-base_off,
+	             PROT_READ|PROT_WRITE|PROT_EXEC);
+
+	jit_mem_balloon(map->jit_addr);
+
+	hdr = jit_translate_chunk(map, entry_addr, chunk_base, &jmp_heap, mapping);
+	chunk_base += hdr->chunk_len;
 
 	while (heap_get(&jmp_heap, &j))
 		while (!try_resolve_jmp(map, j.addr, &map->jit_addr[j.off], mapping))
-			jit_translate_chunk(map, j.addr, &jmp_heap, mapping);
+		{
+			hdr = jit_translate_chunk(map, j.addr, chunk_base, &jmp_heap, mapping);
+			chunk_base += hdr->chunk_len;
+		}
 
-	sys_mprotect(base, len, PROT_READ|PROT_EXEC);
+	jit_resize(map, chunk_base);
+//fd_printf(2, "%08x\n", jit_mem_size(map->jit_addr));
+	sys_mprotect(base, jit_mem_size(map->jit_addr)-base_off,
+	                   PROT_READ|PROT_EXEC);
 }
 
 void jit_init(void)
 {
-	jit_mm_init();
+	jit_mem_init();
 }
 
 char *jit(char *addr)
@@ -585,15 +601,14 @@ char *jit(char *addr)
 
 	code_map_t *map = find_code_map(addr);
 
-	if (map && map->jit_addr == NULL)
-	{
-		map->jit_addr = jit_alloc(map->len*4 + map->len/2);
-
-		try_load_jit_cache(map);
-	}
-
 	if (map == NULL)
 		die("attempting to jump in non-executable code addr: %X ", addr);
+
+	if (map->jit_addr == NULL)
+	{
+		map->jit_addr = jit_mem_balloon(NULL);
+		try_load_jit_cache(map);
+	}
 
 	jit_addr = jit_lookup_addr(addr);
 
@@ -601,7 +616,6 @@ char *jit(char *addr)
 	{
 		jit_translate(map, addr);
 		jit_addr = jit_lookup_addr(addr);
-
 		try_save_jit_cache(map);
 	}
 
