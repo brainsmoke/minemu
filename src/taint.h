@@ -25,6 +25,15 @@ enum
 	TAINT_OFF,
 };
 
+enum
+{
+	TAINT_CLEAR = 0x00,
+	TAINT_SOCKET = 0xff,
+	TAINT_FILE = 0x40,
+	TAINT_ENV = 0x20,
+	TAINT_SOCKADDR = 0x01,
+};
+
 extern int taint_flag;
 
 void taint_mem(void *mem, unsigned long size, int type);

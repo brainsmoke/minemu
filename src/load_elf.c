@@ -138,7 +138,7 @@ static void init_user_stack(elf_prog_t *prog, int prot)
 	char *untrusted_data_end=sp;
 	sp = stack_push_strings(sp, tmp_envp, prog->envp);
 	sp = stack_push_strings(sp, tmp_argv, prog->argv);
-	taint_mem(sp, untrusted_data_end-sp, 0xff);
+	taint_mem(sp, untrusted_data_end-sp, TAINT_ENV);
 	sp = (char *)(((long)sp-0x100)&~0xf);
 
 	if (platform)

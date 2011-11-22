@@ -65,6 +65,11 @@ int is_socket(int fd)
 	return fd_type[fd] == FD_SOCKET;;
 }
 
+int taint_val(int fd)
+{
+	return is_socket(fd) ? TAINT_SOCKET : TAINT_CLEAR;
+}
+
 void set_fd(int fd, int type)
 {
 	if ( (fd < 1024) && (fd > -1) )
@@ -98,10 +103,10 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 	switch (call)
 	{
 		case __NR_read:
-			taint_mem((char *)arg2, ret, is_socket(arg1) ? 0xff : 0x00);
+			taint_mem((char *)arg2, ret, taint_val(arg1));
 			return;
 		case __NR_readv:
-			taint_iov( (struct iovec *)arg2, arg3, ret, is_socket(arg1) ? 0xff : 0x00);
+			taint_iov( (struct iovec *)arg2, arg3, ret, taint_val(arg1));
 			return;
 		case __NR_open:
 		case __NR_creat:
@@ -124,22 +129,22 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 			{
 				case SYS_GETPEERNAME:
 					if ( (ret >= 0) && sockargs[1] && sockargs[2])
-						taint_mem((char *)sockargs[1], *(long *)sockargs[2], 0x01);
+						taint_mem((char *)sockargs[1], *(long *)sockargs[2], TAINT_SOCKADDR);
 					return;
 				case SYS_ACCEPT:
 					if ( (ret >= 0) && sockargs[1] && sockargs[2])
-						taint_mem((char *)sockargs[1], *(long *)sockargs[2], 0x01);
+						taint_mem((char *)sockargs[1], *(long *)sockargs[2], TAINT_SOCKADDR);
 				case SYS_SOCKET:
 					set_fd(ret, FD_SOCKET);
 					return;
 				case SYS_RECV:
 				case SYS_RECVFROM:
-					taint_mem((char *)sockargs[1], ret, 0xff);
+					taint_mem((char *)sockargs[1], ret, TAINT_SOCKET);
 					return;
 				case SYS_RECVMSG:
 				{
 					struct msghdr *msg = (struct msghdr *)sockargs[1];
-					taint_iov( msg->msg_iov, msg->msg_iovlen, ret, 0xff );
+					taint_iov( msg->msg_iov, msg->msg_iovlen, ret, TAINT_SOCKET );
 					return;
 				}
 				default:

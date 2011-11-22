@@ -150,7 +150,7 @@ static void *copy_frame_to_user(void *frame, struct kernel_sigaction *action,
 	void *copy = get_sigframe_addr(action, context, size);
 
 	memcpy(copy, frame, size);
-	taint_mem(copy, size, 0x00);
+	taint_mem(copy, size, TAINT_CLEAR);
 	return copy;
 }
 
