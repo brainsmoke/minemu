@@ -107,8 +107,6 @@ static int is_trusted_file(int fd)
 		return in_dirlist(path, trusted_dirs);
 }
 
-#define _LARGEFILE64_SOURCE 1
-#include <asm/stat.h>
 #define __S_IFREG   0100000 /* Regular file.  */
 #define __S_IFMT    0170000 /* These bits determine file type.  */
 
