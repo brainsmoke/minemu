@@ -127,4 +127,7 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_prctl(a, b, c, d, e) \
 	syscall5(SYS_prctl, (long)(a), (long)(b), (long)(c), (long)(d), (long)(e))
 
+#define sys_readlink(a, b, c) \
+	syscall3(SYS_readlink, (long)(a), (long)(b), (long)(c))
+
 #endif /* SYSCALLS_H */

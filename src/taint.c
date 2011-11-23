@@ -18,6 +18,7 @@
 
 
 #include <linux/net.h>
+#include <linux/limits.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 
@@ -33,25 +34,90 @@
 
 int taint_flag = TAINT_ON;
 
+char *trusted_dirs_default = "/bin:/sbin:/lib:/lib32:"
+                             "/usr/bin:/usr/sbin:/usr/lib:/usr/lib32:"
+                             "/usr/local/bin:/usr/local/sbin:/usr/local/lib:/usr/local/lib32";
+char *trusted_dirs = NULL;
+static char trusted_dirs_buf[PATH_MAX];
+
 enum
 {
 	FD_UNKNOWN = 0,
 	FD_SOCKET,
-	FD_NO_SOCKET,
+	FD_FILE,
+	FD_UNTRUSTED_FILE,
+	FD_TRUSTED_FILE,
 };
 
+int set_trusted_dirs(char *dirs)
+{
+	if (strlen(dirs)+1 >= sizeof(trusted_dirs_buf))
+		return 0;
+
+	strcpy(trusted_dirs_buf, dirs);
+	trusted_dirs = trusted_dirs_buf;
+
+	return 1;
+}
+
+static int in_dirlist(char *path, char *dirs)
+{
+	char *p;
+	int match = 0;
+	while (*dirs && !match)
+	{
+		p = path;
+		match = 1;
+		while ( *dirs != '\0' && *dirs != ':' )
+		{
+			if (*p != *dirs)
+				match = 0;
+
+			if (*p)
+				p++;
+
+			dirs++;
+		}
+		if (*p != '/')
+			match = 0;
+
+		if (*dirs != '\0')
+			dirs++;
+	}
+
+if (match) sys_gettid();
+	return match;
+}
+
+static int is_trusted_file(int fd)
+{
+	char path[PATH_MAX+1], proc_file[64], *dirs;
+
+	strcpy(proc_file, "/proc/self/fd/");
+	numcat(proc_file, fd);
+
+	long ret = sys_readlink(proc_file, path, PATH_MAX);
+	if (ret < 0)
+		return 0;
+	path[ret] = 0;
+
+	if (!trusted_dirs)
+		return 1;
+	else
+		return in_dirlist(path, trusted_dirs);
+}
 
 #define _LARGEFILE64_SOURCE 1
 #include <asm/stat.h>
 #define __S_IFREG   0100000 /* Regular file.  */
 #define __S_IFMT    0170000 /* These bits determine file type.  */
 
-int is_socket(int fd)
+static int taint_val(int fd)
 {
 	char *fd_type = get_thread_ctx()->files->fd_type;
 
 	if ( (fd > 1023) || (fd < 0) )
-		return 0;
+		return TAINT_CLEAR;
 
 	if ( fd_type[fd] == FD_UNKNOWN )
 	{
@@ -59,18 +125,27 @@ int is_socket(int fd)
 		if ( ( sys_fstat64(fd, &s) < 0 ) || (s.st_mode & __S_IFMT) != __S_IFREG )
 			fd_type[fd] = FD_SOCKET;
 		else
-			fd_type[fd] = FD_NO_SOCKET;
+			fd_type[fd] = FD_FILE;
 	}
 
-	return fd_type[fd] == FD_SOCKET;;
+	if (fd_type[fd] == FD_FILE)
+	{
+		if (is_trusted_file(fd))
+			fd_type[fd] = FD_TRUSTED_FILE;
+		else
+			fd_type[fd] = FD_UNTRUSTED_FILE;
+	}
+
+	if (fd_type[fd] == FD_SOCKET)
+		return TAINT_SOCKET;
+
+	if (fd_type[fd] == FD_UNTRUSTED_FILE)
+		return TAINT_FILE;
+
+	return TAINT_CLEAR;
 }
 
-int taint_val(int fd)
-{
-	return is_socket(fd) ? TAINT_SOCKET : TAINT_CLEAR;
-}
-
-void set_fd(int fd, int type)
+static void set_fd(int fd, int type)
 {
 	if ( (fd < 1024) && (fd > -1) )
 		get_thread_ctx()->files->fd_type[fd] = type;
@@ -81,7 +156,7 @@ void taint_mem(void *mem, unsigned long size, int type)
 	memset((char *)mem+TAINT_OFFSET, type, size);
 }
 
-void taint_iov(struct iovec *iov, int iocnt, unsigned long size, int type)
+static void taint_iov(struct iovec *iov, int iocnt, unsigned long size, int type)
 {
 	unsigned long v_size;
 	while (size > 0)
@@ -111,7 +186,7 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 		case __NR_open:
 		case __NR_creat:
 		case __NR_openat:
-			set_fd(ret, FD_NO_SOCKET);
+			set_fd(ret, FD_FILE);
 			return;
 		case __NR_dup:
 		case __NR_dup2:

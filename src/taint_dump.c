@@ -30,6 +30,7 @@
 #include "taint_dump.h"
 #include "hexdump.h"
 #include "threads.h"
+#include "taint.h"
 
 int dump_on_exit = 0;
 int dump_all = 0;
@@ -47,12 +48,23 @@ void hexdump_taint(int fd, const void *data, ssize_t len,
 {
 	const char *colors[256];
 	int i;
-	char *red = "\033[1;31m";
-	char *blue= "\033[1;36m";
-	colors[0] = "\033[0;37m";
-	for(i=1; i<256; i++)
-		colors[i] = red;
-	colors[1] = blue;
+	char *red    = "\033[1;31m",
+	     *blue   = "\033[1;36m",
+	     *green  = "\033[1;32m",
+	     *yellow = "\033[1;33m",
+	     *white  = "\033[1;37m",
+	     *dark   = "\033[1;30m",
+	     *grey   = "\033[0;37m";
+	
+	for(i=0; i<256; i++)
+		colors[i] = dark;
+
+	colors[TAINT_CLEAR]          = grey;
+	colors[TAINT_SOCKADDR]       = blue;
+	colors[TAINT_ENV]            = green;
+	colors[TAINT_FILE]           = yellow;
+	colors[TAINT_ENV|TAINT_FILE] = white;
+	colors[TAINT_SOCKET]         = red;
 
 	hexdump(fd, data, len, offset, ascii, description, taint, colors);
 }

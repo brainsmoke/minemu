@@ -36,6 +36,10 @@ enum
 
 extern int taint_flag;
 
+extern char *trusted_dirs_default;
+extern char *trusted_dirs;
+int set_trusted_dirs(char *dirs);
+
 void taint_mem(void *mem, unsigned long size, int type);
 void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6);
 
