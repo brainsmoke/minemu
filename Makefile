@@ -14,7 +14,7 @@ LDFLAGS=
 EMU_LDFLAGS=-z noexecstack --warn-common
 
 #SETTINGS=-g 
-SETTINGS=-Os
+SETTINGS=-Os -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables
 WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99
 
 CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS)
