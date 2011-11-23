@@ -150,6 +150,19 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 	return ret;
 }
 
+unsigned long user_madvise(unsigned long addr, size_t length, long advise)
+{
+	if ( (addr > USER_END) || (addr+length > USER_END) )
+		return -ENOMEM;
+	
+	unsigned long ret = sys_madvise(addr, length, advise);
+
+	if (!ret && advise == MADV_DONTNEED)
+		sys_madvise(TAINT_OFFSET+addr, length, advise);
+
+	return ret;
+}
+
 void copy_vdso(unsigned long addr, unsigned long orig)
 {
 	vdso = addr; vdso_orig = orig;

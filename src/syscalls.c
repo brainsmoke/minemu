@@ -43,6 +43,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_mmap2:
  		case __NR_mmap:
  		case __NR_mprotect:
+ 		case __NR_madvise:
 
  		case __NR_sigaltstack:
  		case __NR_signal:
@@ -99,6 +100,9 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
  		case __NR_mprotect:
 			ret = user_mprotect(arg1,arg2,arg3);
+			break;
+ 		case __NR_madvise:
+			ret = user_madvise(arg1,arg2,arg3);
 			break;
 
  		case __NR_sigaltstack:

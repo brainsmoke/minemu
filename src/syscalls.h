@@ -46,6 +46,9 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_mprotect(a, b, c) \
 	syscall3(SYS_mprotect, (long)(a), (long)(b), (long)(c))
 
+#define sys_madvise(a, b, c) \
+	syscall3(SYS_madvise, (long)(a), (long)(b), (long)(c))
+
 #define sys_mremap(a, b, c, d, e) \
 	syscall5(SYS_mremap, (long)(a), (long)(b), (long)(c), (long)(d), (long)e)
 
