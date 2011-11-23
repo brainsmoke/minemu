@@ -76,6 +76,10 @@ void usage(char *arg0)
 	"  -taint              Turn on tainting. (default)\n"
 	"  -notaint            Turn off tainting.\n"
 	"\n"
+	"  -trackfiles         Taint files which are not in known executable locations\n"
+	"  -trusteddirs        Trust files from these locations (implies -trackfiles)\n"
+	"                      default dirs: %s\n"
+	"\n"
 	"  -help               Show this message and exit.\n"
 	"  -version            Print version number and exit.\n",
 	arg0
@@ -133,6 +137,10 @@ char **parse_options(char **argv)
 			dump_all = 1;
 		else if ( strcmp(*argv, "-dumptainted") == 0 )
 			dump_all = 0;
+		else if ( strcmp(*argv, "-trackfiles") == 0 && !trusted_dirs )
+			trusted_dirs = trusted_dirs_default;
+		else if ( strcmp(*argv, "-trusteddirs") == 0 )
+			set_trusted_dirs(*++argv);
 		else
 			die("unknown option: %s", *argv);
 
@@ -144,12 +152,14 @@ char **parse_options(char **argv)
 long option_args_count(void)
 {
 	return 2 + /* -exec ... */ 2 + /* -sigmask ... */
-	       (get_jit_cache_dir()              ? 2 : 0) +
-	       (get_taint_dump_dir()             ? 2 : 0) +
-	       (dump_on_exit                     ? 1 : 0) +
-	       (dump_all                         ? 1 : 0) +
-	       (call_strategy != PRESEED_ON_CALL ? 1 : 0) +
-	       (taint_flag == TAINT_OFF          ? 1 : 0) +
+	       (get_jit_cache_dir()                   ? 2 : 0) +
+	       (get_taint_dump_dir()                  ? 2 : 0) +
+	       (dump_on_exit                          ? 1 : 0) +
+	       (dump_all                              ? 1 : 0) +
+	       (call_strategy != PRESEED_ON_CALL      ? 1 : 0) +
+	       (taint_flag == TAINT_OFF               ? 1 : 0) +
+	       (trusted_dirs                          ? 1 : 0) +
+	       (trusted_dirs != trusted_dirs_default  ? 1 : 0) +
 	       1; /* -- */
 }
 
@@ -204,6 +214,18 @@ char **option_args_setup(char **argv, char *filename, char *sigset_buf)
 	if ( call_strategy == LAZY_CALL )
 	{
 		argv[i] = "-lazy";
+		i++;
+	}
+	if (trusted_dirs == trusted_dirs_default)
+	{
+		argv[i] = "-trackfiles";
+		i++;
+	}
+	else if (trusted_dirs)
+	{
+		argv[i] = "-trusteddirs";
+		i++;
+		argv[i] = trusted_dirs;
 		i++;
 	}
 
