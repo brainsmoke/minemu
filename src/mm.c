@@ -18,6 +18,7 @@
 
 #include <string.h>
 #include <sys/mman.h>
+#include <linux/mman.h>
 #include <linux/auxvec.h>
 #include <errno.h>
 
@@ -35,7 +36,16 @@
 #include "load_elf.h"
 #include "kernel_compat.h"
 
+/* switch when shadow shared memory is completely done */
+//#define SHADOW_DEFAULT_PROT (PROT_NONE)
+#define SHADOW_DEFAULT_PROT (PROT_READ|PROT_WRITE)
+
 unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
+
+static int bad_range(unsigned long addr, size_t length)
+{
+	return (addr > USER_END) || (addr+length > USER_END);
+}
 
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)
@@ -90,7 +100,7 @@ unsigned long user_old_mmap(struct kernel_mmap_args *a)
 unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
                          int flags, int fd, off_t pgoffset)
 {
-	if ( (addr > USER_END) || (addr+length > USER_END) )
+	if ( bad_range(addr, length) )
 		return -EFAULT;
 
 	int new_prot = prot; /* make sure we don't strip implied read permission */
@@ -118,22 +128,29 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 	return ret;
 }
 
+unsigned long shadow_munmap(unsigned long addr, size_t length)
+{
+	del_code_region((char *)addr, PAGE_NEXT(length));
+	return sys_mmap2(addr+TAINT_OFFSET, length, SHADOW_DEFAULT_PROT,
+	                 MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0);
+}
+
 unsigned long user_munmap(unsigned long addr, size_t length)
 {
-	if ( (addr > USER_END) || (addr+length > USER_END) )
+	if ( bad_range(addr, length) )
 		return -EFAULT;
 
 	unsigned long ret = sys_munmap(addr, length);
 
 	if ( !(ret & PG_MASK) )
-		del_code_region((char *)addr, PAGE_NEXT(length));
+		shadow_munmap(addr, PAGE_NEXT(length));
 
 	return ret;
 }
 
 unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 {
-	if ( (addr > USER_END) || (addr+length > USER_END) )
+	if ( bad_range(addr, length) )
 		return -EFAULT;
 
 	unsigned long ret = sys_mprotect(addr, length, prot&~PROT_EXEC);
@@ -152,7 +169,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 
 unsigned long user_madvise(unsigned long addr, size_t length, long advise)
 {
-	if ( (addr > USER_END) || (addr+length > USER_END) )
+	if ( bad_range(addr, length) )
 		return -ENOMEM;
 	
 	unsigned long ret = sys_madvise(addr, length, advise);
@@ -160,6 +177,48 @@ unsigned long user_madvise(unsigned long addr, size_t length, long advise)
 	if (!ret && advise == MADV_DONTNEED)
 		sys_madvise(TAINT_OFFSET+addr, length, advise);
 
+	return ret;
+}
+
+unsigned long user_mremap(unsigned long old_addr, size_t old_size,
+                          size_t new_size, long flags, unsigned long new_addr)
+{
+	if ( bad_range(old_addr, old_size) )
+		return -ENOMEM;
+
+	if ( (flags & MREMAP_FIXED) && bad_range(new_addr, new_size) )
+		return -ENOMEM;
+	
+	int is_code = !!find_code_map((char *)old_addr);
+	unsigned long ret = sys_mremap(old_addr, old_size, new_size, flags, new_addr);
+
+	if (! (ret & PG_MASK) )
+	{
+		sys_mremap(old_addr+TAINT_OFFSET, old_size, new_size,
+		           MREMAP_MAYMOVE|MREMAP_FIXED, ret+TAINT_OFFSET);
+
+		if (old_addr < ret)
+		{
+			unsigned long size = ret-old_addr;
+			if (size > old_size)
+				size = old_size;
+			shadow_munmap(old_addr, size);
+		}
+
+		if (old_addr+old_size > ret+new_size)
+		{
+			unsigned long size = (old_addr+old_size)-(ret+new_size);
+			if (size > old_size)
+				size = old_size;
+			shadow_munmap(old_addr+old_size - size, size);
+		}
+
+		if (is_code)
+			del_code_region((char *)ret, PAGE_NEXT(new_size));
+		else
+			add_code_region((char *)ret, PAGE_NEXT(new_size), 0, 0, 0, 0);
+
+	}
 	return ret;
 }
 
@@ -219,8 +278,7 @@ void init_minemu_mem(long *auxv)
 	                 -1, 0);
 
 	ret |= sys_mmap2(TAINT_START+PG_SIZE, TAINT_SIZE-PG_SIZE,
-	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
-//	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 SHADOW_DEFAULT_PROT, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
 
 	ret |= sys_mmap2(JIT_START, JIT_SIZE,

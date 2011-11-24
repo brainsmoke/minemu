@@ -89,6 +89,8 @@ unsigned long user_munmap(unsigned long addr, size_t length);
 
 unsigned long user_mprotect(unsigned long addr, size_t length, long prot);
 unsigned long user_madvise(unsigned long addr, size_t length, long advise);
+unsigned long user_mremap(unsigned long old_addr, size_t old_size,
+                          size_t new_size, long flags, unsigned long new_addr);
 
 void copy_vdso(unsigned long addr, unsigned long orig);
 

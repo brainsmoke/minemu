@@ -42,6 +42,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
  		case __NR_brk:
  		case __NR_mmap2:
  		case __NR_mmap:
+ 		case __NR_mremap:
  		case __NR_mprotect:
  		case __NR_madvise:
 
@@ -97,6 +98,9 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
  		case __NR_mmap:
 			ret = user_old_mmap((struct kernel_mmap_args *)arg1);
+			break;
+ 		case __NR_mremap:
+			ret = user_mremap(arg1,arg2,arg3,arg4,arg5);
 			break;
  		case __NR_mprotect:
 			ret = user_mprotect(arg1,arg2,arg3);
