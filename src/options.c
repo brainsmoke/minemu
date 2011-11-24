@@ -77,12 +77,14 @@ void usage(char *arg0)
 	"  -notaint            Turn off tainting.\n"
 	"\n"
 	"  -trackfiles         Taint files which are not in known executable locations\n"
-	"  -trusteddirs        Trust files from these locations (implies -trackfiles)\n"
-	"                      default dirs: %s\n"
+	"  -trusteddirs DIRS   Trust (executable) files from these colon-separated list \n"
+	"                      of locations (implies -trackfiles.) default dirs:\n"
+	"                      '%s'\n"
 	"\n"
 	"  -help               Show this message and exit.\n"
 	"  -version            Print version number and exit.\n",
-	arg0
+	arg0,
+	trusted_dirs_default
 	);
 	sys_exit(0);
 }
