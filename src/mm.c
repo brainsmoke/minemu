@@ -130,9 +130,9 @@ static void shadow_mremap(unsigned long old_addr, size_t old_size,
 			die("shadow_mremap(): %08x\n", ret);
 
 		if (find_code_map((char *)old_addr))
-			del_code_region((char *)new_addr, PAGE_NEXT(new_size));
-		else
 			add_code_region((char *)new_addr, PAGE_NEXT(new_size), 0, 0, 0, 0);
+		else
+			del_code_region((char *)new_addr, PAGE_NEXT(new_size));
 	}
 
 	if (old_addr < new_addr)
