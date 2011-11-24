@@ -100,6 +100,7 @@ static void shadow_mremap(unsigned long old_addr, size_t old_size,
                           size_t new_size, long _flags, unsigned long new_addr)
 {
 	long flags = (old_addr != new_addr) ? MREMAP_MAYMOVE|MREMAP_FIXED : 0;
+	int is_code = !!find_code_map((char *)old_addr);
 
 	if (new_addr < old_addr)
 		shadow_munmap(new_addr, min(old_addr-new_addr, new_size));
@@ -129,7 +130,7 @@ static void shadow_mremap(unsigned long old_addr, size_t old_size,
 		if (ret & PG_MASK)
 			die("shadow_mremap(): %08x\n", ret);
 
-		if (find_code_map((char *)old_addr))
+		if (is_code)
 			add_code_region((char *)new_addr, PAGE_NEXT(new_size), 0, 0, 0, 0);
 		else
 			del_code_region((char *)new_addr, PAGE_NEXT(new_size));
