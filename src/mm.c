@@ -214,7 +214,11 @@ void init_minemu_mem(long *auxv)
 	 * to set vm.overcommit_memory = 1 in sysctl.conf so this might change
 	 * in the future (I hope so.)
 	 */
-	ret |= sys_mmap2(TAINT_START, TAINT_SIZE,
+	ret |= sys_mmap2(TAINT_START, PG_SIZE,
+	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
+	                 -1, 0);
+
+	ret |= sys_mmap2(TAINT_START+PG_SIZE, TAINT_SIZE-PG_SIZE,
 	                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 //	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);

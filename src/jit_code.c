@@ -838,29 +838,49 @@ static int copy_instr(char *dest, instr_t *instr, trans_t *trans)
 
 static int taint_cmpxchg8(char *dest, instr_t *instr, trans_t *trans)
 {
-	int len = taint_cmpxchg8_pre(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	int len = 0;
+
+	if (!instr->p[2])
+		len += taint_cmpxchg8_pre(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
 	copy_instr(&dest[len], instr, trans);
 	len += trans->len;
-	len += taint_cmpxchg8_post(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
+	if (!instr->p[2])
+		len += taint_cmpxchg8_post(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
 	return trans->len = len;
 }
 
 static int taint_cmpxchg(char *dest, instr_t *instr, trans_t *trans)
 {
 	int op16 = (instr->p[3] == 0x66);
-	int len = (op16?taint_cmpxchg16_pre:taint_cmpxchg32_pre)(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	int len = 0;
+
+	if (!instr->p[2])
+		len += (op16?taint_cmpxchg16_pre:taint_cmpxchg32_pre)(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
 	copy_instr(&dest[len], instr, trans);
 	len += trans->len;
-	len += (op16?taint_cmpxchg16_post:taint_cmpxchg32_post)(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
+	if (!instr->p[2])
+		len += (op16?taint_cmpxchg16_post:taint_cmpxchg32_post)(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
 	return trans->len = len;
 }
 
 static int taint_cmpxchg8b(char *dest, instr_t *instr, trans_t *trans)
 {
-	int len = taint_cmpxchg8b_pre(dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+	int len = 0;
+
+	if (!instr->p[2])
+		len += taint_cmpxchg8b_pre(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
 	copy_instr(&dest[len], instr, trans);
 	len += trans->len;
-	len += taint_cmpxchg8b_post(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
+	if (!instr->p[2])
+		len += taint_cmpxchg8b_post(&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
 	return trans->len = len;
 }
 
