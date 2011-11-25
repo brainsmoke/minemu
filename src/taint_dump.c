@@ -69,29 +69,6 @@ void hexdump_taint(int fd, const void *data, ssize_t len,
 	hexdump(fd, data, len, offset, ascii, description, taint, colors);
 }
 
-static unsigned long read_addr(char *s)
-{
-	unsigned long addr = 0;
-	int i;
-	for(i=0; i<8; i++)
-	{
-		addr *= 16;
-		switch (s[i])
-		{
-			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-				addr += 9;
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
-				addr += (s[i]&0xf);
-				continue;
-			default:
-				die("not an address");
-		}
-	}
-	return addr;
-}
-
 void dump_map(int fd, char *addr, unsigned long len)
 {
 	long *laddr;
@@ -173,45 +150,30 @@ void do_taint_dump(long *regs)
 	if ( taint_dump_dir == NULL )
 		return;
 
-	unsigned long s_addr, e_addr;
-	char buf[8];
-	int fd = sys_open("/proc/self/maps", O_RDONLY, 0);
 	char name[PATH_MAX+1+64];
 	get_taint_dump_filename(name);
-	int fd_out = sys_open(name, O_RDWR|O_CREAT, 0600), old_out;
+	int fd = sys_open(name, O_RDWR|O_CREAT, 0600);
 
-	fd_printf(fd_out, "jump address:\n");
+	fd_printf(fd, "jump address:\n");
 
-	hexdump_taint(fd_out, &get_thread_ctx()->user_eip, 4,
+	hexdump_taint(fd, &get_thread_ctx()->user_eip, 4,
 	              (unsigned char *)&get_thread_ctx()->ijmp_taint, 0,0, NULL);
 
-	fd_printf(fd_out, "registers:\n");
+	fd_printf(fd, "registers:\n");
 
 	unsigned char regs_taint[32];
 	get_xmm6(&regs_taint[0]);
 	get_xmm7(&regs_taint[16]);
-	hexdump_taint(fd_out, regs, 32, regs_taint, 0, 1, regs_desc);
+	hexdump_taint(fd, regs, 32, regs_taint, 0, 1, regs_desc);
 
-	do
-	{
-		sys_read(fd, buf, 8);
-		s_addr = read_addr(buf);
-		sys_read(fd, buf, 1);
-		sys_read(fd, buf, 8);
-		e_addr = read_addr(buf);
-		sys_read(fd, buf, 2);
-		sys_read(fd, buf, 1);
-		if (buf[0] == 'w')
-		{
-			if (e_addr > USER_END)
-				e_addr = USER_END;
-			dump_map(fd_out, (char *)s_addr, e_addr-s_addr);
-		}
-		while (sys_read(fd, buf, 1) && buf[0] != '\n');
-	}
-	while (e_addr < USER_END);
+	map_file_t f;
+	map_entry_t e;
+	open_maps(&f);
+	while (read_map(&f, &e) && e.addr < USER_END)
+		if (e.prot)
+			dump_map(fd, (char *)e.addr, e.len);
+	close_maps(&f);
 
 	sys_close(fd);
-	sys_close(fd_out);
 }
 
