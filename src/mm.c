@@ -144,6 +144,21 @@ static void shadow_mremap(unsigned long old_addr, size_t old_size,
 		              min(old_size, old_addr+old_size-new_addr-new_size));
 }
 
+static void shadow_shmat(unsigned long shmaddr)
+{
+	/* shit, no size known :-(( parse /proc/self/maps to get the size */
+	map_file_t f;
+	map_entry_t e;
+	open_maps(&f);
+	while (read_map(&f, &e))
+		if (e.addr == shmaddr)
+		{
+			shadow_mmap(e.addr, e.len, PROT_READ|PROT_WRITE, 0, 0);
+			break;
+		}
+	close_maps(&f);
+}
+
 unsigned long do_mmap2(unsigned long addr, size_t length, int prot,
                        int flags, int fd, off_t pgoffset)
 {
@@ -255,6 +270,16 @@ unsigned long user_madvise(unsigned long addr, size_t length, long advise)
 
 	if (!ret && advise == MADV_DONTNEED)
 		sys_madvise(TAINT_OFFSET+addr, length, advise);
+
+	return ret;
+}
+
+unsigned long user_shmat(int shmid, char *shmaddr, int shmflg, unsigned long *raddr)
+{
+	unsigned long ret = sys_shmat(shmid, shmaddr, shmflg, raddr);
+
+	if ( !ret )
+		shadow_shmat(*raddr);
 
 	return ret;
 }

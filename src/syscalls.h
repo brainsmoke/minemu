@@ -21,6 +21,7 @@
 
 #include <signal.h>
 #include <syscall.h>
+#include <linux/ipc.h>
 
 long syscall0(long no);
 long syscall1(long no, long a0);
@@ -51,6 +52,10 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 
 #define sys_mremap(a, b, c, d, e) \
 	syscall5(SYS_mremap, (long)(a), (long)(b), (long)(c), (long)(d), (long)e)
+
+/* we follow the order of do_shmat() */
+#define sys_shmat(shmid, shmaddr, shmflg, ret) \
+	syscall5(SYS_ipc, SHMAT, (long)(shmid), (long)(shmflg), (long)(ret), (long)(shmaddr))
 
 #define sys_brk(a) \
 	syscall1(SYS_brk, (long)(a))

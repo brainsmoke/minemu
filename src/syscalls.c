@@ -77,6 +77,11 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 				do_taint(ret,call,arg1,arg2,arg3,arg4,arg5,arg6);
 
 			return ret;
+
+ 		case __NR_ipc:
+			if ( arg1 == SHMAT )
+				break;
+			/* fall through */
 		default:
 			return syscall_intr(call,arg1,arg2,arg3,arg4,arg5,arg6);
 	}
@@ -107,6 +112,12 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 			break;
  		case __NR_madvise:
 			ret = user_madvise(arg1,arg2,arg3);
+			break;
+ 		case __NR_ipc:
+			if (arg1 == SHMAT)
+				ret = user_shmat(arg2,(char *)arg5,arg3,(unsigned long *)arg4);
+			else
+				die("should not have caught IPC call: %d", arg1);
 			break;
 
  		case __NR_sigaltstack:
