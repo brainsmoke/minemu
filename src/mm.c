@@ -38,8 +38,8 @@
 #include "threads.h"
 
 /* switch when shadow shared memory is completely done */
-//#define SHADOW_DEFAULT_PROT (PROT_NONE)
-#define SHADOW_DEFAULT_PROT (PROT_READ|PROT_WRITE)
+#define SHADOW_DEFAULT_PROT (PROT_NONE)
+//#define SHADOW_DEFAULT_PROT (PROT_READ|PROT_WRITE)
 
 unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
 
@@ -301,7 +301,7 @@ unsigned long user_mremap(unsigned long old_addr, size_t old_size,
 	return ret;
 }
 
-void copy_vdso(unsigned long addr, unsigned long orig)
+static void copy_vdso(unsigned long addr, unsigned long orig)
 {
 	vdso = addr; vdso_orig = orig;
 
@@ -319,8 +319,6 @@ void copy_vdso(unsigned long addr, unsigned long orig)
 		sysenter_reentry = 0; /* assume int $0x80 syscalls, crash otherwise */
 	else
 		sysenter_reentry = vdso + off;
-
-	user_mprotect(vdso, 0x1000, PROT_READ|PROT_EXEC);
 }
 
 unsigned long stack_top(long *auxv)
@@ -348,6 +346,8 @@ void init_minemu_mem(long *auxv)
 	fill_last_page_hack();
 	mutex_init(&map_lock);
 
+	copy_vdso(USER_END-USER_STACK_SIZE-0x1000, get_aux(auxv, AT_SYSINFO_EHDR));
+
 	/* pre-allocate some memory regions, mostly because this way we don't
 	 * have to do our own memory-allocation. It /is/ the reason we need
 	 * to set vm.overcommit_memory = 1 in sysctl.conf so this might change
@@ -360,6 +360,8 @@ void init_minemu_mem(long *auxv)
 	ret |= sys_mmap2(TAINT_START+PG_SIZE, TAINT_SIZE-PG_SIZE,
 	                 SHADOW_DEFAULT_PROT, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 	                 -1, 0);
+
+	user_mprotect(vdso, 0x1000, PROT_READ|PROT_EXEC);
 
 	ret |= sys_mmap2(JIT_START, JIT_SIZE,
 	                 PROT_NONE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,

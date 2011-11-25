@@ -55,8 +55,6 @@ int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
 	if ( (progname == NULL) && (argv[0][0] == '/') )
 		progname = argv[0];
 
-	copy_vdso(USER_END-USER_STACK_SIZE-0x1000, get_aux(auxv, AT_SYSINFO_EHDR));
-
 	init_minemu_mem(auxv);
 	init_shield(TAINT_END);
 	sigwrap_init();

@@ -94,8 +94,6 @@ unsigned long user_mremap(unsigned long old_addr, size_t old_size,
 
 unsigned long user_shmat(int shmid, char *shmaddr, int shmflg, unsigned long *raddr);
 
-void copy_vdso(unsigned long addr, unsigned long orig);
-
 void shield(void);
 void unshield(void);
 
