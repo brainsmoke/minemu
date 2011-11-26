@@ -31,6 +31,7 @@
 #include "hexdump.h"
 #include "threads.h"
 #include "taint.h"
+#include "proc.h"
 
 int dump_on_exit = 0;
 int dump_all = 0;

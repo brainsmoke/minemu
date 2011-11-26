@@ -62,23 +62,4 @@ static inline int contains(const char *addr1, unsigned long len1, const char *ad
 	return overlap(addr1, len1, addr2, 1);
 }
 
-/* simple /proc/self/maps parser: */
-
-typedef struct
-{
-	char buf[1024];
-	long n_read, i, fd;
-
-} map_file_t;
-
-typedef struct
-{
-	unsigned long addr, len, prot;
-
-} map_entry_t;
-
-int open_maps(map_file_t *f);
-int read_map(map_file_t *f, map_entry_t *e);
-int close_maps(map_file_t *f);
-
 #endif /* LIB_H */

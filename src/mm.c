@@ -36,6 +36,7 @@
 #include "load_elf.h"
 #include "kernel_compat.h"
 #include "threads.h"
+#include "proc.h"
 
 /* switch when shadow shared memory is completely done */
 #define SHADOW_DEFAULT_PROT (PROT_NONE)
