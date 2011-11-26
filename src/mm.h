@@ -59,7 +59,7 @@ extern char minemu_end[], minemu_code_start[], minemu_code_end[];
 
 #include <sys/mman.h>
 
-extern unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
+extern unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom, stack_bottom;
 
 void init_minemu_mem(long *auxv);
 

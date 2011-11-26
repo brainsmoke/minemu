@@ -31,6 +31,7 @@
 #include "mm.h"
 #include "taint.h"
 #include "threads.h"
+#include "proc.h"
 
 int taint_flag = TAINT_ON;
 
@@ -185,6 +186,12 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 		case __NR_creat:
 		case __NR_openat:
 			set_fd(ret, FD_FILE);
+
+			if (strcmp((char *)(call == __NR_openat ? arg2 : arg1), "/proc/self/stat") == 0)
+			{
+				taint_val(ret);
+				fake_proc_self_stat(ret);
+			}
 			return;
 		case __NR_dup:
 		case __NR_dup2:

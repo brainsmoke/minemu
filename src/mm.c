@@ -42,7 +42,7 @@
 #define SHADOW_DEFAULT_PROT (PROT_NONE)
 //#define SHADOW_DEFAULT_PROT (PROT_READ|PROT_WRITE)
 
-unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom;
+unsigned long vdso, vdso_orig, sysenter_reentry, minemu_stack_bottom, stack_bottom;
 
 long map_lock;
 

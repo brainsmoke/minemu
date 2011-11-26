@@ -124,6 +124,8 @@ int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
 
 	sys_prctl(PR_SET_NAME, process_name, 0,0,0);
 
+	stack_bottom = (unsigned long)prog.sp;
+
 	if (ret < 0)
 		die("unable to execute binary: %d", -ret);
 

@@ -19,6 +19,8 @@
 #ifndef PROC_H
 #define PROC_H
 
+void fake_proc_self_stat(long fd);
+
 /* simple /proc/self/maps parser: */
 
 typedef struct

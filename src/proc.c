@@ -16,17 +16,59 @@
  * limitations under the License.
  */
 
-//#include <sys/types.h>
 #include <sys/mman.h>
-//#include <string.h>
-//#include <unistd.h>
-//#include <limits.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "syscalls.h"
 #include "error.h"
 #include "lib.h"
 #include "proc.h"
+#include "mm.h"
+#include "threads.h"
+
+/* fake /proc/self/stat since libgc depends on it
+ * we need to patch the stack bottom value
+ */
+#define STACK_SKIP (27)
+void fake_proc_self_stat(long fd)
+{
+	char buf[2048], *p=buf;
+	long filedes[2], n_read, i;
+
+	n_read = sys_read(fd, buf, sizeof(buf));
+	if (n_read < 0)
+		return;
+
+	if (sys_pipe(filedes) < 0)
+		die("fake_proc_self_stat(): sys_pipe()");
+
+	if (sys_dup2(filedes[0], fd) < 0)
+		die("fake_proc_self_stat(): sys_dup2()");
+
+	sys_close(filedes[0]);
+
+	for (i=0; i<STACK_SKIP; i++)
+		p = strchr(p, ' ')+1;
+
+	sys_write(filedes[1], buf, p-buf);
+	p = strchr(p, ' ')+1;
+	p = strchr(p, ' ')+1;
+	p = strchr(p, ' ');
+
+	thread_ctx_t *ctx = get_thread_ctx();
+
+	buf[0]='\0';
+	numcat(buf, stack_bottom);
+	strcat(buf, " ");
+	numcat(buf, ctx->user_esp);
+	strcat(buf, " ");
+	numcat(buf, ctx->user_eip);
+	sys_write(filedes[1], buf, strlen(buf));
+	sys_write(filedes[1], p, buf+n_read-p);
+
+	sys_close(filedes[1]);
+}
 
 /* simple /proc/self/maps parser: */
 

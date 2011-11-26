@@ -75,6 +75,12 @@ long syscall_intr(long call, long arg1, long arg2, long arg3,
 #define sys_access(a, b) \
 	syscall2(SYS_access, (long)(a), (long)(b))
 
+#define sys_dup2(a,b) \
+	syscall2(SYS_dup2, (long)(a), (long)(b))
+
+#define sys_pipe(a) \
+	syscall1(SYS_pipe, (long)(a))
+
 #define sys_close(a) \
 	syscall1(SYS_close, (long)(a))
 
