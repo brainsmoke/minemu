@@ -45,7 +45,8 @@ int load_binary(elf_prog_t *prog)
 		return load_script(prog);
 }
 
-static char *exec_argv[65536+10];
+static char *exec_argv[65536+64];
+static long argv_lock = 0;
 
 long user_execve(char *filename, char *argv[], char *envp[])
 {
@@ -63,9 +64,12 @@ long user_execve(char *filename, char *argv[], char *envp[])
 	if (ret)
 		return ret;
 
-	/* abuse our minemu stack as allocated memory, our scratch stack is too small
-	 * for exceptionally large argvs
+	/* from this point on we assume that the execve will succeed
+	 * any failures will result in a SIGKILL, just as the kernel
+	 * would generate after the point of no return.
 	 */
+
+	mutex_lock(&argv_lock); /* get exclusive access to the argv buffer */
 	exec_argv[0] = argv[0];
 	char maskbuf[17];
 	char **user_argv = option_args_setup(&exec_argv[1], filename, maskbuf);
