@@ -311,10 +311,6 @@ void user_rt_sigreturn(void)
 		.ss_flags = 0,
 		.ss_size = sizeof( local_ctx->sigwrap_stack )
 	};
-//static long printlock=0;
-//mutex_lock(&printlock);
-//	print_rt_sigframe(&frame);
-//mutex_unlock(&printlock);
 	load_rt_sigframe(&frame);
 }
 

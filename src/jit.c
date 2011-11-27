@@ -582,7 +582,7 @@ static void jit_translate(code_map_t *map, char *entry_addr)
 		}
 
 	jit_resize(map, chunk_base);
-//fd_printf(2, "%08x\n", jit_mem_size(map->jit_addr));
+
 	sys_mprotect(base, jit_mem_size(map->jit_addr)-base_off,
 	                   PROT_READ|PROT_EXEC);
 }

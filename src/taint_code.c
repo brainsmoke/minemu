@@ -22,7 +22,6 @@
 #include "taint_code.h"
 
 #include "error.h"
-//#include "opcodes.h"
 #include "jit_code.h"
 #include "threads.h"
 
