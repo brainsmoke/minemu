@@ -58,8 +58,10 @@ static unsigned long max(unsigned long a, unsigned long b) { return a>b ? a:b; }
 static long no_exec(long prot)
 {
 	int new_prot = prot & ~PROT_EXEC;
+
 	if (prot & PROT_EXEC)
 		new_prot |= PROT_READ;
+
 	return new_prot;
 }
 
@@ -76,7 +78,7 @@ static void shadow_mmap(unsigned long addr, size_t length, long prot, int fd, of
 	if (ret & PG_MASK)
 		die("shadow_m{,un}map(): %08x\n", ret);
 
-	if (prot & PROT_EXEC)
+	if ( (prot & PROT_EXEC) && !(prot & PROT_WRITE) )
 	{
 		struct kernel_stat64 s;
 		if ( (fd < 0) || (sys_fstat64(fd, &s) != 0) )
@@ -227,6 +229,9 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 	if ( !(ret & PG_MASK) )
 		shadow_mmap(ret, length, prot, fd, pgoffset);
 
+if ( (prot & PROT_WRITE) && (prot & PROT_EXEC) )
+	debug("Minemu warning: would-be RWX memory map: mmap(%08x, %u, %08x, %08x, %d, %u) = %08x", addr, length, prot, flags, fd, pgoffset, ret);
+
 	return ret;
 }
 
@@ -253,7 +258,7 @@ unsigned long user_mprotect(unsigned long addr, size_t length, long prot)
 
 	if ( !(ret & PG_MASK) )
 	{
-		if (prot & PROT_EXEC)
+		if ( (prot & PROT_EXEC) && !(prot & PROT_WRITE) )
 			add_code_region((char *)addr, PAGE_NEXT(length), 0, 0, 0, 0);
 		else
 			del_code_region((char *)addr, PAGE_NEXT(length));
