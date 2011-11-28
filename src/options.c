@@ -145,7 +145,10 @@ char **parse_options(char **argv)
 		else if ( strcmp(*argv, "-trusteddirs") == 0 )
 			set_trusted_dirs(*++argv);
 		else
-			die("unknown option: %s", *argv);
+		{
+			debug("unknown option: %s", *argv);
+			usage(arg0);
+		}
 
 		argv++;
 	}

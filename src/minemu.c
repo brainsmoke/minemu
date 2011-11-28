@@ -115,6 +115,12 @@ int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
 		}
 	}
 
+	if (ret < 0)
+	{
+		debug("Minemu: cannot run binary %s", argv[0]);
+		sys_exit(1);
+	}
+
 	/* hide minemu command line for pretty ps output */
 	copy_cmdline(orig_argv, prog.argv);
 	char *process_name = strrchr(prog.filename, '/');
@@ -126,9 +132,6 @@ int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
 	sys_prctl(PR_SET_NAME, process_name, 0,0,0);
 
 	stack_bottom = (unsigned long)prog.sp;
-
-	if (ret < 0)
-		die("unable to execute binary: %d", -ret);
 
 	set_aux(prog.auxv, AT_HWCAP, get_aux(prog.auxv, AT_HWCAP) & CPUID_FEATURE_INFO_EDX_MASK);
 	set_aux(prog.auxv, AT_SYSINFO_EHDR, vdso);
