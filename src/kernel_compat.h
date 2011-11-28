@@ -19,6 +19,11 @@
 #ifndef KERNEL_COMPAT_H
 #define KERNEL_COMPAT_H
 
+/* Declare our own definitions of structures that differ
+ * between libc and the kernel interface.  Since we do direct
+ * syscalls we need the kernel ABI definition.
+ */
+
 #define KERNEL_NSIG (64)
 typedef struct
 {

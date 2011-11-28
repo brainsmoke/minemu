@@ -90,8 +90,8 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 
 	if ( contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char*)sp) &&
 	    !contains(local_ctx->altstack.ss_sp, local_ctx->altstack.ss_size, (char*)(sp-size)) )
-		/* XXX this will segfault/terminate the program, just as the normal program would,
-		 * mirrors kernel code and it's simple, but it's dirty^2 doing it this way
+		/* This will segfault/terminate the program, just as the normal program would,
+		 * mirrors kernel code and it's simple
 		 */
 		return (void *) -1L;
 

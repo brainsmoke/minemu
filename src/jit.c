@@ -44,25 +44,45 @@ unsigned long min(unsigned long a, unsigned long b) { return a<b ? a:b; }
 
 /* jit code block layout:
  * (allocated in the jit code section of the address space)
+ * the layout is position independent, (currently, the generated code
+ * is not.)
  *
  * offset
  * -----------------------
- * 0x00                chunk header
- * sizeof(jit_chunk_t) jit code
- * hdr.tbl_off         translated instruction sizes
- *                     (a pair (orig size, jit size) of bytes per instruction)
- * hdr.chunk_len-2     terminating with ( 0, ... )
+ * 0x00                Chunk header
+ *
+ * sizeof(jit_chunk_t) JIT code
+ *
+ * hdr.lookup_off      Stage 1 lookup:
+ *                     (64 byte aligned) course grained lookup table for
+ *                     mapping original code addresses to jit code. For every
+ *                     256 byte 'frame' in the original code, there is a value
+ *                     pair with the jit code offset of the instruction at the
+ *                     start of this frame, and an index in the fine-grained
+ *                     instruction-per-instruction book-keeping table.
+ *                     
+ * hdr.tbl_off         Stage 2 lookup:
+ *                     translated instruction sizes starting with the
+ *                     instruction at hdr.addr. This is an array of byte-pairs
+ *                     (orig_size, jit_size) and can be used to calculate
+ *                     original-code-address -> jit-code-address mapppings
+ *                     and back.
+ *
+ *                     To accomodate for the fast lookup using the course
+ *                     grained lookup table, some entries look like
+ *                     (0, x). These entries tell the lookup code that the
+ *                     offset for the instuction at the start of the frame
+ *                     was actually x bytes before the start of the frame.
+ *
  * -----------------------
- * hdr.chunk_len       next chunk
+ * hdr.chunk_len       next chunk (64 byte aligned)
  * ....
  * -----------------------
- * map.jit_len         end
+ * map.jit_len         end.
+ *                     During jit compilation, this gets updated only at the
+ *                     very end, so that other threads, if they don't need new
+ *                     code, can continue running unhindered.
  *
- */
-
-/* We make sure that no fields in our jit code-structures use
- * absolute pointers into themselves. This way we can move pieces
- * of code more easily. (We only have to update the jump cache.)
  */
 
 typedef struct
@@ -251,17 +271,25 @@ static char *jit_chunk_lookup_addr(jit_chunk_t *hdr, char *addr)
 	if (!contains(hdr->addr, hdr->len, addr))
 		return NULL;
 
+	/* Stage 1 lookup */
 	jit_lookup_t *lookup = (jit_lookup_t *)((long)hdr+hdr->lookup_off);
 	jit_lookup_t *frame_entry = &lookup[ ((long)addr-(long)hdr->addr) >> FRAME_SHIFT ];
+
+	/* get the instruction-per-instruction size array start for this frame */
 	size_pair_t *sizes = (size_pair_t *)((long)hdr+frame_entry->tbl_off);
+
+	/* get the frame start offset, and the corresponding jit offset */
 	unsigned long s_off = ((long)addr-(long)hdr->addr) & ~(FRAME_SIZE-1),
 	              d_off = frame_entry->d_off,
 	              i;
 
+	/* Stage 2 lookup */
+
+	/* frame started in the middle of an instruction */
 	i=0;
 	if (sizes[i].orig == 0)
 	{
-		s_off -= sizes[i].jit;
+		s_off -= sizes[i].jit; /* go back to the start of the current instruction */
 		i++;
 	}
 
@@ -286,6 +314,7 @@ static char *jit_map_lookup_addr(code_map_t *map, char *addr)
 	if (map->jit_addr == NULL)
 		return NULL;
 
+	/* go through all chunks until we find a mapping */
 	while (off < map->jit_len)
 	{
 		jit_chunk_t *hdr = (jit_chunk_t *)&map->jit_addr[off];
@@ -324,6 +353,7 @@ static char *jit_chunk_rev_lookup_addr(jit_chunk_t *hdr, char *jit_addr, char **
 	jit_lookup_t *lookup = (jit_lookup_t *)((long)hdr+hdr->lookup_off);
 	unsigned long in_d_off = CHUNK_OFFSET(jit_addr), d_off, s_off = 0, i;
 
+	/* do binary search on the course grained mapping */
 	while (n_frames > 1)
 	{
 		mid = n_frames/2;
@@ -348,10 +378,11 @@ static char *jit_chunk_rev_lookup_addr(jit_chunk_t *hdr, char *jit_addr, char **
 
 	size_pair_t *sizes = (size_pair_t *)((long)hdr+lookup->tbl_off);
 
+	/* frame started in the middle of an instruction */
 	i=0;
 	if (sizes[i].orig == 0)
 	{
-		s_off -= sizes[i].jit;
+		s_off -= sizes[i].jit; /* move back to the start of said instruction */
 		i++;
 	}
 

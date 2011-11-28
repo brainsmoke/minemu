@@ -26,6 +26,11 @@ char *find_jmp_mapping(char *addr);
 void clear_jmp_cache(thread_ctx_t *ctx, char *addr, unsigned long len);
 
 #define HASH_INDEX(addr) ((unsigned long)(addr)&0xfffful)
+
+/* ( address + CACHE_MANGLE(addr) - 1 ) == 0
+ * so that we can use lea+jecxz to check for equivalence,
+ * leaving the CPU flags as they are.
+ */
 #define CACHE_MANGLE(addr) ((char*)(1-(unsigned long)(addr)))
 
 #endif /* JMP_CACHE_H */

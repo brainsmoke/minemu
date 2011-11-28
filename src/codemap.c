@@ -29,15 +29,18 @@
 #include "threads.h"
 
 #define MAX_CODEMAPS (32768)
+
+/* List of memory maps containing executable data, and their mapping
+ * to JIT code (which is allocated in a lazy manner.)
+ */
 static code_map_t codemaps[MAX_CODEMAPS];
 static unsigned n_codemaps = 0;
 static long codemap_lock=0;
 
 static void clear_code_map(char *addr, unsigned long len, char *jit_addr)
 {
-	jit_mem_free(jit_addr);
-	purge_caches(addr, len);
-	/* */
+	jit_mem_free(jit_addr); /* PROT_NONE all the things  */
+	purge_caches(addr, len); /* remove all cache mappings from each thread's caches */
 }
 
 static void del_code_map(unsigned int i)
@@ -134,7 +137,7 @@ void add_code_region(char *addr, unsigned long len, unsigned long long inode,
 
 void del_code_region(char *addr, unsigned long len)
 {
-	mutex_lock(&jit_lock);
+	mutex_lock(&jit_lock);     /* since we might throw away code */
 	mutex_lock(&codemap_lock);
 	int i = n_codemaps-1;
 

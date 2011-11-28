@@ -22,13 +22,11 @@
 #include <string.h>
 
 #include "load_script.h"
-
-
 #include "error.h"
 #include "syscalls.h"
 #include "lib.h"
 
-/* relocate the stack */
+/* shebang excutable loader */
 
 static int try_load_script(elf_prog_t *prog, long bailout)
 {

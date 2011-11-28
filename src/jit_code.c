@@ -417,6 +417,28 @@ void imm_to(char *dest, long imm)
 
 int gen_code(char *dst, char *fmt, ...)
 {
+	/* format string parser for generating binary data
+	 * usage:
+	 *     [0-9A-F]{2}          generate byte from hex data
+	 *
+	 *     L                    generate little endian dword from
+	 *                          arg[n]
+	 *
+	 *     S                    generate little endian word from
+	 *                          arg[n]
+	 *
+	 *     .                    generate byte from arg[n]
+	 *
+	 *     ?                    generate byte from arg[n], but only if arg[n]
+	 *                          is nonzero.
+	 *
+	 *     $                    copy (int)arg[n+1] bytes from (char*)arg[n]
+	 *
+	 *     &                    like %n in printf
+	 *
+	 *     +                    add (char)arg[n] to previously written byte
+	 *
+	 */
 	va_list ap;
 	va_start(ap, fmt);
 	int i,j=0, c, outc=1;
@@ -512,6 +534,7 @@ static int generate_linux_sysenter(char *dest, trans_t *trans)
 		"66 0f ef ed"    /* clear ijmp taint register (pxor %xmm5,%xmm5 */
 	);
 
+	/* jump into runtime code */
 	len += jump_to(&dest[len], (void *)(long)linux_sysenter_emu);
 	*trans = (trans_t){ .len=len };
 	return len;
@@ -519,6 +542,7 @@ static int generate_linux_sysenter(char *dest, trans_t *trans)
 
 static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 {
+	/* save origin, original address */
 	int len = gen_code(
 		dest,
 
@@ -528,6 +552,7 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 		offsetof(thread_ctx_t, user_eip), &instr->addr[instr->len]
 	);
 
+	/* jump into runtime code */
 	len += jump_to(&dest[len], (void *)(long)int80_emu);
 	*trans = (trans_t){ .len=len };
 	return len;
@@ -535,6 +560,7 @@ static int generate_int80(char *dest, instr_t *instr, trans_t *trans)
 
 static int generate_cpuid(char *dest, instr_t *instr, trans_t *trans)
 {
+	/* save origin, jit_address */
 	int retaddr_index;
 	int len = gen_code(
 		dest,
@@ -544,6 +570,7 @@ static int generate_cpuid(char *dest, instr_t *instr, trans_t *trans)
 		offsetof(thread_ctx_t, jit_eip), &retaddr_index
 	);
 
+	/* jump into runtime code */
 	len += jump_to(&dest[len], (void *)(long)cpuid_emu);
 	*trans = (trans_t){ .len=len };
 	imm_to(&dest[retaddr_index], (long)dest+trans->len);

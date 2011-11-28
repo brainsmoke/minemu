@@ -76,7 +76,8 @@ jmp taint_fault
 taint_ok:
 movl %fs: (, %edx, 8), %ecx         # load mangled cached address
 movl %fs:4(, %edx, 8), %edx
-lea (%ecx,%eax,1), %ecx             # %ecx is 1 if there is a cache hit
+lea (%ecx,%eax,1), %ecx             # %ecx = addr + CACHE_MANGLE(cached_addr)
+                                    # %ecx is 1 if there is a cache hit
 movl %edx, %fs:CTX__JIT_EIP
 loop cache_lookup                   # branch taken on cache miss
 
@@ -86,7 +87,18 @@ jit_return: # thread_ctx->jit_eip contains jump address
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
-jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
+jmp *%fs:offset__jit_eip_HACK   # The Makefile changes this into %fs:offset__jit_eip
+                                # in the normal code. But the code in this file is
+                                # included twice in the binary. The second copy is
+                                # for finishing an emulated instruction when a signal
+                                # comes in. In this copy, this symbol gets changed
+                                # into %fs:offset__jit_fragment_exit_addr. If the
+                                # program counter is within this object file when a
+                                # signal comes in, the program counter gets
+                                # 'transplanted' into the other code and instead of
+                                # jumping back to jit code, we jump back into the
+                                # signal handler wrapper.
+                                    
 #
 # END FAST PATH
 #
@@ -100,7 +112,7 @@ movzwl %dx, %eax                  # HASH_INDEX[addr]
 cache_lookup_loop:
 inc %ax
 mov %fs:(, %eax, 8), %ecx
-lea -1(%ecx,%edx,1), %ecx
+lea -1(%ecx,%edx,1), %ecx    # %ecx = addr + CACHE_MANGLE(cached_addr)-1
 jecxz,pt cache_hit
 testl $-1, %fs:(, %eax, 8)   # jmp_cache.addr[HASH_INDEX[addr]] == 0
 jz cache_miss
@@ -130,7 +142,7 @@ andl $(CPUID_FEATURE_INFO_EDX_MASK), %edx
 xchg %eax, %fs:CTX__FLAGS_TMP
 sahf
 xchg %eax, %fs:CTX__FLAGS_TMP
-jmp *%fs:offset__jit_eip_HACK       #  TODO XXX TODO Comment on relocated code+symbol thing in Makefile
+jmp *%fs:offset__jit_eip_HACK                 # see comment above :-)
 
 .global runtime_cache_resolution_end
 runtime_cache_resolution_end:

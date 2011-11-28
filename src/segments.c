@@ -49,9 +49,11 @@ void init_tls(void *base_addr, unsigned long size)
 	set_fs_segment(TLS_SEGMENT);
 }
 
+/* The segment shield that makes emulated code unable to touch emulator memory
+ */
 void init_shield(unsigned long size)
 {
 	create_segment(SHIELD_GDT_ENTRY, 0x00000000, size);
 	data_segment = 0;
-	__asm__ __volatile__ ("mov %%ds, data_segment"::);
+	__asm__ __volatile__ ("mov %%ds, data_segment"::); /* save original data segment */
 }
