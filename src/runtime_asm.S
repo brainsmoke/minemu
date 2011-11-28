@@ -2,6 +2,7 @@
 # This file is part of minemu
 #
 # Copyright 2010-2011 Erik Bosman <erik@minemu.org>
+# Copyright 2011 Vrije Universiteit Amsterdam
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
