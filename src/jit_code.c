@@ -125,7 +125,7 @@ enum
 	TAINT_BYTE_COPY_OFFSET_TO_AL,
 };
 
-static const char segment_prefix_mapping[] =
+static const unsigned char segment_prefix_mapping[] =
 {
 	[TAINT_COPY_MEM_TO_REG] = TAINT_ERASE_REG,
 	[TAINT_BYTE_COPY_MEM_TO_REG] = TAINT_BYTE_ERASE_REG,
