@@ -216,7 +216,10 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
                          int flags, int fd, off_t pgoffset)
 {
 	if ( bad_range(addr, length) )
+	{
+		debug("Minemu warning: 'bad range' memory map: %08x-%08x", addr, addr+length);
 		return -EFAULT;
+	}
 
 	/* shadow_mremap() might temporarily leave holes in shadow memory
 	 * make sure we won't get this memory.
@@ -229,8 +232,10 @@ unsigned long user_mmap2(unsigned long addr, size_t length, int prot,
 	if ( !(ret & PG_MASK) )
 		shadow_mmap(ret, length, prot, fd, pgoffset);
 
-if ( (prot & PROT_WRITE) && (prot & PROT_EXEC) )
-	debug("Minemu warning: would-be RWX memory map: mmap(%08x, %u, %08x, %08x, %d, %u) = %08x", addr, length, prot, flags, fd, pgoffset, ret);
+	if ( (prot & PROT_WRITE) && (prot & PROT_EXEC) )
+		debug("Minemu warning: RWX memory map: "
+		      "mmap(%08x, %u, %08x, %08x, %d, %u) = %08x",
+		      addr, length, prot, flags, fd, pgoffset, ret);
 
 	return ret;
 }
