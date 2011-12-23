@@ -23,7 +23,6 @@
 .type jit_fragment_run, @function
 jit_fragment_run:
 incl %fs:CTX__JIT_FRAGMENT_RUNNING
-movl $0, %fs:CTX__JIT_FRAGMENT_RESTARTSYS
 movl  4(%esp), %eax                  # (struct sigcontext *)%eax
 pusha
 pushf

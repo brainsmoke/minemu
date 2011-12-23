@@ -208,6 +208,7 @@ void finish_instruction(struct sigcontext *context)
 	char *orig_eip, *jit_op_start;
 	long jit_op_len;
 
+	local_ctx->jit_fragment_restartsys = 0;
 	unprotect_ctx();
 
 	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
