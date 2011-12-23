@@ -207,59 +207,59 @@ char *finish_instruction(struct sigcontext *context)
 {
 	thread_ctx_t *local_ctx = get_thread_ctx();
 	char *orig_eip, *jit_op_start;
-	long jit_op_len;
+	long jit_op_len, i;
 
 	local_ctx->jit_fragment_restartsys = 0;
 
-	unprotect_ctx();
-
-	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
+	for (i=0; i<3; i++) /* we may need 2 passes due to hooks */
 	{
-		if ( (char *)context->eip == jit_op_start ) /* we don't have to do anything */
+		orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
+
+		if ( orig_eip && (char *)context->eip == jit_op_start )
 		{
-			protect_ctx();
-			return orig_eip; /* set return instruction pointer to user eip */
+			if (local_ctx->jit_fragment_restartsys)
+				orig_eip -= 2;
+
+			return orig_eip;
 		}
 
-		/* jit the jit! */
-		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
+		unprotect_ctx();
+
+		if ( orig_eip )
+			/* jit the jit! */
+			context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
+
+		else if ( between(syscall_intr_critical_start,
+		                  syscall_intr_critical_end, (char *)context->eip) )
+			/* do not go through with a syscall in progress */
+			context->eip = (long)syscall_intr_critical_start;
+
+		else if ( between(runtime_cache_resolution_start,
+		                  runtime_cache_resolution_end, (char *)context->eip) )
+			/* instead of jumping directly to the resolved address, return here */
+			context->eip += reloc_runtime_cache_resolution_start-runtime_cache_resolution_start;
+
+		local_ctx->runtime_ijmp_addr = reloc_runtime_ijmp;
+		local_ctx->jit_return_addr = reloc_jit_return;
+
+		protect_ctx();
+		jit_fragment_run(context);
+		unprotect_ctx();
+
+		local_ctx->runtime_ijmp_addr = runtime_ijmp;
+		local_ctx->jit_return_addr = jit_return;
+
+		protect_ctx();
+
+		if (context->fpstate) /* very likely :-) */
+		{
+			get_xmm5((unsigned char *)&context->fpstate->_xmm[5]);
+			get_xmm6((unsigned char *)&context->fpstate->_xmm[6]);
+			get_xmm7((unsigned char *)&context->fpstate->_xmm[7]);
+		}
 	}
-	else if ( between(syscall_intr_critical_start, syscall_intr_critical_end, (char *)context->eip) )
-	{
-		context->eip = (long)syscall_intr_critical_start;
-	}
-	else if ( between(runtime_cache_resolution_start, runtime_cache_resolution_end, (char *)context->eip) )
-	{
-		context->eip += reloc_runtime_cache_resolution_start-runtime_cache_resolution_start;
-	}
 
-	local_ctx->runtime_ijmp_addr = reloc_runtime_ijmp;
-	local_ctx->jit_return_addr = reloc_jit_return;
-
-	protect_ctx();
-	jit_fragment_run(context);
-	unprotect_ctx();
-
-	local_ctx->runtime_ijmp_addr = runtime_ijmp;
-	local_ctx->jit_return_addr = jit_return;
-
-	protect_ctx();
-
-	if (context->fpstate) /* very likely :-) */
-	{
-		get_xmm5((unsigned char *)&context->fpstate->_xmm[5]);
-		get_xmm6((unsigned char *)&context->fpstate->_xmm[6]);
-		get_xmm7((unsigned char *)&context->fpstate->_xmm[7]);
-	}
-
-	orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len);
-	if ( (char *)context->eip != jit_op_start )
-		die("instruction pointer (%x) not at opcode start after jit_fragment_run()", context->eip);
-
-	if (local_ctx->jit_fragment_restartsys)
-		orig_eip -= 2;
-
-	return orig_eip;
+	die("instruction pointer (%x) not at opcode start after jit_fragment_run()", orig_eip);
+	return NULL;
 }
-
 
