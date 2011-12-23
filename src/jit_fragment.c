@@ -201,23 +201,26 @@ char *jit_fragment_run(struct sigcontext *context);
 
 /* INTERCAL's COME FROM is for wimps :-)
  *
+ * The return value is the original code address after the instruction finishes.
  */
-void finish_instruction(struct sigcontext *context)
+char *finish_instruction(struct sigcontext *context)
 {
 	thread_ctx_t *local_ctx = get_thread_ctx();
 	char *orig_eip, *jit_op_start;
 	long jit_op_len;
 
 	local_ctx->jit_fragment_restartsys = 0;
+
 	unprotect_ctx();
 
 	if ( (orig_eip = jit_rev_lookup_addr((char *)context->eip, &jit_op_start, &jit_op_len)) )
 	{
 		if ( (char *)context->eip == jit_op_start ) /* we don't have to do anything */
 		{
-			context->eip = (long)orig_eip; /* set return instruction pointer to user eip */
-			return;
+			protect_ctx();
+			return orig_eip; /* set return instruction pointer to user eip */
 		}
+
 		/* jit the jit! */
 		context->eip = (long)jit_fragment(jit_op_start, jit_op_len, (char *)context->eip);
 	}
@@ -253,10 +256,10 @@ void finish_instruction(struct sigcontext *context)
 	if ( (char *)context->eip != jit_op_start )
 		die("instruction pointer (%x) not at opcode start after jit_fragment_run()", context->eip);
 
-	context->eip = (long)orig_eip;
-
 	if (local_ctx->jit_fragment_restartsys)
-		context->eip -= 2;
+		orig_eip -= 2;
+
+	return orig_eip;
 }
 
 

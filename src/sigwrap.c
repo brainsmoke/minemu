@@ -232,7 +232,8 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 
 	dump_on_error(sig, context);
 
-	finish_instruction(context);
+	/* original code address */
+	context->eip = (long)finish_instruction(context);
 
 	/* Most evil hack ever! We 'deliver' the user's signal by modifying our own sigframe
 	 * to match the user process' state at signal delivery, and call sigreturn.

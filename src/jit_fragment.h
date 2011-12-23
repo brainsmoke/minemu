@@ -23,6 +23,7 @@
 
 #include "opcodes.h"
 
-void finish_instruction(struct sigcontext *context);
+/* returns the original code address after the instruction finished. */
+char *finish_instruction(struct sigcontext *context);
 
 #endif /* JIT_FRAGMENT_H */
