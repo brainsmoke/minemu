@@ -59,6 +59,7 @@ void jit_return(void) { die("calling placeholder"); }
 void jit_fragment_exit(void) { die("calling placeholder"); }
 void cpuid_emu(void) { die("calling placeholder"); }
 void clear_jmp_cache(void) { die("calling placeholder"); }
+void hook_stub(void) { die("calling placeholder"); }
 
 void altstack_setup(void){}
 

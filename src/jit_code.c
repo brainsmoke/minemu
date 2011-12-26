@@ -526,6 +526,25 @@ int jump_to(char *dest, char *jmp_addr)
 	return 5;
 }
 
+int generate_hook(char *dest, hook_func_t func)
+{
+	int imm_index;
+	int len = gen_code(
+		dest,
+
+		"64 C7 05 L L"               /* movl func, hook */
+		"64 C7 05 L & DEADBEEF",     /* movl &dest[len], jit_eip */
+
+		offsetof(thread_ctx_t, hook_func), func,
+		offsetof(thread_ctx_t, jit_eip), &imm_index
+	);
+
+	/* jump into runtime code */
+	len += jump_to(&dest[len], (void *)(long)hook_stub);
+	imm_to(&dest[imm_index], (long)dest+len);
+	return len;
+}
+
 static int generate_linux_sysenter(char *dest, trans_t *trans)
 {
 	int len = gen_code(

@@ -324,12 +324,33 @@ unsigned long hexread(const char *s)
 		if ( (unsigned int)(s[i]-'0') < 10 )
 			n |= s[i]-0x30;
 		else if ( (unsigned int)((s[i]&~0x20)-'A') < 6 )
-			n |= (s[i]&~0x20)-'A';
+			n |= (s[i]&~0x20)-'A'+10;
 		else
 			break;
 
 		n <<= 4;
 	}
+
+	return n;
+}
+
+unsigned long long strtohexull(char *s, char **endptr)
+{
+	unsigned long long n=0UL;
+	int i;
+
+	for(i=0 ;; i++)
+	{
+		if ( (unsigned int)(s[i]-'0') < 10 )
+			n = (n<<4) | (s[i]-0x30);
+		else if ( (unsigned int)((s[i]&~0x20)-'A') < 6 )
+			n = (n<<4) | ((s[i]&~0x20)-'A'+10);
+		else
+			break;
+
+	}
+	if (endptr)
+		*endptr = s+i;
 
 	return n;
 }

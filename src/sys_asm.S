@@ -104,3 +104,45 @@ movl %fs:CTX__USER_EIP, %eax
 SHIELDS_UP
 jmp *%fs:CTX__RUNTIME_IJMP_ADDR
 
+.global hook_stub
+.type hook_stub, @function
+hook_stub:
+SHIELDS_DOWN
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
+pushf
+push %edi
+push %esi
+push %ebp
+push %fs:CTX__USER_ESP
+push %ebx
+push %edx
+push %ecx
+push %eax
+push %esp           # *(long)regs
+call *%fs:CTX__HOOK_FUNC
+test %eax, %eax     # non-zero -> abort
+lea 4(%esp), %esp
+pop %eax
+pop %ecx
+pop %edx
+pop %ebx
+lea 4(%esp), %esp
+pop %ebp
+pop %esi
+pop %edi
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %eax, %xmm3
+pinsrd $0, %edx, %xmm5
+jnz hook_fault
+popf
+mov %fs:CTX__USER_ESP, %esp
+SHIELDS_UP
+jmp *%fs:CTX__JIT_RETURN_ADDR
+
+hook_fault:
+popf
+mov %esp, %fs:CTX__SCRATCH_STACK_TOP
+SHIELDS_UP
+jmp taint_fault
+

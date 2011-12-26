@@ -24,6 +24,8 @@
 .global runtime_cache_resolution_start
 runtime_cache_resolution_start:
 
+.global taint_fault
+.type taint_fault, @function
 taint_fault:
 SHIELDS_DOWN
 movl %ecx, %fs:CTX__IJMP_TAINT

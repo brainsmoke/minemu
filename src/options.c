@@ -82,6 +82,8 @@ void usage(char *arg0)
 	"                      locations (implies -trackfiles.) default dirs:\n"
 	"                      '%s'\n"
 	"\n"
+	"  -hooks HOOKLIST     Use specialised hooks XXX TODO XXX\n"
+	"\n"
 	"  -help               Show this message and exit.\n"
 	"  -version            Print version number and exit.\n",
 	arg0,
@@ -144,6 +146,11 @@ char **parse_options(char **argv)
 			trusted_dirs = trusted_dirs_default;
 		else if ( strcmp(*argv, "-trusteddirs") == 0 )
 			set_trusted_dirs(*++argv);
+		else if ( strcmp(*argv, "-hooks") == 0 )
+		{
+			if (parse_hooklist(*++argv) < 0)
+				usage(arg0);
+		}
 		else
 		{
 			debug("unknown option: %s", *argv);
@@ -233,6 +240,13 @@ char **option_args_setup(char **argv, char *filename, char *sigset_buf)
 		i++;
 		argv[i] = trusted_dirs;
 		i++;
+	}
+
+	if (hooklist)
+	{
+		argv[i  ] = "-hooks";
+		argv[i+1] = hooklist;
+		i += 2;
 	}
 
 	argv[i] = "--";

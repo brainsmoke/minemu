@@ -93,6 +93,7 @@ src/runtime_asm.o: %.o: %.o-tmp
 
 src/reloc_runtime_asm.o: %.o: %.o-tmp
 	$(OBJCOPY) --redefine-sym offset__jit_eip_HACK=offset__jit_fragment_exit_addr \
+	           --redefine-sym taint_fault=reloc_taint_fault \
 	           --redefine-sym runtime_cache_resolution_start=reloc_runtime_cache_resolution_start \
 	           --redefine-sym runtime_cache_resolution_end=reloc_runtime_cache_resolution_end \
 	           --redefine-sym runtime_ret=reloc_runtime_ret \

@@ -36,6 +36,7 @@ int main(void)
 	printf("#define CTX__USER_ESP (0x%lx)\n", offsetof(thread_ctx_t, user_esp));
 	printf("#define CTX__USER_EIP (0x%lx)\n", offsetof(thread_ctx_t, user_eip));
 	printf("#define CTX__JIT_EIP (0x%lx)\n", offsetof(thread_ctx_t, jit_eip));
+	printf("#define CTX__HOOK_FUNC (0x%lx)\n", offsetof(thread_ctx_t, hook_func));
 	printf("#define CTX__JIT_FRAGMENT_RESTARTSYS (0x%lx)\n", offsetof(thread_ctx_t, jit_fragment_restartsys));
 	printf("#define CTX__JIT_FRAGMENT_RUNNING (0x%lx)\n", offsetof(thread_ctx_t, jit_fragment_running));
 	printf("#define CTX__JIT_FRAGMENT_ENTRY (0x%lx)\n", offsetof(thread_ctx_t, jit_fragment_entry));

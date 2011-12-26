@@ -36,6 +36,7 @@
 #include "syscalls.h"
 #include "jit_cache.h"
 #include "threads.h"
+#include "hooks.h"
 
 long jit_lock = 0;
 
@@ -453,12 +454,27 @@ static void jit_chunk_fill_mapping(code_map_t *map, jit_chunk_t *hdr,
 	}
 }
 
+#define TRANSLATED(m) ((unsigned long)(m+0x1000)>0x1000)
+#define HOOK        ((unsigned long)-1)
+
 static void jit_fill_mapping(code_map_t *map, unsigned long *mapping,
                                               unsigned long mapsize)
 {
-	unsigned long off = 0;
 	memset(mapping, 0, mapsize*sizeof(char *));
 
+	int i;
+	hook_t *h=hook_table;
+	unsigned long long base = (unsigned long long)map->pgoffset*0x1000;
+
+	for (i=0; i<n_hooks; i++, h++)
+		if ( (h->inode  == map->inode) &&
+		     (h->mtime  == map->mtime) &&
+		     (h->dev    == map->dev)   &&
+		     (h->offset >= base)       &&
+		     (h->offset <  base+map->len) )
+			mapping[h->offset - map->pgoffset*0x1000] = HOOK;
+
+	unsigned long off = 0;
 	while (off < map->jit_len)
 	{
 		jit_chunk_t *hdr = (jit_chunk_t *)&map->jit_addr[off];
@@ -466,10 +482,6 @@ static void jit_fill_mapping(code_map_t *map, unsigned long *mapping,
 		off += hdr->chunk_len;
 	}
 }
-
-#define TRANSLATED(m) ((unsigned long)(m+0x1000)>0x1000)
-/*#define UNTRANSLATED  ((unsigned long) 0)*/
-#define NEEDED        ((unsigned long)-1)
 
 static int try_resolve_jmp(code_map_t *map, char *jmp_addr, char *imm_addr,
                            unsigned long *mapping)
@@ -497,7 +509,7 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr, unsig
 	              s_off = entry_addr-addr,
 	              d_off = chunk_base+sizeof(jit_chunk_t),
 	              max_len = jit_mem_size(jit_addr);
-	int stop = 0;
+	int stop = 0, is_hook, hook_size=0;
 
 	instr_t instr;
 	trans_t trans;
@@ -509,7 +521,13 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr, unsig
 		if ( d_off+TRANSLATED_MAX_SIZE > max_len )
 			die("out of JIT memory");
 
+		is_hook = (mapping[s_off] == HOOK);
+
 		mapping[s_off] = d_off;
+
+		if (is_hook)
+			d_off += hook_size = generate_hook(&jit_addr[d_off], get_hook_func(map, s_off));
+
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
 		translate_op(&jit_addr[d_off], &instr, &trans, map->addr, map->len);
 
@@ -524,16 +542,13 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr, unsig
 
 			if (TRANSLATED(mapping[trans.jmp_addr-map->addr]))
 				die("minemu bug");
-			/* mark address as destination of jump
-			 * to know whether to stop translation of code after
-			 * unconditional jumps & returns
-			 */
-			mapping[trans.jmp_addr-map->addr] = NEEDED;
 		}
 
 		d_off += trans.len;
 		s_off += instr.len;
 		sizes[n_ops] = (size_pair_t) { instr.len, trans.len };
+		if (is_hook)
+			sizes[n_ops].jit += hook_size;
 
 		if ( TRANSLATED(mapping[s_off]) )
 		{

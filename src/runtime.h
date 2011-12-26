@@ -22,6 +22,8 @@
 void emu_start(void *eip, long *esp);
 void state_restore(void);
 
+void hook_stub(void);
+
 long runtime_ijmp(void);
 long runtime_ret_cleanup(void);
 long runtime_ret(void);

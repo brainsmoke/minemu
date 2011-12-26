@@ -76,12 +76,13 @@ struct thread_ctx_s
 	sighandler_ctx_t *sighandler;             /*   bugs   */
 	stack_t altstack;                         /*    :-)   */
 
-	long scratch_stack[0x2400 - 10 - sizeof(kernel_sigset_t)/sizeof(long)];
+	long scratch_stack[0x2400 - 11 - sizeof(kernel_sigset_t)/sizeof(long)];
 
 /* this */
 	long user_esp; /* scratch_stack_top points here */
 	long user_eip;
 	long jit_eip;
+	long hook_func;
 
 	long jit_fragment_restartsys;
 	long jit_fragment_running;

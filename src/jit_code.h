@@ -24,6 +24,7 @@
 
 #include "lib.h"
 #include "opcodes.h"
+#include "hooks.h"
 
 enum
 {
@@ -52,6 +53,8 @@ int generate_ill(char *dest, trans_t *trans);
 
 void translate_op(char *dest, instr_t *instr, trans_t *trans,
                   char *map, unsigned long map_len);
+
+int generate_hook(char *dest, hook_func_t func);
 
 int generate_jump(char *jit_addr, char *dest, trans_t *trans, char *map, unsigned long map_len);
 int generate_stub(char *jit_addr, char *jmp_addr, char *imm_addr);
