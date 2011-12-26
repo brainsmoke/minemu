@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LIBC=/lib/i386-linux-gnu/i686/cmov/libc-2.13.so
+LIBC="$(cat /proc/self/maps |grep libc|head -n 1|awk '{print $6}')"
 
 get_file_id()
 {
@@ -21,4 +21,3 @@ resolve_hook()
 }
 
 resolve_hook 'fmt_check' "$LIBC" '_IO_vfprintf@@.*'
-resolve_hook 'fmt_check' test/testcases/fork 'main'
