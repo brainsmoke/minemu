@@ -43,12 +43,8 @@ const char *regs_desc[] =
 	"[   esp   ] [   ebp   ]  [   esi   ] [   edi   ]",
 };
 
-
-void hexdump_taint(int fd, const void *data, ssize_t len,
-                           const unsigned char *taint, int offset, int ascii,
-                           const char *description[])
+static void fill_colors(const char *colors[])
 {
-	const char *colors[256];
 	int i;
 	char *red    = "\033[1;31m",
 	     *blue   = "\033[1;36m",
@@ -67,7 +63,21 @@ void hexdump_taint(int fd, const void *data, ssize_t len,
 	colors[TAINT_FILE]           = yellow;
 	colors[TAINT_ENV|TAINT_FILE] = white;
 	colors[TAINT_SOCKET]         = red;
+}
 
+void stringdump_taint(int fd, const char *s, ssize_t len, const unsigned char *taint)
+{
+	const char *colors[256];
+	fill_colors(colors);
+	stringdump(fd, s, len, taint, colors);
+}
+
+void hexdump_taint(int fd, const void *data, ssize_t len,
+                           const unsigned char *taint, int offset, int ascii,
+                           const char *description[])
+{
+	const char *colors[256];
+	fill_colors(colors);
 	hexdump(fd, data, len, offset, ascii, description, taint, colors);
 }
 
@@ -145,6 +155,20 @@ static char *get_taint_dump_filename(char *buf)
 	numcat(buf, sys_gettid());
 	strcat(buf, ".dump");
 	return buf;
+}
+
+int open_taint_log(void)
+{
+    if ( taint_dump_dir == NULL )
+        return -1;
+
+	char buf[PATH_MAX+1+64];
+	buf[0] = '\x0';
+	strcat(buf, taint_dump_dir);
+	strcat(buf, "/taint_log_");
+	numcat(buf, sys_gettid());
+	strcat(buf, ".dump");
+	return sys_open(buf, O_RDWR|O_CREAT|O_APPEND, 0600);
 }
 
 void do_taint_dump(long *regs)

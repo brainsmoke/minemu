@@ -25,6 +25,26 @@ static inline long min(long a, long b) { return a<b ? a:b; }
 
 static const char *desc_color = "\033[0;34m", *reset = "\033[m";
 
+
+void stringdump(int fd, const char *s, ssize_t len,
+                const unsigned char *indices,
+                const char *colors[])
+{
+	int i;
+	int cur=-1;
+
+	for(i=0; i<len;i++)
+	{
+		if (cur != indices[i])
+		{
+			cur=indices[i];
+			fd_printf(fd, "%s", colors[cur]);
+		}
+		fd_printf(fd, "%c", isprint(s[i]) ? s[i] : '.');
+	}
+	fd_printf(fd, "%s", reset);
+}
+
 /* Prints up to 16 characters in hexdump style with optional colors
  * if `ascii' is non-zero, an additional ascii representation is printed
  */

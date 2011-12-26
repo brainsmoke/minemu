@@ -47,4 +47,8 @@ void hexdump_diff3(int fd, const void *old, ssize_t old_len,
                            int grane, int ascii, int offset,
                            const char *description[]);
 
+void stringdump(int fd, const char *s, ssize_t len,
+                const unsigned char *indices,
+                const char *colors[]);
+
 #endif /* HEXDUMP_H */

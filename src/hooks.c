@@ -24,6 +24,8 @@
 #include "lib.h"
 #include "mm.h"
 #include "error.h"
+#include "taint_dump.h"
+#include "syscalls.h"
 
 static struct
 {
@@ -174,7 +176,22 @@ int fmt_check(long *regs)
 {
 	long *esp = (long *)regs[4];
 	char *fmt = (char *)esp[2];
-	hexdump_taint(2, fmt, strlen(fmt), fmt+TAINT_OFFSET, 1, 1, NULL);
+	int fmtlen = strlen(fmt), i, taint=0;
+	for (i=0; i<fmtlen; i++)
+		taint |= fmt[TAINT_OFFSET+i];
+
+	if (!taint)
+		return 0;
+
+	int fd = open_taint_log();
+
+	if (fd < 0)
+		return 0;
+
+	fd_printf(fd, "Warning: tainted format string: ");
+	stringdump_taint(fd, fmt, fmtlen, (const unsigned char *)fmt+TAINT_OFFSET);
+	fd_printf(fd, "\n");
+	sys_close(fd);
 	return 0;
 }
 
