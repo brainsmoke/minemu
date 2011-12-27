@@ -171,6 +171,14 @@ int open_taint_log(void)
 	return sys_open(buf, O_RDWR|O_CREAT|O_APPEND, 0600);
 }
 
+void do_regs_dump(int fd, long *regs)
+{
+	unsigned char regs_taint[32];
+	get_xmm6(&regs_taint[0]);
+	get_xmm7(&regs_taint[16]);
+	hexdump_taint(fd, regs, 32, regs_taint, 0, 1, regs_desc);
+}
+
 void do_taint_dump(long *regs)
 {
 	if ( taint_dump_dir == NULL )
@@ -187,10 +195,7 @@ void do_taint_dump(long *regs)
 
 	fd_printf(fd, "registers:\n");
 
-	unsigned char regs_taint[32];
-	get_xmm6(&regs_taint[0]);
-	get_xmm7(&regs_taint[16]);
-	hexdump_taint(fd, regs, 32, regs_taint, 0, 1, regs_desc);
+	do_regs_dump(fd, regs);
 
 	map_file_t f;
 	map_entry_t e;

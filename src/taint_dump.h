@@ -35,6 +35,8 @@ void hexdump_taint(int fd, const void *data, ssize_t len,
 
 void dump_map(int fd, char *addr, unsigned long len);
 
+void do_regs_dump(int fd, long *regs);
+
 void do_taint_dump(long *regs);
 
 int open_taint_log(void);

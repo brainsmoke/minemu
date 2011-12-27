@@ -36,7 +36,9 @@ static struct
 {
 	{ .func = fmt_check, .name = "fmt_check:" },
 	{ .func = ping, .name = "ping:" },
+	{ .func = dump_regs, .name = "dump_regs:" },
 	{ .func = fault, .name = "fault:" },
+	{ .func = sqli_check, .name = "sqli_check:" },
 	{ .func = NULL },
 };
 
@@ -170,26 +172,43 @@ hook_func_t get_hook_func(code_map_t *map, unsigned long offset)
 	return NULL;
 }
 
-int fmt_check(long *regs)
+void dump_string_if_tainted(char *msg, char *s, int len)
 {
-	long *esp = (long *)regs[4];
-	char *fmt = (char *)esp[2];
-	int fmtlen = strlen(fmt), i, taint=0;
-	for (i=0; i<fmtlen; i++)
-		taint |= fmt[TAINT_OFFSET+i];
+	int i, taint=0;
+	for (i=0; i<len; i++)
+		taint |= s[TAINT_OFFSET+i];
 
 	if (!taint)
-		return 0;
+		return;
 
 	int fd = open_taint_log();
 
 	if (fd < 0)
-		return 0;
+		return;
 
-	fd_printf(fd, "Warning: tainted format string: ");
-	stringdump_taint(fd, fmt, fmtlen, (const unsigned char *)fmt+TAINT_OFFSET);
+	fd_printf(fd, "Warning: %s: ", msg);
+	stringdump_taint(fd, s, len, (const unsigned char *)s+TAINT_OFFSET);
 	fd_printf(fd, "\n");
 	sys_close(fd);
+}
+
+int fmt_check(long *regs)
+{
+	long *esp = (long *)regs[4];
+	char *fmt = (char *)esp[2];
+	int len = strlen(fmt);
+	/* TODO: parse format string for errors */
+	dump_string_if_tainted("tainted format string", fmt, len);
+	return 0;
+}
+
+int sqli_check(long *regs)
+{
+	long *esp = (long *)regs[4];
+	char *query = (char *)esp[2];
+	char *len = (char *)esp[3];
+	/* TODO: parse string for sqli's */
+	dump_string_if_tainted("tainted sql query", query, len);
 	return 0;
 }
 
@@ -204,3 +223,9 @@ int fault(long *regs)
 	return -1;
 }
 
+int dump_regs(long *regs)
+{
+	do_regs_dump(2, regs);
+	debug("");
+	return 0;
+}

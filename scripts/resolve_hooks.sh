@@ -21,3 +21,7 @@ resolve_hook()
 }
 
 resolve_hook 'fmt_check' "$LIBC" '_IO_vfprintf@@.*'
+resolve_hook 'fmt_check' "$LIBC" ' printf@@.*'
+
+# mysql_stmt_prepare / mysql_real_query
+
