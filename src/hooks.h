@@ -49,5 +49,7 @@ hook_func_t get_hook_func(code_map_t *map, unsigned long offset);
 
 
 int fmt_check(long *regs);
+int ping(long *regs);
+int fault(long *regs);
 
 #endif /* HOOKS_H */

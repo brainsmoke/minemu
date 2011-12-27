@@ -526,16 +526,18 @@ int jump_to(char *dest, char *jmp_addr)
 	return 5;
 }
 
-int generate_hook(char *dest, hook_func_t func)
+int generate_hook(char *dest, char *addr, hook_func_t func)
 {
 	int imm_index;
 	int len = gen_code(
 		dest,
 
 		"64 C7 05 L L"               /* movl func, hook */
+		"64 C7 05 L L"               /* movl addr, user_eip */
 		"64 C7 05 L & DEADBEEF",     /* movl &dest[len], jit_eip */
 
 		offsetof(thread_ctx_t, hook_func), func,
+		offsetof(thread_ctx_t, user_eip), addr,
 		offsetof(thread_ctx_t, jit_eip), &imm_index
 	);
 

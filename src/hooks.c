@@ -35,6 +35,8 @@ static struct
 } hook_map[] =
 {
 	{ .func = fmt_check, .name = "fmt_check:" },
+	{ .func = ping, .name = "ping:" },
+	{ .func = fault, .name = "fault:" },
 	{ .func = NULL },
 };
 
@@ -156,10 +158,6 @@ hook_func_t get_hook_func(code_map_t *map, unsigned long offset)
 {
 	int i;
 	hook_t *h=hook_table;
-
-	if (map->pgoffset+PAGE_NEXT(offset)/0x1000 > 0x100000)
-		return NULL;
-
 	unsigned long long file_offset = (unsigned long long)map->pgoffset*0x1000 + offset;
 
 	for (i=0; i<n_hooks; i++, h++)
@@ -195,4 +193,14 @@ int fmt_check(long *regs)
 	return 0;
 }
 
+int ping(long *regs)
+{
+	debug("ping");
+	return 0;
+}
+
+int fault(long *regs)
+{
+	return -1;
+}
 

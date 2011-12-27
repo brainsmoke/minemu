@@ -141,8 +141,10 @@ SHIELDS_UP
 jmp *%fs:CTX__JIT_RETURN_ADDR
 
 hook_fault:
+movl %fs:CTX__USER_EIP, %eax
+movl $0, %ecx
 popf
-mov %esp, %fs:CTX__SCRATCH_STACK_TOP
+mov %fs:CTX__USER_ESP, %esp
 SHIELDS_UP
 jmp taint_fault
 

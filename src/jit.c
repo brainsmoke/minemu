@@ -526,7 +526,8 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr, unsig
 		mapping[s_off] = d_off;
 
 		if (is_hook)
-			d_off += hook_size = generate_hook(&jit_addr[d_off], get_hook_func(map, s_off));
+			d_off += hook_size = generate_hook(&jit_addr[d_off], &addr[s_off],
+			                                   get_hook_func(map, s_off));
 
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
 		translate_op(&jit_addr[d_off], &instr, &trans, map->addr, map->len);
