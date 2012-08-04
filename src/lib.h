@@ -35,6 +35,7 @@ char *numcat(char *dest, long l);
 char *hexcat(char *dest, unsigned long ul);
 
 unsigned long hexread(const char *s);
+unsigned long numread(const char *s);
 
 unsigned long long strtohexull(char *s, char **end);
 

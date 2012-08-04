@@ -32,6 +32,10 @@
 
 int call_strategy = PRESEED_ON_CALL;
 
+char *eip_start = NULL, *eip_end = NULL;
+int in_range = 0;
+char *eip_addr;
+
 #define TAINT                  (0x80)
 #define TAINT_MASK           (~(TAINT-1))
 
@@ -84,6 +88,9 @@ enum
 
 	TAINT_LEA,
 
+TAINT_CHECK_MEM,
+TAINT_BYTE_CHECK_MEM,
+
 	/* arguments: register / offset */
 
 	TAINT_COPY_REG_TO_PUSH = TAINT_REG_OFF,
@@ -95,6 +102,9 @@ enum
 	TAINT_ERASE_REG,
 	TAINT_BYTE_ERASE_REG,
 
+TAINT_CHECK_REG,
+TAINT_BYTE_CHECK_REG,
+
 	/* arguments: offset */
 
 	TAINT_ERASE_PUSH = TAINT_OFF,
@@ -102,12 +112,16 @@ enum
 	TAINT_POPA,
 	TAINT_LEAVE,
 	TAINT_ENTER,
+TAINT_CHECK_POP,
 	TAINT_COPY_STR_TO_STR = TAINT_STRING,
 	TAINT_COPY_AX_TO_STR,
 	TAINT_COPY_STR_TO_AX,
 	TAINT_BYTE_COPY_STR_TO_STR,
 	TAINT_BYTE_COPY_AL_TO_STR,
 	TAINT_BYTE_COPY_STR_TO_AL,
+
+TAINT_CHECK_STR,
+TAINT_CHECK_STR8,
 
 	/* no arguments */
 
@@ -117,12 +131,47 @@ enum
 	TAINT_ERASE_AXH,
 	TAINT_BYTE_ERASE_AL,
 
+TAINT_CHECK_AX,
+TAINT_CHECK_AL,
+
 	/* arguments: address, offset */
 
 	TAINT_COPY_AX_TO_OFFSET = TAINT_ADDR,
 	TAINT_COPY_OFFSET_TO_AX,
 	TAINT_BYTE_COPY_AL_TO_OFFSET,
 	TAINT_BYTE_COPY_OFFSET_TO_AL,
+};
+
+static const unsigned char check_mapping[256] =
+{
+	[TAINT_OR_MEM_TO_REG] = TAINT_CHECK_MEM,
+	[TAINT_OR_REG_TO_MEM] = TAINT_CHECK_REG,
+	[TAINT_XOR_MEM_TO_REG] = TAINT_CHECK_MEM,
+	[TAINT_XOR_REG_TO_MEM] = TAINT_CHECK_REG,
+	[TAINT_COPY_MEM_TO_REG] = TAINT_CHECK_MEM,
+	[TAINT_COPY_REG_TO_MEM] = TAINT_CHECK_REG,
+	[TAINT_BYTE_OR_MEM_TO_REG] = TAINT_BYTE_CHECK_MEM,
+	[TAINT_BYTE_OR_REG_TO_MEM] = TAINT_BYTE_CHECK_REG,
+	[TAINT_BYTE_XOR_MEM_TO_REG] = TAINT_BYTE_CHECK_MEM,
+	[TAINT_BYTE_XOR_REG_TO_MEM] = TAINT_BYTE_CHECK_REG,
+	[TAINT_BYTE_COPY_MEM_TO_REG] = TAINT_BYTE_CHECK_MEM,
+	[TAINT_BYTE_COPY_REG_TO_MEM] = TAINT_BYTE_CHECK_REG,
+	[TAINT_COPY_ZX_MEM_TO_REG] = TAINT_CHECK_MEM, /***/
+	[TAINT_BYTE_COPY_ZX_MEM_TO_REG] = TAINT_BYTE_CHECK_MEM,
+	[TAINT_COPY_MEM_TO_PUSH] = TAINT_CHECK_MEM,
+	[TAINT_COPY_POP_TO_MEM] = TAINT_CHECK_POP,
+	[TAINT_COPY_REG_TO_PUSH] = TAINT_CHECK_REG,
+	[TAINT_COPY_POP_TO_REG] = TAINT_CHECK_POP,
+	[TAINT_COPY_STR_TO_STR] = TAINT_CHECK_STR,
+	[TAINT_COPY_AX_TO_STR] = TAINT_CHECK_AX,
+	[TAINT_COPY_STR_TO_AX] = TAINT_CHECK_STR,
+	[TAINT_BYTE_COPY_STR_TO_STR] = TAINT_CHECK_STR8,
+	[TAINT_BYTE_COPY_AL_TO_STR] = TAINT_CHECK_AL,
+	[TAINT_BYTE_COPY_STR_TO_AL] = TAINT_CHECK_STR8,
+	[TAINT_COPY_AX_TO_OFFSET] = TAINT_CHECK_AX,
+///	[TAINT_COPY_OFFSET_TO_AX] = ,
+	[TAINT_BYTE_COPY_AL_TO_OFFSET] = TAINT_CHECK_AL,
+///	[TAINT_BYTE_COPY_OFFSET_TO_AL] = ,
 };
 
 static const unsigned char segment_prefix_mapping[] =
@@ -225,6 +274,17 @@ union
 	[TAINT_COPY_OFFSET_TO_AX].addr = { .f = taint_copy_addr32_to_eax, .f16 = taint_copy_addr16_to_ax },
 	[TAINT_BYTE_COPY_AL_TO_OFFSET].addr = { .f = taint_copy_al_to_addr8 },
 	[TAINT_BYTE_COPY_OFFSET_TO_AL].addr = { .f = taint_copy_addr8_to_al },
+
+	[TAINT_CHECK_MEM].mrm      =     { .f = check_mrm32, .f16 = check_mrm16 },
+	[TAINT_BYTE_CHECK_MEM].mrm =     { .f = check_mrm8                      },
+	[TAINT_CHECK_REG].reg      =     { .f = check_reg32, .f16 = check_reg16 },
+	[TAINT_BYTE_CHECK_REG].reg =     { .f = check_reg8                      },
+	[TAINT_CHECK_POP].off      =     { .f = check_pop32, .f16 = check_pop16 },
+	[TAINT_CHECK_STR].off      =     { .f = check_str32, .f16 = check_str16 },
+	[TAINT_CHECK_STR8].off     =     { .f = check_str8                      },
+	[TAINT_CHECK_AX].impl      =     { .f = check_eax,   .f16 = check_ax    },
+	[TAINT_CHECK_AL].impl      =     { .f = check_al                        },
+
 };
 
 /* op action */
@@ -976,34 +1036,67 @@ static int taint_instr(char *dest, instr_t *instr, trans_t *trans)
 	{
 		act = segment_prefix_mapping[act];
 		if ( !act )
-			return copy_instr(dest, instr, trans);
+			return copy_instr(&dest[len], instr, trans);
 	}
 
 	if ( taint_flag == TAINT_ON )
 	{
+
+	int chk=check_mapping[act];
+	if (chk && between(eip_start, eip_end, instr->addr))
+	{
+//		fd_printf(2, "%x, %x\n", act, chk);
+
+		if (TAINT_MRM_OP(chk))
+			len += (op16 && taint_ops[chk].mrm.f16 ? taint_ops[chk].mrm.f16 : taint_ops[chk].mrm.f)
+			      (&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
+
+		else if (TAINT_REG_OFF_OP( chk ))
+			len += (op16 && taint_ops[chk].reg_off.f16 ? taint_ops[chk].reg_off.f16 : taint_ops[chk].reg_off.f)
+			      (&dest[len], instr->addr[instr->mrm-1]&7, TAINT_OFFSET);
+
+		else if (TAINT_REG_OP( chk ))
+			len += (op16 && taint_ops[chk].reg.f16 ? taint_ops[chk].reg.f16 : taint_ops[chk].reg.f)
+			      (&dest[len], instr->addr[instr->mrm-1]&7);
+
+		else if (TAINT_OFF_OP( chk ))
+			len += (op16 && taint_ops[chk].off.f16 ? taint_ops[chk].off.f16 : taint_ops[chk].off.f)
+			      (&dest[len], TAINT_OFFSET);
+
+		else if (TAINT_IMPL_OP( chk ))
+			len += (op16 && taint_ops[chk].impl.f16 ? taint_ops[chk].impl.f16 : taint_ops[chk].impl.f)
+			      (&dest[len]);
+
+		else if (TAINT_ADDR_OP( chk ))
+			len += (op16 && taint_ops[chk].addr.f16 ? taint_ops[chk].addr.f16 : taint_ops[chk].addr.f)
+			      (&dest[len], *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
+
+//hexdump(2, dest, len, 0,0,0,0,0);
+	}
+
 		if (TAINT_MRM_OP(act))
-			len = (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
-			      (dest, &instr->addr[instr->mrm], TAINT_OFFSET);
+			len += (op16 && taint_ops[act].mrm.f16 ? taint_ops[act].mrm.f16 : taint_ops[act].mrm.f)
+			      (&dest[len], &instr->addr[instr->mrm], TAINT_OFFSET);
 
 		else if (TAINT_REG_OFF_OP( act ))
-			len = (op16 && taint_ops[act].reg_off.f16 ? taint_ops[act].reg_off.f16 : taint_ops[act].reg_off.f)
-			      (dest, instr->addr[instr->mrm-1]&7, TAINT_OFFSET);
+			len += (op16 && taint_ops[act].reg_off.f16 ? taint_ops[act].reg_off.f16 : taint_ops[act].reg_off.f)
+			      (&dest[len], instr->addr[instr->mrm-1]&7, TAINT_OFFSET);
 
 		else if (TAINT_REG_OP( act ))
-			len = (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
-			      (dest, instr->addr[instr->mrm-1]&7);
+			len += (op16 && taint_ops[act].reg.f16 ? taint_ops[act].reg.f16 : taint_ops[act].reg.f)
+			      (&dest[len], instr->addr[instr->mrm-1]&7);
 
 		else if (TAINT_OFF_OP( act ))
-			len = (op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
-			      (dest, TAINT_OFFSET);
+			len += (op16 && taint_ops[act].off.f16 ? taint_ops[act].off.f16 : taint_ops[act].off.f)
+			      (&dest[len], TAINT_OFFSET);
 
 		else if (TAINT_IMPL_OP( act ))
-			len = (op16 && taint_ops[act].impl.f16 ? taint_ops[act].impl.f16 : taint_ops[act].impl.f)
-			      (dest);
+			len += (op16 && taint_ops[act].impl.f16 ? taint_ops[act].impl.f16 : taint_ops[act].impl.f)
+			      (&dest[len]);
 
 		else if (TAINT_ADDR_OP( act ))
-			len = (op16 && taint_ops[act].addr.f16 ? taint_ops[act].addr.f16 : taint_ops[act].addr.f)
-			      (dest, *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
+			len += (op16 && taint_ops[act].addr.f16 ? taint_ops[act].addr.f16 : taint_ops[act].addr.f)
+			      (&dest[len], *(long*)&instr->addr[instr->imm], TAINT_OFFSET);
 	}
 
 	len += copy_instr(&dest[len], instr, trans);
@@ -1080,6 +1173,7 @@ void translate_op(char *dest, instr_t *instr, trans_t *trans,
                   char *map, unsigned long map_len)
 {
 	int action = jit_action[instr->op];
+eip_addr = instr->addr;
 
 	if ( (action & CONTROL_MASK) == CONTROL )
 		translate_control(dest, instr, trans, map, map_len);

@@ -36,6 +36,7 @@ enum
 };
 
 extern int taint_flag;
+extern int taint_fd;
 
 extern char *trusted_dirs_default;
 extern char *trusted_dirs;

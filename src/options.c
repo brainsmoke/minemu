@@ -28,6 +28,7 @@
 #include "taint.h"
 #include "sigwrap.h"
 #include "threads.h"
+#include "taint.h"
 
 char *progname = NULL;
 
@@ -48,6 +49,24 @@ static void save_sigset(char *sigset_buf)
 	kernel_sigset_t mask = get_thread_ctx()->old_sigset;
 	hexcat(sigset_buf,  ((unsigned long *)&mask)[0]);
 	hexcat(sigset_buf,  ((unsigned long *)&mask)[1]);
+}
+
+static void load_eip_range(char *s)
+{
+	eip_start = (char*)hexread(s);
+	for ( ; *s && *s != '-' ; s++ );
+	if (*s)
+		s++;
+	if (!*s)
+		die("bad range");
+
+	eip_end = (char*)hexread(s);
+}
+
+
+static void load_taint_fd(char *s)
+{
+	taint_fd = numread(s);
 }
 
 void usage(char *arg0)
@@ -144,6 +163,10 @@ char **parse_options(char **argv)
 			dump_all = 0;
 		else if ( strcmp(*argv, "-trackfiles") == 0 && !trusted_dirs )
 			trusted_dirs = trusted_dirs_default;
+		else if ( strcmp(*argv, "-eip") == 0 )
+			load_eip_range(*++argv);
+		else if ( strcmp(*argv, "-taintfd") == 0 )
+			load_taint_fd(*++argv);
 		else if ( strcmp(*argv, "-trusteddirs") == 0 )
 			set_trusted_dirs(*++argv);
 		else if ( strcmp(*argv, "-hooks") == 0 )

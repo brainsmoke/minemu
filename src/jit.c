@@ -530,7 +530,12 @@ static jit_chunk_t *jit_translate_chunk(code_map_t *map, char *entry_addr, unsig
 			                                   get_hook_func(map, s_off));
 
 		stop = read_op(&addr[s_off], &instr, map->len-s_off);
+//if (between(eip_start, eip_end, instr.addr))
+//hexdump(2, instr.addr, instr.len, 0,0,0,0,0);
 		translate_op(&jit_addr[d_off], &instr, &trans, map->addr, map->len);
+
+//if (between(eip_start, eip_end, instr.addr))
+//hexdump(2, &jit_addr[d_off], trans.len, 0,0,0,0,0);
 
 		/* try to resolve translated jumps early */
 		if ( (trans.imm != 0) && !try_resolve_jmp(map, trans.jmp_addr,

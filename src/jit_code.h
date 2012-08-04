@@ -26,6 +26,10 @@
 #include "opcodes.h"
 #include "hooks.h"
 
+extern char *eip_start, *eip_end;
+extern int in_range;
+extern char *eip_addr;
+
 enum
 {
 	LAZY_CALL,

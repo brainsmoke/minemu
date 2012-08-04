@@ -45,7 +45,7 @@ TEST_TARGETS=$(patsubst %.o, %, $(filter-out $(TEST_OBJECTS_COMMON), \
 	$(TESTCASES_ASM_OBJECTS) \
 	$(EMU_TEST_OBJECTS)))
 
-TARGETS=$(TEST_TARGETS) $(EMU_TARGETS)
+TARGETS=$(EMU_TARGETS)
 
 OBJECTS=\
 	$(TESTCASES_OBJECTS) $(TESTCASES_ASM_OBJECTS)\
@@ -139,14 +139,14 @@ minemu: src/mm.ld src/minemu.ld $(EMU_OBJECTS) $(EMU_ASM_OBJECTS)
 test/emu/shellcode: test/emu/shellcode.o test/emu/debug.o test/emu/codeexec.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o src/taint_code.o
-	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
+#test/emu/offset_mem: test/emu/offset_mem.o test/emu/codeexec.o src/taint_code.o
+#	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 test/emu/taint_test: test/emu/taint_test.o test/emu/codeexec.o src/taint_code.o test/emu/debug.o src/segments.o src/threads.o src/syscalls_asm.o src/threads.o src/error.o src/threads_asm.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
-test/emu/cmovtest: test/emu/cmovtest.o src/opcodes.o src/syscalls_asm.o src/threads.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o src/segments.o src/threads_asm.o
-	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
+#test/emu/cmovtest: test/emu/cmovtest.o src/opcodes.o src/syscalls_asm.o src/threads.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o src/segments.o src/threads_asm.o
+#	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline
 
 #test/emu/test_jit_fragment: test/emu/test_jit_fragment.o src/jit_fragment.o src/opcodes.o src/syscalls_asm.o src/jit_code.o src/debug.o src/error.o src/taint_code.o src/sigwrap_asm.o src/hexdump.o src/runtime_asm.o src/reloc_runtime_asm.o
 #	$(LINK) -o $@ $^ $(LDFLAGS) -lreadline

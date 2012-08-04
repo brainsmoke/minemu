@@ -19,11 +19,14 @@
 
 
 #include <string.h>
+#include <fcntl.h>
+#include "syscalls.h"
 
 #include "taint_code.h"
 
 #include "error.h"
 #include "jit_code.h"
+#include "hexdump.h"
 #include "threads.h"
 
 /*       .____.____.____.____.
@@ -1598,5 +1601,165 @@ int taint_cmpxchg8b_post(char *dest, char *mrm, long offset)
 	dest[9]=len-10;
 	return len;
 }
+
+void get_xmm5(unsigned char *xmm5);
+
+static void check_taint(int t)
+{
+	if (!t)
+		return;
+
+	int i, fd = sys_open("/tmp/taint.out", O_RDWR|O_CREAT|O_APPEND, 0600);
+	fd_printf(fd, &t, 1);
+	sys_close(fd);
+}
+
+static int check32(long *regs)
+{
+	unsigned char buf[16]; get_xmm5(buf);
+	check_taint(buf[0]|buf[1]|buf[2]|buf[3]);
+	return 0;
+}
+
+static int check16(long *regs)
+{
+	unsigned char buf[16]; get_xmm5(buf);
+	check_taint(buf[0]|buf[1]);
+	return 0;
+}
+
+static int check8(long *regs)
+{
+	unsigned char buf[16]; get_xmm5(buf);
+	check_taint(buf[0]);
+	return 0;
+}
+
+static int scratch_load_mem32x(char *dest, char *mrm, long offset)
+{
+	memcpy(dest, insertps, 4);
+	int len = 5+offset_mem(&dest[4], mrm, offset);
+	int reg = 0;
+	dest[4] = ( dest[4] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = (taint_index(reg)<<4) | ( (1<<taint_index(reg)) ^ 0xf );
+	return len;
+}
+
+static int scratch_load_mem16x(char *dest, char *mrm, long offset)
+{
+	memcpy(dest, pxor_5, 4);
+	memcpy(&dest[4], "\x66\x0f\xc4", 3); /* pinsrw */
+	int len = 8+offset_mem(&dest[7], mrm, offset);
+	dest[7] = ( dest[7] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = 0;
+	return len;
+}
+
+static int scratch_load_mem8x(char *dest, char *mrm, long offset)
+{
+	memcpy(dest, pinsrb, 4);
+	int len = 5+offset_mem(&dest[4], mrm, offset);
+	dest[4] = ( dest[4] &~0x38 ) | ( scratch_reg()<<3 ); 
+	dest[len-1] = 0;
+	return len;
+}
+
+static int scratch_load_reg8x(char *dest, int reg)
+{
+	return shift_xmm6_to_xmm5(dest, -reg8_index[reg]);
+}
+
+int check_reg32(char *dest, int reg)
+{
+	int len = scratch_load_reg32(dest, reg, 0);
+//if (between(eip_start, eip_end, eip_addr))
+//hexdump(2, dest, len, 0,0,0,0,0);
+
+
+	return len + generate_hook(&dest[len], eip_addr, check32);
+}
+
+int check_reg16(char *dest, int reg)
+{
+	int len = scratch_load_reg32(dest, reg, 0);
+	return len + generate_hook(&dest[len], eip_addr, check16);
+}
+
+int check_reg8(char *dest, int reg)
+{
+	int len = scratch_load_reg8x(dest, reg);
+	return len + generate_hook(&dest[len], eip_addr, check8);
+}
+
+int check_mrm32(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return check_reg32(dest, mrm[0]&0x7);
+
+	int len = scratch_load_mem32x(dest, mrm, offset);
+	return len + generate_hook(&dest[len], eip_addr, check32);
+}
+
+int check_mrm16(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return check_reg32(dest, mrm[0]&0x7);
+
+	int len = scratch_load_mem16x(dest, mrm, offset);
+	return len + generate_hook(&dest[len], eip_addr, check32);
+}
+
+int check_mrm8(char *dest, char *mrm, long offset)
+{
+	if ( !is_memop(mrm) )
+		return check_reg8(dest, mrm[0]&0x7);
+
+	int len = scratch_load_mem8x(dest, mrm, offset);
+	return len + generate_hook(&dest[len], eip_addr, check8);
+}
+
+int check_pop16(char *dest, long offset)
+{
+	return check_mrm16(dest, "\x04\x24", offset);
+}
+
+int check_pop32(char *dest, long offset)
+{
+	return check_mrm32(dest, "\x04\x24", offset);
+}
+
+int check_str8(char *dest, long offset)
+{
+	return check_mrm8(dest, "\x06", offset);
+}
+
+int check_str16(char *dest, long offset)
+{
+	return check_mrm16(dest, "\x06", offset);
+}
+
+int check_str32(char *dest, long offset)
+{
+	return check_mrm32(dest, "\x06", offset);
+}
+
+int check_eax(char *dest)
+{
+	int len = scratch_load_reg32(dest, 0, 0);
+	return len + generate_hook(&dest[len], eip_addr, check32);
+}
+
+int check_ax(char *dest)
+{
+	int len = scratch_load_reg32(dest, 0, 0);
+	return len + generate_hook(&dest[len], eip_addr, check16);
+}
+
+int check_al(char *dest)
+{
+	int len = scratch_load_reg8x(dest, 0);
+	return len + generate_hook(&dest[len], eip_addr, check8);
+}
+
 
 

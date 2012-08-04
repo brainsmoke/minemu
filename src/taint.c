@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "syscalls.h"
 #include "lib.h"
@@ -35,6 +36,7 @@
 #include "proc.h"
 
 int taint_flag = TAINT_ON;
+int taint_fd = -1;
 
 char *trusted_dirs_default = "/bin:/sbin:/lib:/lib32:"
                              "/usr/bin:/usr/sbin:/usr/lib:/usr/lib32:"
@@ -44,11 +46,8 @@ static char trusted_dirs_buf[PATH_MAX];
 
 enum
 {
-	FD_UNKNOWN = 0,
-	FD_SOCKET,
-	FD_FILE,
-	FD_UNTRUSTED_FILE,
-	FD_TRUSTED_FILE,
+	FD_NOTAINT = 0,
+	FD_TAINT,
 };
 
 int set_trusted_dirs(char *dirs)
@@ -91,58 +90,32 @@ if (match) sys_gettid();
 	return match;
 }
 
-static int is_trusted_file(int fd)
-{
-	char path[PATH_MAX+1], proc_file[64], *dirs;
-
-	strcpy(proc_file, "/proc/self/fd/");
-	numcat(proc_file, fd);
-
-	long ret = sys_readlink(proc_file, path, PATH_MAX);
-	if (ret < 0)
-		return 0;
-	path[ret] = 0;
-
-	if (!trusted_dirs)
-		return 1;
-	else
-		return in_dirlist(path, trusted_dirs);
-}
-
 #define __S_IFREG   0100000 /* Regular file.  */
 #define __S_IFMT    0170000 /* These bits determine file type.  */
 
-static int taint_val(int fd)
+static int get_fd(int fd)
 {
-	char *fd_type = get_thread_ctx()->files->fd_type;
+	static int count = 0;
+	count++;
+sys_read(-count, NULL, 0);
+	if (count != taint_fd)
+		return FD_NOTAINT;
 
-	if ( (fd > 1023) || (fd < 0) )
-		return TAINT_CLEAR;
+	sys_gettid();
+	sys_gettid();
+	sys_gettid();
+	sys_gettid();
+	sys_gettid();
+	int x = sys_open("/tmp/taint", O_RDONLY, 0);
+	sys_dup2(x, 666);
+	sys_close(x);
+	sys_gettid();
+	sys_gettid();
+	sys_gettid();
+	sys_gettid();
+	sys_gettid();
 
-	if ( fd_type[fd] == FD_UNKNOWN )
-	{
-		struct kernel_stat64 s;
-		if ( ( sys_fstat64(fd, &s) < 0 ) || (s.st_mode & __S_IFMT) != __S_IFREG )
-			fd_type[fd] = FD_SOCKET;
-		else
-			fd_type[fd] = FD_FILE;
-	}
-
-	if (fd_type[fd] == FD_FILE)
-	{
-		if (is_trusted_file(fd))
-			fd_type[fd] = FD_TRUSTED_FILE;
-		else
-			fd_type[fd] = FD_UNTRUSTED_FILE;
-	}
-
-	if (fd_type[fd] == FD_SOCKET)
-		return TAINT_SOCKET;
-
-	if (fd_type[fd] == FD_UNTRUSTED_FILE)
-		return TAINT_FILE;
-
-	return TAINT_CLEAR;
+	return FD_TAINT;
 }
 
 static void set_fd(int fd, int type)
@@ -151,9 +124,12 @@ static void set_fd(int fd, int type)
 		get_thread_ctx()->files->fd_type[fd] = type;
 }
 
-void taint_mem(void *mem, unsigned long size, int type)
+void taint_mem(void *mem, unsigned long size, int fd)
 {
-	memset((char *)mem+TAINT_OFFSET, type, size);
+	memset((char *)mem+TAINT_OFFSET, 0, size);
+
+	if (get_thread_ctx()->files->fd_type[fd] == FD_TAINT)
+		sys_read(666, (char *)mem+TAINT_OFFSET, size);
 }
 
 static void taint_iov(struct iovec *iov, int iocnt, unsigned long size, int type)
@@ -178,29 +154,26 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 	switch (call)
 	{
 		case __NR_read:
-			taint_mem((char *)arg2, ret, taint_val(arg1));
+			taint_mem((char *)arg2, ret, arg1);
 			return;
 		case __NR_readv:
-			taint_iov( (struct iovec *)arg2, arg3, ret, taint_val(arg1));
+			taint_iov( (struct iovec *)arg2, arg3, ret, arg1);
 			return;
 		case __NR_open:
 		case __NR_creat:
 		case __NR_openat:
-			set_fd(ret, FD_FILE);
+			set_fd(ret, get_fd(ret));
 
 			if (strcmp((char *)(call == __NR_openat ? arg2 : arg1), "/proc/self/stat") == 0)
-			{
-				taint_val(ret);
 				fake_proc_self_stat(ret);
-			}
 			return;
 		case __NR_dup:
 		case __NR_dup2:
 			set_fd( ret, get_thread_ctx()->files->fd_type[arg1]);
 			return;
 		case __NR_pipe:
-			set_fd( ((long *)arg1)[0], FD_SOCKET);
-			set_fd( ((long *)arg1)[1], FD_SOCKET);
+			set_fd( ((long *)arg1)[0], get_fd(((long *)arg1)[0]) );
+			set_fd( ((long *)arg1)[1], get_fd(((long *)arg1)[1]) );
 			return;
 		case __NR_socketcall:
 		{
@@ -208,24 +181,18 @@ void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, l
 
 			switch (arg1)
 			{
-				case SYS_GETPEERNAME:
-					if ( (ret >= 0) && sockargs[1] && sockargs[2])
-						taint_mem((char *)sockargs[1], *(long *)sockargs[2], TAINT_SOCKADDR);
-					return;
 				case SYS_ACCEPT:
-					if ( (ret >= 0) && sockargs[1] && sockargs[2])
-						taint_mem((char *)sockargs[1], *(long *)sockargs[2], TAINT_SOCKADDR);
 				case SYS_SOCKET:
-					set_fd(ret, FD_SOCKET);
+					set_fd(ret, get_fd(ret));
 					return;
 				case SYS_RECV:
 				case SYS_RECVFROM:
-					taint_mem((char *)sockargs[1], ret, TAINT_SOCKET);
+					taint_mem((char *)sockargs[1], ret, sockargs[0]);
 					return;
 				case SYS_RECVMSG:
 				{
 					struct msghdr *msg = (struct msghdr *)sockargs[1];
-					taint_iov( msg->msg_iov, msg->msg_iovlen, ret, TAINT_SOCKET );
+					taint_iov( msg->msg_iov, msg->msg_iovlen, ret, sockargs[0]);
 					return;
 				}
 				default:

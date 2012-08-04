@@ -314,6 +314,26 @@ char *hexcat(char *dest, unsigned long ul)
 	return dest;
 }
 
+unsigned long numread(const char *s)
+{
+	unsigned long n=0UL;
+	int i;
+
+	for(i=0;; i++)
+	{
+		if ( (unsigned int)(s[i]-'0') < 10 )
+		{
+			n *= 10;
+			n += s[i]-0x30;
+		}
+		else
+			break;
+	}
+
+	return n;
+}
+
+
 unsigned long hexread(const char *s)
 {
 	unsigned long n=0UL;
@@ -322,13 +342,17 @@ unsigned long hexread(const char *s)
 	for(i=0; i<2*(int)sizeof(unsigned long); i++)
 	{
 		if ( (unsigned int)(s[i]-'0') < 10 )
+		{
+			n <<= 4;
 			n |= s[i]-0x30;
+		}
 		else if ( (unsigned int)((s[i]&~0x20)-'A') < 6 )
+		{
+			n <<= 4;
 			n |= (s[i]&~0x20)-'A'+10;
+		}
 		else
 			break;
-
-		n <<= 4;
 	}
 
 	return n;
