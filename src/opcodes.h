@@ -35,8 +35,14 @@
 #define GF6_OPTABLE  (0x400)
 #define GF7_OPTABLE  (0x408)
 #define GFF_OPTABLE  (0x410)
-#define BAD_OP       (0x418)
-#define CUTOFF_OP    (0x419)
+
+#define G80_OPTABLE  (0x418)
+#define G81_OPTABLE  (0x420)
+#define G82_OPTABLE  (0x428)
+#define G83_OPTABLE  (0x430)
+
+#define BAD_OP       (0x438)
+#define CUTOFF_OP    (0x439)
 
 typedef struct
 {

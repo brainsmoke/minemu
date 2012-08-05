@@ -1610,7 +1610,7 @@ static void check_taint(int t)
 		return;
 
 	int i, fd = sys_open("/tmp/taint.out", O_RDWR|O_CREAT|O_APPEND, 0600);
-	fd_printf(fd, &t, 1);
+	fd_printf(fd, (char *)&t, 1);
 	sys_close(fd);
 }
 
@@ -1761,5 +1761,96 @@ int check_al(char *dest)
 	return len + generate_hook(&dest[len], eip_addr, check8);
 }
 
+int check_cmp2_32(char *dest, char *mrm, long offset)
+{
+	int len = 0;
+	len += check_pointer(&dest[len], mrm, offset);
+	len += check_mrm32(&dest[len], mrm, offset);
+	len += check_reg32(&dest[len], (mrm[0]>>3)&7);
+	return len;
+}
 
+int check_cmp2_16(char *dest, char *mrm, long offset)
+{
+	int len = 0;
+	len += check_pointer(&dest[len], mrm, offset);
+	len += check_mrm16(&dest[len], mrm, offset);
+	len += check_reg16(&dest[len], (mrm[0]>>3)&7);
+	return len;
+}
+
+int check_cmp2_8(char *dest, char *mrm, long offset)
+{
+	int len = 0;
+	len += check_pointer(&dest[len], mrm, offset);
+	len += check_mrm8(&dest[len], mrm, offset);
+	len += check_reg8(&dest[len], (mrm[0]>>3)&7);
+	return len;
+}
+
+int check_cmp32(char *dest, char *mrm, long offset)
+{
+	int len = 0;
+	len += check_pointer(&dest[len], mrm, offset);
+	len += check_mrm32(&dest[len], mrm, offset);
+	return len;
+}
+
+int check_cmp16(char *dest, char *mrm, long offset)
+{
+	int len = 0;
+	len += check_pointer(&dest[len], mrm, offset);
+	len += check_mrm16(&dest[len], mrm, offset);
+	return len;
+}
+
+int check_cmp8(char *dest, char *mrm, long offset)
+{
+	int len = 0;
+	len += check_pointer(&dest[len], mrm, offset);
+	len += check_mrm8(&dest[len], mrm, offset);
+	return len;
+}
+
+int check_pointer(char *dest, char *mrm, long _)
+{
+	if ( !is_memop(mrm) )
+		return 0;
+
+	if ( (mrm[0]&~0x38) == 5 ) /* disp32 only */
+		return 0;
+
+	int sib = (mrm[0]&0x7) == 4 ? 1:0;
+	int base_reg = mrm[sib]&0x7;
+	int index_reg = sib ? (mrm[1]>>3)&7 : -1;
+
+	if ( (mrm[0]&~0x38) == 4 && (mrm[1]&7) == 5 )
+		base_reg = -1;
+
+	if (index_reg == 4)
+		index_reg = -1;
+
+	int len = 0;
+
+	if (index_reg == -1)
+	{
+		int tmp = index_reg;
+		index_reg = base_reg;
+		base_reg = tmp;
+	}
+
+	if (base_reg != -1)
+		len += check_reg32(&dest[len], base_reg);
+
+	if (index_reg != -1)
+		len += check_reg32(&dest[len], index_reg);
+
+	return len;
+}
+
+
+int taint_nop(char *dest)
+{
+	return 0;
+}
 

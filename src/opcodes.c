@@ -51,6 +51,10 @@
 #define GF6 (ESCAPE|3)
 #define GF7 (ESCAPE|4)
 #define GFF (ESCAPE|5)
+#define G80 (ESCAPE|6)
+#define G81 (ESCAPE|7)
+#define G82 (ESCAPE|8)
+#define G83 (ESCAPE|9)
 
 #define OB (OP|IMMB)
 #define OW (OP|IMMW)
@@ -75,7 +79,7 @@ static const unsigned char optable[] =
 /* 5? */  O , O , O , O , O , O , O , O , O , O , O , O , O , O , O , O ,
 /* 6? */  O , O , I , I , P2, P2, P3, P4, OW, MW, OB, MB, I , I , I , I ,
 /* 7? */  OB, OB, OB, OB, OB, OB, OB, OB, OB, OB, OB, OB, OB, OB, OB, OB,
-/* 8? */  MB, MW, MB, MB, M , M , M , M , M , M , M , M , M , M , M , M ,
+/* 8? */ G80,G81,G82,G83, M , M , M , M , M , M , M , M , M , M , M , M ,
 /* 9? */  O , O , O , O , O , O , O , O , O , O , OL, O , O , O , O , O ,
 /* A? */  OA, OA, OA, OA, O , O , O , O , OB, OW, O , O , O , O , O , O ,
 /* B? */  OB, OB, OB, OB, OB, OB, OB, OB, OW, OW, OW, OW, OW, OW, OW, OW,
@@ -149,6 +153,18 @@ static const unsigned char optable[] =
 
 	[GFF_OPTABLE] =
           M , M , M , I , M , I , M , I ,
+
+	[G80_OPTABLE] =
+          MB, MB, MB, MB, MB, MB, MB, MB,
+
+	[G81_OPTABLE] =
+          MW, MW, MW, MW, MW, MW, MW, MW,
+
+	[G82_OPTABLE] =
+          MB, MB, MB, MB, MB, MB, MB, MB,
+
+	[G83_OPTABLE] =
+          MB, MB, MB, MB, MB, MB, MB, MB,
 
 	[BAD_OP] = I,
 
@@ -245,11 +261,20 @@ int read_op(char *addr, instr_t *instr, int max_len)
 			case GF6:
 			case GF7:
 			case GFF:
+
+			case G80:
+			case G81:
+			case G82:
+			case G83:
 				if (instr->len >= max_len)
 					return instr->op = CUTOFF_OP;
 
 				op = (type == GF6) ? GF6_OPTABLE :
-				     (type == GF7) ? GF7_OPTABLE : GFF_OPTABLE;
+				     (type == GF7) ? GF7_OPTABLE :
+				     (type == G80) ? G80_OPTABLE :
+				     (type == G81) ? G81_OPTABLE :
+				     (type == G82) ? G82_OPTABLE :
+				     (type == G83) ? G83_OPTABLE : GFF_OPTABLE;
 				op += ( addr[instr->len] >> 3 ) & 0x7;
 				type = optable[op];
 			default:

@@ -136,6 +136,8 @@ int taint_erase_ah(char *dest);
 int taint_erase_edx(char *dest);
 int taint_erase_dx(char *dest);
 
+int taint_nop(char *dest);
+
 ///
 
 int check_mrm32(char *dest, char *mrm, long offset);
@@ -152,6 +154,15 @@ int check_str32(char *dest, long offset);
 int check_eax(char *dest);
 int check_ax(char *dest);
 int check_al(char *dest);
+
+int check_cmp2_8(char *dest, char *mrm, long offset);
+int check_cmp2_16(char *dest, char *mrm, long offset);
+int check_cmp2_32(char *dest, char *mrm, long offset);
+
+int check_cmp8(char *dest, char *mrm, long offset);
+int check_cmp16(char *dest, char *mrm, long offset);
+int check_cmp32(char *dest, char *mrm, long offset);
+int check_pointer(char *dest, char *mrm, long _);
 
 /* TAINT SWAP */
 

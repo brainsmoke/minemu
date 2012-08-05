@@ -90,6 +90,11 @@ enum
 
 TAINT_CHECK_MEM,
 TAINT_BYTE_CHECK_MEM,
+TAINT_CHECK_POINTER,
+TAINT_CHECK_CMP_MEM,
+TAINT_CHECK_CMP_BYTE_MEM,
+TAINT_CHECK_CMP_MEM_REG,
+TAINT_CHECK_CMP_BYTE_MEM_REG,
 
 	/* arguments: register / offset */
 
@@ -130,6 +135,12 @@ TAINT_CHECK_STR8,
 	TAINT_ERASE_AX_DX,
 	TAINT_ERASE_AXH,
 	TAINT_BYTE_ERASE_AL,
+	TAINT_HACK_CMP_AX,
+	TAINT_HACK_CMP_AL,
+	TAINT_HACK_CMP_MEM,
+	TAINT_HACK_CMP_BYTE_MEM,
+	TAINT_HACK_CMP_MEM_REG,
+	TAINT_HACK_CMP_BYTE_MEM_REG,
 
 TAINT_CHECK_AX,
 TAINT_CHECK_AL,
@@ -142,7 +153,7 @@ TAINT_CHECK_AL,
 	TAINT_BYTE_COPY_OFFSET_TO_AL,
 };
 
-static const unsigned char check_mapping[256] =
+static const unsigned char check_mapping[0x100] =
 {
 	[TAINT_OR_MEM_TO_REG] = TAINT_CHECK_MEM,
 	[TAINT_OR_REG_TO_MEM] = TAINT_CHECK_REG,
@@ -172,9 +183,16 @@ static const unsigned char check_mapping[256] =
 ///	[TAINT_COPY_OFFSET_TO_AX] = ,
 	[TAINT_BYTE_COPY_AL_TO_OFFSET] = TAINT_CHECK_AL,
 ///	[TAINT_BYTE_COPY_OFFSET_TO_AL] = ,
+
+	[TAINT_HACK_CMP_AX] = TAINT_CHECK_AX,
+	[TAINT_HACK_CMP_AL] = TAINT_CHECK_AL,
+	[TAINT_HACK_CMP_MEM] = TAINT_CHECK_CMP_MEM,
+	[TAINT_HACK_CMP_BYTE_MEM] = TAINT_CHECK_CMP_BYTE_MEM,
+	[TAINT_HACK_CMP_MEM_REG] = TAINT_CHECK_CMP_MEM_REG,
+	[TAINT_HACK_CMP_BYTE_MEM_REG] = TAINT_CHECK_CMP_BYTE_MEM_REG,
 };
 
-static const unsigned char segment_prefix_mapping[] =
+static const unsigned char segment_prefix_mapping[0x100] =
 {
 	[TAINT_COPY_MEM_TO_REG] = TAINT_ERASE_REG,
 	[TAINT_BYTE_COPY_MEM_TO_REG] = TAINT_BYTE_ERASE_REG,
@@ -285,6 +303,18 @@ union
 	[TAINT_CHECK_AX].impl      =     { .f = check_eax,   .f16 = check_ax    },
 	[TAINT_CHECK_AL].impl      =     { .f = check_al                        },
 
+	[TAINT_HACK_CMP_AX].impl = { .f = taint_nop, .f16 = taint_nop },
+	[TAINT_HACK_CMP_AL].impl = { .f = taint_nop, .f16 = taint_nop },
+	[TAINT_HACK_CMP_MEM].impl = { .f = taint_nop, .f16 = taint_nop },
+	[TAINT_HACK_CMP_BYTE_MEM].impl = { .f = taint_nop, .f16 = taint_nop },
+	[TAINT_HACK_CMP_MEM_REG].impl = { .f = taint_nop, .f16 = taint_nop },
+	[TAINT_HACK_CMP_BYTE_MEM_REG].impl = { .f = taint_nop, .f16 = taint_nop },
+
+	[TAINT_CHECK_POINTER].mrm = { .f = check_pointer, .f16 = check_pointer },
+	[TAINT_CHECK_CMP_MEM].mrm = { .f = check_cmp32, .f16 = check_cmp16 },
+	[TAINT_CHECK_CMP_BYTE_MEM].mrm = { .f = check_cmp8 },
+	[TAINT_CHECK_CMP_MEM_REG].mrm = { .f = check_cmp2_32, .f16 = check_cmp2_16 },
+	[TAINT_CHECK_CMP_BYTE_MEM_REG].mrm = { .f = check_cmp2_8 },
 };
 
 /* op action */
@@ -368,6 +398,15 @@ union
 #define BEM  ( TAINT | TAINT_BYTE_ERASE_MEM          )
 #define BEA  ( TAINT | TAINT_BYTE_ERASE_AL           )
 
+
+#define THCA ( TAINT | TAINT_HACK_CMP_AX )
+#define THCM ( TAINT | TAINT_HACK_CMP_MEM )
+#define THCX ( TAINT | TAINT_HACK_CMP_MEM_REG )
+
+#define BHCA ( TAINT | TAINT_HACK_CMP_AL )
+#define BHCM ( TAINT | TAINT_HACK_CMP_BYTE_MEM )
+#define BHCX ( TAINT | TAINT_HACK_CMP_BYTE_MEM_REG )
+
 const unsigned char jit_action[] =
 {
 	[MAIN_OPTABLE] =
@@ -375,14 +414,14 @@ const unsigned char jit_action[] =
 /* 0? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BORM,TORM,BOMR,TOMR,  C ,  C ,  C , BAD,
 /* 1? */ BORM,TORM,BOMR,TOMR,  C ,  C ,  C ,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C ,  C ,  C ,
 /* 2? */ BORM,TORM,BOMR,TOMR,  C ,  C , BAD,  C ,BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C ,
-/* 3? */ BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C ,  C ,  C ,  C ,  C ,  C ,  C , BAD,  C ,
+/* 3? */ BXRM,TXRM,BXMR,TXMR,  C ,  C , BAD,  C ,BHCX,THCX,BHCX,THCX,BHCA,THCA, BAD,  C ,
 /* 4? */   C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
 /* 5? */ TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCRP,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,TCPR,
 /* 6? */ TPUA,TPPA,  C ,PRIV, BAD, BAD, BAD, BAD, TEP,TCMR, TEP,TCMR,PRIV,PRIV,PRIV,PRIV,
 /* 7? */  JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC , JC ,
-/* 8? */   C ,  C ,  C ,  C ,  C ,  C ,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, TEM,TLEA,  C ,TCPM,
+/* 8? */  BAD, BAD, BAD, BAD,BHCX,THCX,BSRM,TSRM,BCRM,TCRM,BCMR,TCMR, TEM,TLEA,  C ,TCPM,
 /* 9? */   C ,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR,TSAR, TEH, TED,  CF,  C , TEP,  C ,  C , BEA,
-/* A? */ BCOA,TCOA,BCAO,TCAO,BCSS,TCSS,  C ,  C ,  C ,  C ,BCAS,TCAS,BCSA,TCSA,  C ,  C ,
+/* A? */ BCOA,TCOA,BCAO,TCAO,BCSS,TCSS,  C ,  C ,BHCA,THCA,BCAS,TCAS,BCSA,TCSA,  C ,  C ,
 /* B? */  BER, BER, BER, BER, BER, BER, BER, BER, TER, TER, TER, TER, TER, TER, TER, TER,
 /* C? */  XXX, XXX,  RC,  R , XXX, XXX, BEM, TEM,TENT,TLVE,  RF,  RF,  C , INT,  C ,  C ,
 /* D? */   C ,  C , XXX, XXX,  C ,  C , XXX,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,  C ,
@@ -447,13 +486,25 @@ const unsigned char jit_action[] =
 /* F? */  MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM, MM,
 
 	[GF6_OPTABLE] =
-          C , U , C , C ,XXX,XXX,XXX,XXX,
+        BHCM, U , C , C ,XXX,XXX,XXX,XXX,
 
 	[GF7_OPTABLE] =
-          C , U , C , C ,XXX,XXX,XXX,XXX,
+        THCM, U , C , C ,XXX,XXX,XXX,XXX,
 
 	[GFF_OPTABLE] =
           C , C , CI, U , JI, U ,TCMP, U ,
+
+	[G80_OPTABLE] =
+          C , C , C , C , C , C , C ,BHCM,
+
+	[G81_OPTABLE] =
+          C , C , C , C , C , C , C ,THCM,
+
+	[G82_OPTABLE] =
+          C , C , C , C , C , C , C ,BHCM,
+
+	[G83_OPTABLE] =
+          C , C , C , C , C , C , C ,THCM,
 
 	[BAD_OP] = U,
 
