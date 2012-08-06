@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+int eip_addr, syscall3, syscall1, get_xmm5, generate_hook;
+int fd_printf(int fd, const char *format, ...){};
 
 #include <sys/mman.h>
 

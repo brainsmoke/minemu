@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+int eip_addr, generate_hook;
+//int fd_printf(int fd, const char *format, ...){};
+void get_xmm5(unsigned char *xmm5){};
+
 
 #include <sys/mman.h>
 
