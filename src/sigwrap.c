@@ -23,6 +23,7 @@
 #include <errno.h>
 
 #include "syscalls.h"
+#include "segments.h"
 #include "sigwrap.h"
 #include "runtime.h"
 #include "error.h"
@@ -73,9 +74,6 @@ void unblock_signals(void)
 	             sizeof(kernel_sigset_t),0,0);
 }
 
-#define __USER_CS (0x73)
-#define __USER_DS (0x7b)
-
 #ifndef SA_RESTORER
 #define SA_RESTORER        (0x04000000)
 #endif
@@ -102,10 +100,10 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 		sp = (unsigned long) local_ctx->altstack.ss_sp + local_ctx->altstack.ss_size;
 
 	/* assert that we restored to the shielded state */
-	if ((context->ss & 0xffff) == __USER_DS)
+	if ((context->ss & 0xffff) != shield_segment)
 		die("wrong user segment");
 
-	else if ( ((context->ss & 0xffff) != SHIELD_SEGMENT) &&
+	else if ( ((context->ss & 0xffff) != shield_segment) &&
 	         !(action->flags & SA_RESTORER) &&
 	          (action->restorer) )
 		sp = (unsigned long) action->restorer;
@@ -262,8 +260,8 @@ static void sigwrap_handler(int sig, siginfo_t *info, void *_)
 	/* registers */
 	context->ds =
 	context->es =
-	context->ss = SHIELD_SEGMENT;
-	context->cs = __USER_CS;
+	context->ss = shield_segment;
+	context->cs = code_segment;
 
 	local_ctx->user_eip = (long)action.handler;   /* jump into jit (or in this case runtime) */
 	context->eip = (long)state_restore;           /* code, not user code                     */

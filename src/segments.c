@@ -21,15 +21,16 @@
 
 #include "segments.h"
 #include "syscalls.h"
+#include "error.h"
 
-long shield_segment = SHIELD_SEGMENT, data_segment;
+unsigned int shield_segment, data_segment, code_segment;
 
 static void set_fs_segment(int number)
 {
 	__asm__ __volatile__ ("mov %0, %%fs":: "r" (number));
 }
 
-static void create_segment(int entry_number, void *base_addr, unsigned long size)
+static unsigned int create_segment(int entry_number, void *base_addr, unsigned long size)
 {
 	struct user_desc seg =
 	{
@@ -40,20 +41,28 @@ static void create_segment(int entry_number, void *base_addr, unsigned long size
 		.limit_in_pages = 1,
 	};
 
-	sys_set_thread_area(&seg);
+	if (sys_set_thread_area(&seg) < 0)
+	{
+		if (entry_number != -1)
+			return create_segment(-1, base_addr, size);
+		else
+			die("cannot allocate segment");
+	}
+
+	return 3 + 8*seg.entry_number;
 }
 
 void init_tls(void *base_addr, unsigned long size)
 {
-	create_segment(TLS_GDT_ENTRY, base_addr, size);
-	set_fs_segment(TLS_SEGMENT);
+	set_fs_segment(create_segment(PREF_TLS_GDT_ENTRY, base_addr, size));
 }
 
 /* The segment shield that makes emulated code unable to touch emulator memory
  */
 void init_shield(unsigned long size)
 {
-	create_segment(SHIELD_GDT_ENTRY, 0x00000000, size);
-	data_segment = 0;
+	shield_segment = create_segment(PREF_SHIELD_GDT_ENTRY, 0x00000000, size);
+	data_segment = code_segment = 0;
 	__asm__ __volatile__ ("mov %%ds, data_segment"::); /* save original data segment */
+	__asm__ __volatile__ ("mov %%cs, code_segment"::); /* save original code segment */
 }

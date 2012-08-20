@@ -70,9 +70,6 @@ pushf
 
 mov %fs, 0x04(%eax)
 mov %gs, 0x00(%eax)
-movl $(SHIELD_SEGMENT), 0x08(%eax) # %es
-movl $(SHIELD_SEGMENT), 0x0C(%eax) # %ds
-movl $(SHIELD_SEGMENT), 0x48(%eax) # %ss
 
 # restore sigcontext
 movl %edi, 0x10(%eax)
@@ -90,6 +87,11 @@ pop %edx                             # user %eax
 movl %edx, 0x2C(%eax)
 movl %fs:CTX__JIT_EIP, %ebp          # %eip
 movl %ebp, 0x38(%eax)                # (struct sigcontext *)%eax->eip
+
+movl shield_segment, %ecx
+movl %ecx, 0x08(%eax)      # %es
+movl %ecx, 0x0C(%eax)      # %ds
+movl %ecx, 0x48(%eax)      # %ss
 
 popf
 popa

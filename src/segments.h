@@ -20,11 +20,8 @@
 #ifndef SEGMENTS_H
 #define SEGMENTS_H
 
-#define TLS_GDT_ENTRY (7)
-#define TLS_SEGMENT (TLS_GDT_ENTRY*8 + 3)
-
-#define SHIELD_GDT_ENTRY (8)
-#define SHIELD_SEGMENT (SHIELD_GDT_ENTRY*8 + 3)
+#define PREF_TLS_GDT_ENTRY (7)
+#define PREF_SHIELD_GDT_ENTRY (8)
 
 #define SHIELDS_UP \
 	mov %cs:shield_segment, %ds ; \
@@ -37,6 +34,8 @@
 	mov %cs:data_segment, %ss ;
 
 #ifndef __ASSEMBLER__
+
+extern unsigned int shield_segment, data_segment, code_segment;
 
 void init_tls(void *base_addr, unsigned long size);
 void init_shield(unsigned long size);
