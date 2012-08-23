@@ -191,13 +191,16 @@ unsigned long user_brk(unsigned long new_brk)
 {
 	if ( (new_brk <= USER_END) && (new_brk >= brk_min) )
 	{
-		if (new_brk > brk_cur)
-			user_mmap2(brk_cur, new_brk-brk_cur,
+		unsigned long old_alloc = PAGE_NEXT(brk_cur),
+		              new_alloc = PAGE_NEXT(new_brk);
+
+		if (new_alloc > old_alloc)
+			user_mmap2(old_alloc, new_alloc-old_alloc,
 			           PROT_READ|PROT_WRITE,
 			           MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 			           -1, 0);
-		else if (new_brk < brk_cur)
-			user_munmap(new_brk, brk_cur-new_brk);
+		else if (new_alloc < old_alloc)
+			user_munmap(new_alloc, old_alloc-new_alloc);
 
 		brk_cur = new_brk;
 	}
