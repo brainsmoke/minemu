@@ -167,6 +167,7 @@ long syscall_emu(long call, long arg1, long arg2, long arg3,
 				long regs[] = { call, arg2, arg3, arg1, get_thread_ctx()->user_esp, arg6, arg4, arg5 };
 				do_taint_dump(regs);
 			}
+			print_taint();
 			sys_exit_group(arg1);
 		default:
 			die("unimplemented syscall");

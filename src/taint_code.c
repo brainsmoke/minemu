@@ -1604,14 +1604,20 @@ int taint_cmpxchg8b_post(char *dest, char *mrm, long offset)
 
 void get_xmm5(unsigned char *xmm5);
 
+
+unsigned long long total=0, tainted=0;
+
 static void check_taint(int t)
 {
-	if (!t)
-		return;
+	total++;
+	if (t)
+		tainted++;
+}
 
-	int i, fd = sys_open("/tmp/taint.out", O_RDWR|O_CREAT|O_APPEND, 0600);
-	fd_printf(fd, (char *)&t, 1);
-	sys_close(fd);
+void print_taint(void)
+{
+	fd_printf(fd, "TOTAL: %x * 2^32 + %x\n", (unsigned long)total>>32, (unsigned long)total&0xffffffff);
+	fd_printf(fd, "TOTAL: %x * 2^32 + %x\n", (unsigned long)tainted>>32, (unsigned long)tainted&0xffffffff);
 }
 
 static int check32(long *regs)
