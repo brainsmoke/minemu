@@ -10,19 +10,19 @@ STRIP=$(SILENT)strip --strip-all
 MKDIR=$(SILENT)mkdir
 RM=$(SILENT)rm -r
 
-LDFLAGS=
-EMU_LDFLAGS=-z noexecstack --warn-common
+LDFLAGS=-m32
+EMU_LDFLAGS=-z noexecstack --warn-common -melf_i386
 
 #SETTINGS=-g 
 SETTINGS=-Os -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables
-WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99
+WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -fno-stack-protector -U_FORTIFY_SOURCE
 
-CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS)
+CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS) -m32
 
 #EMU_EXCLUDE=
 EMU_EXCLUDE=src/debug.o
 
-TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99
+TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -m32
 EMU_CFLAGS=$(CFLAGS) -Isrc
 
 EMU_TARGETS=minemu
@@ -131,7 +131,7 @@ test/testcases/%: test/testcases/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)
 
 test/testcases/intint: test/testcases/intint.o
-	$(LINK) -nostdlib -o $@ $^
+	$(LINK) -nostdlib -o $@ $^ $(LDFLAGS)
 
 test/emu/%: test/emu/%.o
 	$(LINK) -o $@ $^ $(LDFLAGS)

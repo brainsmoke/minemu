@@ -17,6 +17,7 @@
  */
 
 #include <sys/mman.h>
+#include <linux/sched.h>
 #include <sched.h>
 
 #include "threads.h"
