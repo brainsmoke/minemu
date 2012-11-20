@@ -115,7 +115,8 @@ void *get_sigframe_addr(struct kernel_sigaction *action, struct sigcontext *cont
 static void sigframe_patch_pointers(struct kernel_sigframe *new,
                                     struct kernel_sigframe *old)
 {
-	*(long*)&new->sc.fpstate += (long)new - (long)old;
+	if (*(long*)&new->sc.fpstate)
+		*(long*)&new->sc.fpstate += (long)new - (long)old;
 
 	if (old->pretcode == &new->retcode[0])
 		new->pretcode = &new->retcode[0];
@@ -124,7 +125,8 @@ static void sigframe_patch_pointers(struct kernel_sigframe *new,
 static void rt_sigframe_patch_pointers(struct kernel_rt_sigframe *new,
                                        struct kernel_rt_sigframe *old)
 {
-	*(long*)&new->uc.uc_mcontext.fpstate += (long)new - (long)old;
+	if (*(long*)&new->uc.uc_mcontext.fpstate)
+		*(long*)&new->uc.uc_mcontext.fpstate += (long)new - (long)old;
 
 	if (old->pretcode == &old->retcode[0])
 		new->pretcode = &new->retcode[0];
