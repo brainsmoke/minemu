@@ -206,7 +206,7 @@ int sqli_check(long *regs)
 {
 	long *esp = (long *)regs[4];
 	char *query = (char *)esp[2];
-	char *len = (char *)esp[3];
+	long len = esp[3];
 	/* TODO: parse string for sqli's */
 	dump_string_if_tainted("tainted sql query", query, len);
 	return 0;

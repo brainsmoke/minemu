@@ -32,8 +32,8 @@ int main(void)
 {
 	printf("minemu_start = 0x%lx;\n", MINEMU_START);
 	printf("taint_offset = 0x%lx;\n", TAINT_OFFSET);
-	printf("offset__jit_fragment_exit_addr = 0x%lx;\n", offsetof(thread_ctx_t, jit_fragment_exit_addr));
-	printf("offset__jit_eip = 0x%lx;\n", offsetof(thread_ctx_t, jit_eip));
+	printf("offset__jit_fragment_exit_addr = 0x%lx;\n", (long)offsetof(thread_ctx_t, jit_fragment_exit_addr));
+	printf("offset__jit_eip = 0x%lx;\n", (long)offsetof(thread_ctx_t, jit_eip));
 
 	exit(EXIT_SUCCESS);
 }

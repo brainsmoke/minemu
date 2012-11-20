@@ -1,4 +1,4 @@
-SILENT=
+SILENT=@
 
 SHELL=bash
 CC=$(SILENT)gcc
@@ -114,6 +114,9 @@ src/jit_fragment_asm.S: src/asm_consts_gen.h
 
 src/asm_consts_gen.h: gen/gen_asm_consts_gen_h
 	$(SILENT)gen/gen_asm_consts_gen_h > $@
+
+gen/gen_asm_consts_gen_h: gen/gen_asm_consts_gen_h.c
+	$(LINK) -o $@ $^ $(EMU_CFLAGS) $(LDFLAGS) -lpthread
 
 test/testcases/killthread: test/testcases/killthread.o
 	$(LINK) -o $@ $^ $(LDFLAGS) -lpthread
