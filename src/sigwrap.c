@@ -195,12 +195,17 @@ static void dump_on_error(int sig, struct sigcontext *context)
 		if (!get_taint_dump_dir())
 			return;
 
-		get_thread_ctx()->user_eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
+		long eip = (long)jit_rev_lookup_addr((char *)context->eip, NULL, NULL);
+		if (eip)
+			get_thread_ctx()->user_eip = eip;
+
 		long regs[] = { context->eax, context->ecx, context->edx, context->ebx,
 		                context->esp, context->ebp, context->esi, context->edi, };
 		do_taint_dump(regs);
 		if (sig == SIGSEGV)
 			asm("movl $0, 0"::);
+		else if (sig == SIGFPE)
+			asm("xor %%eax, %%eax ; div %%eax, %%eax"::);
 		else
 			asm("ud2"::);
 	}
@@ -349,7 +354,7 @@ void sigwrap_init(void)
 	struct kernel_sigaction act =
 	{
 		.handler = sigwrap_handler,
-		.flags = SA_ONSTACK|SA_SIGINFO,
+		.flags = SA_ONSTACK,
 	};
 
 	memset(&act.mask, 0xff, sizeof(act.mask));
@@ -357,6 +362,7 @@ void sigwrap_init(void)
 	{
 		sys_rt_sigaction(SIGSEGV, &act, NULL, sizeof(act.mask));
 		sys_rt_sigaction(SIGILL, &act, NULL, sizeof(act.mask));
+		sys_rt_sigaction(SIGFPE, &act, NULL, sizeof(act.mask));
 	}
 }
 

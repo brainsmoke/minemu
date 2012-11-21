@@ -650,7 +650,11 @@ char *jit(char *addr)
 	code_map_t *map = find_code_map(addr);
 
 	if (map == NULL)
-		die("attempting to jump in non-executable code addr: %X ", addr);
+	{
+		debug("attempting to jump in non-executable code addr: %X ", addr);
+		get_thread_ctx()->user_eip = (long)addr;
+		return NULL;
+	}
 
 	if (map->jit_addr == NULL)
 	{
