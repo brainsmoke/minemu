@@ -1,6 +1,15 @@
 #!/bin/bash
 
-LIBC="$(/lib/ld-linux.so.2 /bin/cat /proc/self/maps |grep libc|head -n 1|awk '{print $6}')"
+LIBC="$(cat /proc/self/maps |grep libc|head -n 1|awk '{print $6}')"
+
+
+PHP="$(which php)"
+MYSQL_CLIENT=""
+if [ -x "$PHP" ]; then
+MYSQL_CLIENT="$(echo '<?php $fd=fopen("/proc/self/maps", "r"); echo fread($fd, 100000); ?>' | "$PHP" | \
+grep libmysqlclient | head -1 | awk '{print $6;}')"
+fi
+
 
 get_file_id()
 {
@@ -17,10 +26,19 @@ resolve_hook()
 {
 	OFFSET=$(get_file_offset "$2" "$3")
 	FILEID="$(get_file_id "$2")"
-	echo "$1:$FILEID:$OFFSET"
+	echo -n "$1:$FILEID:$OFFSET"
 }
 
+echo -n '-hooks '
 resolve_hook 'fmt_check' "$LIBC" '_IO_vfprintf@@.*'
+
+if [ -f "$MYSQL_CLIENT" ];
+then
+	echo -n ,
+	resolve_hook 'sqli_check' "$MYSQL_CLIENT" 'mysql_real_query@@.*'
+fi
+
+echo
 
 # mysql_stmt_prepare / mysql_real_query
 
