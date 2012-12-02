@@ -32,8 +32,8 @@
 
 void * __attribute__((noreturn)) __chk_fail()
 {
-	// TODO: Erik? ;)
-	sys_exit(-1);
+	debug("Minemu internal error: FORTIFY_SOURCE check failed :-(");
+	raise(SIGABRT);
 	for(;;);
 }
 
