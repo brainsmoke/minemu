@@ -188,7 +188,7 @@ void test_wait(void)
 		{
 			exit(0);
 		}
-		syscall(__NR_waitpid, -1, &status, 0);
+		syscall(__NR_wait4, -1, &status, 0, NULL);
 		printf("status: %d\n", status);fflush(stdout);
 		exit(0);
 	}

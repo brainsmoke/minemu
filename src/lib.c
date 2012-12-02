@@ -30,6 +30,20 @@
 
 /* versions of stdlib functions */
 
+void * __attribute__((noreturn)) __chk_fail()
+{
+	// TODO: Erik? ;)
+	sys_exit(-1);
+	for(;;);
+}
+
+void * __attribute__((noreturn)) __stack_chk_fail()
+{
+	__chk_fail();
+}
+
+#define CHK_DEC(ctr) ((ctr)-- ? NULL : __chk_fail())
+
 int isprint(int c)
 {
 	return c >= ' ' && c <= '~';
@@ -46,6 +60,13 @@ char *strcpy(char *dest, const char *src)
 {
 	size_t i;
 	for (i=0; (dest[i]=src[i]); i++);
+	return dest;
+}
+
+char *__strcpy_chk(char *dest, const char *src, size_t dest_size)
+{
+	size_t i;
+	for (i=0; CHK_DEC(dest_size), (dest[i]=src[i]); i++);
 	return dest;
 }
 
@@ -106,6 +127,20 @@ int memcmp(const void *v1, const void *v2, size_t n)
 
 void *memcpy(void *v_dest, const void *v_src, size_t n)
 {
+	const char *src=v_src;
+	char *dest=v_dest;
+	size_t i;
+	for (i=0; i<n; i++)
+		dest[i] = src[i];
+
+	return v_dest;
+}
+
+void *__memcpy_chk(void *v_dest, const void *v_src, size_t n, size_t dest_size)
+{
+	if (n > dest_size)
+		__stack_chk_fail();
+
 	const char *src=v_src;
 	char *dest=v_dest;
 	size_t i;
@@ -273,6 +308,15 @@ char *strcat(char *dest, const char *src)
 	int i;
 	while (*p) p++;
 	for (i=0; (p[i] = src[i]); i++);
+	return dest;
+}
+
+char *__strcat_chk(char *dest, const char *src, size_t dest_size)
+{
+	char *p=dest;
+	int i;
+	while (*p) p++, CHK_DEC(dest_size);
+	for (i=0; CHK_DEC(dest_size), (p[i] = src[i]); i++);
 	return dest;
 }
 

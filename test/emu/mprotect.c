@@ -37,5 +37,5 @@ int main(void)
 
 	mprotect(&reg[4096], 4096, PROT_NONE);
 
-	read(0, c, 1);
+	int len = read(0, c, 1);
 }

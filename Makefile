@@ -15,7 +15,7 @@ EMU_LDFLAGS=-z noexecstack --warn-common -melf_i386
 
 #SETTINGS=-g 
 SETTINGS=-Os -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables
-WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -fno-stack-protector -U_FORTIFY_SOURCE
+WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -fno-stack-protector #-U_FORTIFY_SOURCE
 
 CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS) -m32
 
@@ -23,7 +23,7 @@ CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS) -m32
 EMU_EXCLUDE=src/debug.o
 
 TESTCASES_CFLAGS=-MMD -MF .dep/$@.d -Wall -Wshadow -pedantic -std=gnu99 -m32
-EMU_CFLAGS=$(CFLAGS) -Isrc
+EMU_CFLAGS=$(CFLAGS) -Isrc -ffreestanding
 
 EMU_TARGETS=minemu
 EMU_OBJECTS=$(filter-out $(EMU_EXCLUDE), $(patsubst %.c, %.o, $(wildcard src/*.c)))
@@ -58,13 +58,15 @@ CLEAN=$(TARGETS) $(OBJECTS) $(EMU_EXCLUDE) src/runtime_asm.o-tmp src/reloc_runti
 .PHONY: test/emu/test_jit_fragment
 .PHONY: depend clean strip
 
-all: depend $(TARGETS)
+all: $(TARGETS)
+
+$(OBJECTS): depend
 
 depend:
 	$(MKDIR) -p .dep/test{/testcases,/emu} .dep{/src,/gen/,/test}
 
 clean:
-	-$(RM) $(CLEAN)
+	-$(RM) -f $(CLEAN)
 
 -include .dep/*/*.d .dep/test/*/*.d
 
