@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LIBC="$(cat /proc/self/maps |grep libc|head -n 1|awk '{print $6}')"
+LIBC="$(/lib/ld-linux.so.2 /bin/cat /proc/self/maps |grep libc|head -n 1|awk '{print $6}')"
 
 get_file_id()
 {
