@@ -5,6 +5,8 @@
 #include <sched.h>
 #include <linux/sched.h>
 
+int unshare(int flags);
+
 int main(int argc, char **argv)
 {
 	if (argc < 2)
