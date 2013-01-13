@@ -336,14 +336,19 @@ static void copy_vdso(unsigned long addr, unsigned long orig)
 		sysenter_reentry = vdso + off;
 }
 
-unsigned long stack_top(long *auxv)
+unsigned long get_stack_top(long auxv[], char *envp[])
 {
-	return PAGE_NEXT((unsigned long)get_aux(auxv, AT_EXECFN));
+	unsigned long top = get_aux(auxv, AT_EXECFN);
+	for (; *envp ; envp++)
+		if (*(unsigned long *)envp > top)
+			top = (unsigned long) (*envp+strlen(*envp));
+			
+	return PAGE_NEXT(top);
 }
 
-unsigned long high_user_addr(long *auxv)
+unsigned long high_user_addr(unsigned long stack_top)
 {
-	return stack_top(auxv) <= 0xC0000000UL ? 0xC0000000UL : 0xFFFFE000UL;
+	return stack_top <= 0xC0000000UL ? 0xC0000000UL : 0xFFFFE000UL;
 }
 
 static void fill_last_page_hack(void)
@@ -352,10 +357,10 @@ static void fill_last_page_hack(void)
 	clear(buf, 0x2000);
 }
 
-void init_minemu_mem(long *auxv)
+void init_minemu_mem(long auxv[], char *envp[])
 {
 	long ret = 0;
-
+	unsigned long stack_top = get_stack_top(auxv, envp);
 	char c[1];
 
 	fill_last_page_hack();
@@ -392,8 +397,8 @@ void init_minemu_mem(long *auxv)
 
 	fill_last_page_hack();
 
-	if ( high_user_addr(auxv) > stack_top(auxv) )
-		ret |= sys_mmap2(stack_top(auxv), high_user_addr(auxv)-stack_top(auxv),
+	if ( high_user_addr(stack_top) > stack_top )
+		ret |= sys_mmap2(stack_top, high_user_addr(stack_top)-stack_top,
 		                 PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS,
 		                 -1, 0);
 

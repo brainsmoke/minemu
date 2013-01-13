@@ -34,7 +34,7 @@
 #include "options.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
-int minemu_main(int argc, char *argv[], char **envp, long *auxv)
+int minemu_main(int argc, char *argv[], char *envp[], long auxv[])
 {
 	unsigned long pers = sys_personality(0xffffffff);
 	
@@ -47,7 +47,7 @@ int minemu_main(int argc, char *argv[], char **envp, long *auxv)
 
 	argv = parse_options(&argv[1]);
 
-	init_minemu_mem(auxv);
+	init_minemu_mem(auxv, envp);
 	sigwrap_init();
 	jit_init();
 

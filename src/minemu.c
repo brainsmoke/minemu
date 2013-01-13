@@ -38,7 +38,7 @@
 #include "jit_cache.h"
 
 /* not called main() to avoid warnings about extra parameters :-(  */
-int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
+int minemu_main(int argc, char *orig_argv[], char *envp[], long auxv[])
 {
 	unsigned long pers = sys_personality(0xffffffff);
 	char **argv = orig_argv;
@@ -56,7 +56,7 @@ int minemu_main(int argc, char *orig_argv[], char **envp, long *auxv)
 	if ( (progname == NULL) && (argv[0][0] == '/') )
 		progname = argv[0];
 
-	init_minemu_mem(auxv);
+	init_minemu_mem(auxv, envp);
 	init_shield(TAINT_END);
 	sigwrap_init();
 	unblock_signals();
