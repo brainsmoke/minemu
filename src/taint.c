@@ -93,6 +93,9 @@ if (match) sys_gettid();
 
 static int is_trusted_file(int fd)
 {
+	if (!trusted_dirs)
+		return 1;
+
 	char path[PATH_MAX+1], proc_file[64], *dirs;
 
 	strcpy(proc_file, "/proc/self/fd/");
@@ -101,12 +104,10 @@ static int is_trusted_file(int fd)
 	long ret = sys_readlink(proc_file, path, PATH_MAX);
 	if (ret < 0)
 		return 0;
+
 	path[ret] = 0;
 
-	if (!trusted_dirs)
-		return 1;
-	else
-		return in_dirlist(path, trusted_dirs);
+	return in_dirlist(path, trusted_dirs);
 }
 
 #define __S_IFREG   0100000 /* Regular file.  */
