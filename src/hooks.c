@@ -21,6 +21,8 @@
 #include <string.h>
 
 #include "hooks.h"
+#include "taint.h"
+#include "opcodes.h"
 #include "lib.h"
 #include "mm.h"
 #include "error.h"
@@ -39,6 +41,8 @@ static struct
 	{ .func = dump_regs, .name = "dump_regs:" },
 	{ .func = fault, .name = "fault:" },
 	{ .func = sqli_check, .name = "sqli_check:" },
+	{ .func = ptmalloc2_malloc, .name = "ptmalloc2_malloc:" },
+	{ .func = ptmalloc2_free, .name = "ptmalloc2_free:" },
 	{ .func = NULL },
 };
 
@@ -227,5 +231,53 @@ int dump_regs(long *regs)
 {
 	do_regs_dump(2, regs);
 	debug("");
+	return 0;
+}
+
+int install_return_hook(long *regs)
+{
+	long *esp = (long *)regs[4];
+	taint_or((long *)esp, sizeof(long), TAINT_RET_TRAP);
+}
+
+int clear_return_hook(long *regs)
+{
+	long *esp = (long *)regs[4];
+	taint_or((long *)esp-4, sizeof(long), TAINT_RET_TRAP);
+}
+
+int ptmalloc2_malloc(long *regs)
+{
+	long *esp = (long *)regs[4];
+	long size = esp[1];
+	install_return_hook(regs);
+//	debug("malloc call! size: %x", size);
+	return 0;
+}
+
+int ptmalloc2_free(long *regs)
+{
+	long *esp = (long *)regs[4];
+	long addr = esp[1];
+//	debug("free call! address: %x", addr);
+	if (addr)
+	{
+		unsigned long size = ((long *)addr)[-1] & ~3;
+		taint_or((char *)addr, size-sizeof(long)*2, TAINT_FREED);
+//		memset((char *)addr, (int)'A', size-sizeof(long)*2);
+	}
+	return 0;
+}
+
+int return_hook(long *regs)
+{
+	char *addr = (char *)regs[0];
+	clear_return_hook(regs);
+	if (addr)
+	{
+		set_reg_taint(REG_EAX, TAINT_LONG(TAINT_POINTER));
+		taint_or(addr-sizeof(long)*2, sizeof(long)*2, TAINT_MALLOC_META);
+	}
+//	debug("return hook!");
 	return 0;
 }

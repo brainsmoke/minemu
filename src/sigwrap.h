@@ -48,9 +48,4 @@ void do_rt_sigreturn(void);
 
 unsigned long user_signal(int sig, void (*handler) (int, siginfo_t *, void *));
 
-/* used for restoring pre-signal-state */
-void get_xmm5(unsigned char *xmm5);
-void get_xmm6(unsigned char *xmm6);
-void get_xmm7(unsigned char *xmm7);
-
 #endif /* SIGWRAP_H */

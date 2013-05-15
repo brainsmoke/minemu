@@ -15,34 +15,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#include <asm/unistd.h>
+.global get_xmm5
+.type get_xmm5, @function
+get_xmm5:
+movl 4(%esp), %eax
+movups %xmm5, (%eax)
+ret
 
-.global load_sigframe
-.type load_sigframe, @function
+.global get_xmm6
+.type get_xmm6, @function
+get_xmm6:
+movl 4(%esp), %eax
+movups %xmm6, (%eax)
+ret
 
-.global do_sigreturn
-.type do_sigreturn, @function
+.global get_xmm7
+.type get_xmm7, @function
+get_xmm7:
+movl 4(%esp), %eax
+movups %xmm7, (%eax)
+ret
 
-load_sigframe:
-movl 4(%esp), %esp
-pop %eax
-do_sigreturn:
-pop %eax
-movl $(__NR_sigreturn), %eax
-int $0x80
-ud2
+.global put_xmm5
+.type put_xmm5, @function
+put_xmm5:
+movl 4(%esp), %eax
+movups (%eax), %xmm5
+ret
 
-.global load_rt_sigframe
-.type load_rt_sigframe, @function
+.global put_xmm6
+.type put_xmm6, @function
+put_xmm6:
+movl 4(%esp), %eax
+movups (%eax), %xmm6
+ret
 
-.global do_rt_sigreturn
-.type do_rt_sigreturn, @function
-
-load_rt_sigframe:
-movl 4(%esp), %esp
-pop %eax
-do_rt_sigreturn:
-movl $(__NR_rt_sigreturn), %eax
-int $0x80
-ud2
+.global put_xmm7
+.type put_xmm7, @function
+put_xmm7:
+movl 4(%esp), %eax
+movups (%eax), %xmm7
+ret
 

@@ -30,11 +30,13 @@ taint_fault:
 SHIELDS_DOWN
 movl %ecx, %fs:CTX__IJMP_TAINT
 movl %eax, %fs:CTX__USER_EIP
+mov %esp, %fs:CTX__USER_ESP
+mov %fs:CTX__SCRATCH_STACK_TOP, %esp
+pushf
+cmp $0x80808080, %ecx
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
-mov %esp, %fs:CTX__USER_ESP
-mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 push %edi
 push %esi
 push %ebp
@@ -44,10 +46,41 @@ push %edx
 push %ecx
 push %eax
 push %esp           # *(long)regs
+jz return_hook_taint
 call block_signals
 call do_taint_dump
 ud2
+return_hook_taint:
+call return_hook
+test %eax,%eax
+lea 4(%esp), %esp
+pop %eax
+pop %ecx
+pop %edx
+pop %ebx
+lea 4(%esp), %esp
+pop %ebp
+pop %esi
+pop %edi
+pinsrd $0, %ecx, %xmm4
+pinsrd $0, %eax, %xmm3
+pinsrd $0, %edx, %xmm5
+movl %fs:CTX__USER_EIP, %eax
+movl $0, %ecx
+jnz hook_fault
+popf
+mov %fs:CTX__USER_ESP, %esp
+SHIELDS_UP
+jmp runtime_ijmp
 
+hook_fault:
+popf
+mov %fs:CTX__USER_ESP, %esp
+SHIELDS_UP
+jmp taint_fault
+
+taint_fault_short:
+jmp taint_fault
 #
 # RET / ICALL / IJMP FAST PATH:
 #
@@ -75,7 +108,7 @@ runtime_ijmp:
 pinsrd $0, %edx, %xmm5
 movzwl %ax, %edx
 jecxz,pt taint_ok
-jmp taint_fault
+jmp taint_fault_short
 taint_ok:
 movl %fs: (, %edx, 8), %ecx         # load mangled cached address
 movl %fs:4(, %edx, 8), %edx

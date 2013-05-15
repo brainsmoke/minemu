@@ -33,6 +33,7 @@
 #include "taint.h"
 #include "threads.h"
 #include "proc.h"
+#include "error.h"
 
 int taint_flag = TAINT_ON;
 
@@ -155,6 +156,53 @@ static void set_fd(int fd, int type)
 void taint_mem(void *mem, unsigned long size, int type)
 {
 	memset((char *)mem+TAINT_OFFSET, type, size);
+}
+
+void taint_or(void *mem, unsigned long size, int type)
+{
+	unsigned long i;
+	for (i=0; i<size; i++)
+		*((char *)mem+i+TAINT_OFFSET) |= type;
+}
+
+void taint_and(void *mem, unsigned long size, int type)
+{
+	unsigned long i;
+	for (i=0; i<size; i++)
+		*((char *)mem+i+TAINT_OFFSET) &= type;
+}
+
+unsigned long get_reg_taint(int reg)
+{
+	if ( (reg > 7) || (reg < 0) )
+		die("set_reg_taint: bad register number");
+
+	long xmm[4];
+	if (reg > 3)
+		get_xmm6((unsigned char *)xmm);
+	else
+		get_xmm7((unsigned char *)xmm);
+
+	return xmm[reg&3];
+}
+
+void set_reg_taint(int reg, unsigned long val)
+{
+	if ( (reg > 7) || (reg < 0) )
+		die("set_reg_taint: bad register number");
+
+	long xmm[4];
+	if (reg > 3)
+		get_xmm6((unsigned char *)xmm);
+	else
+		get_xmm7((unsigned char *)xmm);
+
+	xmm[reg&3] = val;
+
+	if (reg > 3)
+		put_xmm6((unsigned char *)xmm);
+	else
+		put_xmm7((unsigned char *)xmm);
 }
 
 static void taint_iov(struct iovec *iov, int iocnt, unsigned long size, int type)

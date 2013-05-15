@@ -29,11 +29,17 @@ enum
 enum
 {
 	TAINT_CLEAR = 0x00,
-	TAINT_SOCKET = 0xff,
+	TAINT_SOCKET = 0x10,
 	TAINT_FILE = 0x40,
 	TAINT_ENV = 0x20,
 	TAINT_SOCKADDR = 0x01,
+	TAINT_POINTER = 0x02,
+	TAINT_MALLOC_META = 0x04,
+	TAINT_FREED = 0x08,
+	TAINT_RET_TRAP = 0x80,
 };
+
+#define TAINT_LONG(a) ((unsigned long)(a)*0x01010101UL)
 
 extern int taint_flag;
 
@@ -42,6 +48,19 @@ extern char *trusted_dirs;
 int set_trusted_dirs(char *dirs);
 
 void taint_mem(void *mem, unsigned long size, int type);
+void taint_or(void *mem, unsigned long size, int type);
+void taint_and(void *mem, unsigned long size, int type);
 void do_taint(long ret, long call, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6);
+
+void get_xmm5(unsigned char *xmm5);
+void get_xmm6(unsigned char *xmm6);
+void get_xmm7(unsigned char *xmm7);
+
+void put_xmm5(unsigned char *xmm5);
+void put_xmm6(unsigned char *xmm6);
+void put_xmm7(unsigned char *xmm7);
+
+unsigned long get_reg_taint(int reg);
+void set_reg_taint(int reg, unsigned long val);
 
 #endif /* TAINT_H */

@@ -48,6 +48,8 @@ typedef struct
 int read_op(char *addr, instr_t *instr, int max_len);
 int op_size(char *addr, int max_len);
 
+enum { REG_EAX, REG_ECX, REG_EDX, REG_EBX, REG_ESP, REG_EBP, REG_ESI, REG_EDI };
+
 #endif /* __ASSEMBLER__ */
 
 #endif /* OPCODES_H */

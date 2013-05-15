@@ -53,5 +53,7 @@ int sqli_check(long *regs);
 int ping(long *regs);
 int fault(long *regs);
 int dump_regs(long *regs);
+int ptmalloc2_malloc(long *regs);
+int ptmalloc2_free(long *regs);
 
 #endif /* HOOKS_H */

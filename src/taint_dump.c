@@ -52,17 +52,22 @@ static void fill_colors(const char *colors[])
 	     *yellow = "\033[1;33m",
 	     *white  = "\033[1;37m",
 	     *dark   = "\033[1;30m",
-	     *grey   = "\033[0;37m";
+	     *grey   = "\033[0;37m",
+	     *deepred= "\033[0;31m",
+	     *deepblue="\033[0;36m",
+	     *orange = "\033[0;33m";
 	
 	for(i=0; i<256; i++)
-		colors[i] = dark;
+		colors[i] = (i&TAINT_SOCKET) ? red : dark;
 
 	colors[TAINT_CLEAR]          = grey;
 	colors[TAINT_SOCKADDR]       = blue;
 	colors[TAINT_ENV]            = green;
 	colors[TAINT_FILE]           = yellow;
+	colors[TAINT_RET_TRAP]       = deepblue;
+	colors[TAINT_POINTER]        = orange;
+	colors[TAINT_MALLOC_META]  = deepred;
 	colors[TAINT_ENV|TAINT_FILE] = white;
-	colors[TAINT_SOCKET]         = red;
 }
 
 void stringdump_taint(int fd, const char *s, ssize_t len, const unsigned char *taint)

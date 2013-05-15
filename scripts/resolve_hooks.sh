@@ -39,6 +39,11 @@ then
 fi
 
 echo
+	echo -n ,
+	resolve_hook 'ptmalloc2_malloc' "$LIBC" '__libc_malloc@@GLIBC_2.0'
+	echo -n ,
+	resolve_hook 'ptmalloc2_free' "$LIBC" '__libc_free@@GLIBC_2.0'
+echo
 
 # mysql_stmt_prepare / mysql_real_query
 
