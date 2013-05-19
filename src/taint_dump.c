@@ -43,47 +43,18 @@ const char *regs_desc[] =
 	"[   esp   ] [   ebp   ]  [   esi   ] [   edi   ]",
 };
 
-static void fill_colors(const char *colors[])
-{
-	int i;
-	char *red    = "\033[1;31m",
-	     *blue   = "\033[1;36m",
-	     *green  = "\033[1;32m",
-	     *yellow = "\033[1;33m",
-	     *white  = "\033[1;37m",
-	     *dark   = "\033[1;30m",
-	     *grey   = "\033[0;37m",
-	     *deepred= "\033[0;31m",
-	     *deepblue="\033[0;36m",
-	     *orange = "\033[0;33m";
-	
-	for(i=0; i<256; i++)
-		colors[i] = (i&TAINT_SOCKET) ? red : dark;
-
-	colors[TAINT_CLEAR]          = grey;
-	colors[TAINT_SOCKADDR]       = blue;
-	colors[TAINT_ENV]            = green;
-	colors[TAINT_FILE]           = yellow;
-	colors[TAINT_RET_TRAP]       = deepblue;
-	colors[TAINT_POINTER]        = orange;
-	colors[TAINT_MALLOC_META]  = deepred;
-	colors[TAINT_ENV|TAINT_FILE] = white;
-}
+extern const char *taint_colors[];
 
 void stringdump_taint(int fd, const char *s, ssize_t len, const unsigned char *taint)
 {
-	const char *colors[256];
-	fill_colors(colors);
-	stringdump(fd, s, len, taint, colors);
+	stringdump(fd, s, len, taint, taint_colors);
 }
 
 void hexdump_taint(int fd, const void *data, ssize_t len,
                            const unsigned char *taint, int offset, int ascii,
                            const char *description[])
 {
-	const char *colors[256];
-	fill_colors(colors);
-	hexdump(fd, data, len, offset, ascii, description, taint, colors);
+	hexdump(fd, data, len, offset, ascii, description, taint, taint_colors);
 }
 
 void dump_map(int fd, char *addr, unsigned long len)
