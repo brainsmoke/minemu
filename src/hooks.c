@@ -234,50 +234,65 @@ int dump_regs(long *regs)
 	return 0;
 }
 
-int install_return_hook(long *regs)
+int install_return_hook(long *regs, unsigned type)
 {
-	long *esp = (long *)regs[4];
-	taint_or((long *)esp, sizeof(long), TAINT_RET_TRAP);
-}
-
-int clear_return_hook(long *regs)
-{
-	long *esp = (long *)regs[4];
-	taint_or((long *)esp-4, sizeof(long), TAINT_RET_TRAP);
+	unsigned long esp = regs[4];
+	*(unsigned long *)(esp+TAINT_OFFSET) |= type;
 }
 
 int ptmalloc2_malloc(long *regs)
 {
 	long *esp = (long *)regs[4];
 	long size = esp[1];
-	install_return_hook(regs);
-//	debug("malloc call! size: %x", size);
+	install_return_hook(regs, TAINT_RET_MALLOC);
+//	debug("malloc:size=%x", size);
+	return 0;
+}
+
+int ptmalloc2_malloc_return(long *regs)
+{
+	char *addr = (char *)regs[0];
+	if (addr)
+	{
+		unsigned long size = ((long *)addr)[-1] & ~3;
+		set_reg_taint(REG_EAX, TAINT_LONG(TAINT_POINTER));
+
+		taint_or(addr-sizeof(long)*2, sizeof(long)*2, TAINT_MALLOC_META);
+		taint_and(addr-sizeof(long)*2, sizeof(long)*2, ~TAINT_FREED);
+
+		taint_or(addr+size, sizeof(long), TAINT_MALLOC_META);
+		taint_and(addr+size, sizeof(long), ~TAINT_FREED);
+	}
+//	debug("malloc:addr=%x", addr);
 	return 0;
 }
 
 int ptmalloc2_free(long *regs)
 {
 	long *esp = (long *)regs[4];
-	long addr = esp[1];
-//	debug("free call! address: %x", addr);
+	char *addr = (char *)esp[1];
+//	debug("free:address=%x", addr);
 	if (addr)
 	{
-		unsigned long size = ((long *)addr)[-1] & ~3;
-		taint_or((char *)addr, size-sizeof(long)*2, TAINT_FREED);
-//		memset((char *)addr, (int)'A', size-sizeof(long)*2);
+		unsigned long size = ((unsigned long *)addr)[-1] & ~3;
+//		int prev_inuse = ((long *)addr)[-1] & 1;
+		taint_or(addr, size-sizeof(long)*2, TAINT_FREED);
 	}
 	return 0;
 }
 
 int return_hook(long *regs)
 {
-	char *addr = (char *)regs[0];
-	clear_return_hook(regs);
-	if (addr)
+	unsigned long esp = regs[4];
+	unsigned long taint = *(unsigned long *)(esp-4+TAINT_OFFSET);
+	*(unsigned long *)(esp-4+TAINT_OFFSET) &= ~TAINT_RET_TRAP_MASK;
+	switch ( taint & TAINT_RET_TRAP_MASK )
 	{
-		set_reg_taint(REG_EAX, TAINT_LONG(TAINT_POINTER));
-		taint_or(addr-sizeof(long)*2, sizeof(long)*2, TAINT_MALLOC_META);
+		case TAINT_RET_MALLOC:
+			return ptmalloc2_malloc_return(regs);
+			
+		default:
+			return 0;
 	}
-//	debug("return hook!");
-	return 0;
 }
+

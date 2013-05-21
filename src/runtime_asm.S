@@ -20,6 +20,7 @@
 #include "asm_consts_gen.h"
 #include "segments.h"
 #include "opcodes.h"
+#include "taint.h"
 
 .global runtime_cache_resolution_start
 runtime_cache_resolution_start:
@@ -33,7 +34,7 @@ movl %eax, %fs:CTX__USER_EIP
 mov %esp, %fs:CTX__USER_ESP
 mov %fs:CTX__SCRATCH_STACK_TOP, %esp
 pushf
-cmp $0x80808080, %ecx
+test $TAINT_RET_TRAP_INVMASK, %ecx
 pextrd $0, %xmm4, %ecx
 pextrd $0, %xmm3, %eax
 pextrd $0, %xmm5, %edx
@@ -51,7 +52,11 @@ call block_signals
 call do_taint_dump
 ud2
 return_hook_taint:
+call block_signals
 call return_hook
+push %eax
+call unblock_signals
+pop %eax
 test %eax,%eax
 lea 4(%esp), %esp
 pop %eax
