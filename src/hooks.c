@@ -258,10 +258,7 @@ int ptmalloc2_malloc_return(long *regs)
 		set_reg_taint(REG_EAX, TAINT_LONG(TAINT_POINTER));
 
 		taint_or(addr-sizeof(long)*2, sizeof(long)*2, TAINT_MALLOC_META);
-		taint_and(addr-sizeof(long)*2, sizeof(long)*2, ~TAINT_FREED);
-
 		taint_or(addr+size, sizeof(long), TAINT_MALLOC_META);
-		taint_and(addr+size, sizeof(long), ~TAINT_FREED);
 	}
 //	debug("malloc:addr=%x", addr);
 	return 0;
