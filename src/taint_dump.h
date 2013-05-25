@@ -39,6 +39,8 @@ void do_regs_dump(int fd, long *regs);
 
 void do_taint_dump(long *regs);
 
+int open_dump_file(char *basename);
+
 int open_taint_log(void);
 
 #endif /* TAINT_DUMP_H */

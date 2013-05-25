@@ -123,7 +123,7 @@ char *get_taint_dump_dir(void)
 	return taint_dump_dir;
 }
 
-static int open_taint_dump_file(char *basename)
+int open_dump_file(char *basename)
 {
 	if ( taint_dump_dir == NULL )
 		return -1;
@@ -135,12 +135,12 @@ static int open_taint_dump_file(char *basename)
 	strcat(buf, basename);
 	numcat(buf, sys_gettid());
 	strcat(buf, ".dump");
-	return sys_open(buf, O_RDWR|O_CREAT, 0600);
+	return sys_open(buf, O_RDWR|O_CREAT|O_CLOEXEC|O_APPEND, 0600);
 }
 
 int open_taint_log(void)
 {
-	return open_taint_dump_file("taint_log_");
+	return open_dump_file("taint_log_");
 }
 
 void do_regs_dump(int fd, long *regs)
@@ -155,7 +155,7 @@ void do_taint_dump(long *regs)
 {
 	int fd;
 
-	if ( (fd = open_taint_dump_file("taint_hexdump_")) < 0 )
+	if ( (fd = open_dump_file("taint_hexdump_")) < 0 )
 		return;
 
 	fd_printf(fd, "jump address:\n");
