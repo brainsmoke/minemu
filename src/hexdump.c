@@ -77,7 +77,7 @@ void hexdump_line(int fd, const void *data, ssize_t len,
 			if ( indices && colors && (cur != indices[i]) )
 				fd_printf(fd, "%s", colors[cur = indices[i]]);
 
-			fd_printf(fd, " %02x", ((unsigned char *)data)[i]);
+			fd_printf(fd, " %02x", ((const unsigned char *)data)[i]);
 		}
 		else
 			fd_printf(fd, "   ");
@@ -99,7 +99,7 @@ void hexdump_line(int fd, const void *data, ssize_t len,
 			if ( indices && colors && (cur != indices[i]) )
 				fd_printf(fd, "%s", colors[cur = indices[i]]);
 
-			c = ((unsigned char *)data)[i];
+			c = ((const unsigned char *)data)[i];
 			fd_printf(fd, "%c", isprint(c)?c:'.');
 		}
 
@@ -121,7 +121,7 @@ void hexdump(int fd, const void *data, ssize_t len,
 	ssize_t row;
 
 	for (row=0; row*16<len; row++)
-		hexdump_line(fd, (char*)data+row*16, min(16, len-row*16),
+		hexdump_line(fd, (const char*)data+row*16, min(16, len-row*16),
 		             offset, ascii,
 		             description ? description[row] : NULL,
 		             indices+row*16, colors);
@@ -151,8 +151,8 @@ void hexdump_diff(int fd, const void *data1, ssize_t len1,
 			if ( (row*16+i) % grane == 0 )
 			{
 				if ( (minlen != maxlen && minlen-i-row*16 < grane) ||
-				      memcmp( (char*)data1+row*16+i,
-				              (char*)data2+row*16+i,
+				      memcmp( (const char*)data1+row*16+i,
+				              (const char*)data2+row*16+i,
 				              min(grane, minlen-i-row*16)) )
 					diff = DIFF;
 				else
@@ -162,10 +162,10 @@ void hexdump_diff(int fd, const void *data1, ssize_t len1,
 			d[i] = diff;
 		}
 
-		hexdump_line(fd, (char*)data1+row*16, min(16, len1-row*16),
+		hexdump_line(fd, (const char*)data1+row*16, min(16, len1-row*16),
 		             offset, ascii,
 		             description ? description[row] : NULL, d, color1);
-		hexdump_line(fd, (char*)data2+row*16, min(16, len2-row*16),
+		hexdump_line(fd, (const char*)data2+row*16, min(16, len2-row*16),
 		             offset, ascii, NULL, d, color2);
 	}
 }
@@ -215,23 +215,23 @@ void hexdump_diff3(int fd, const void *old, ssize_t old_len,
 
 				if ( min(old_len -i-row*16, grane) !=
 				     min(new_len1-i-row*16, grane) ||
-				     memcmp( (char*)old+row*16+i,
-				             (char*)new1+row*16+i,
+				     memcmp( (const char*)old+row*16+i,
+				             (const char*)new1+row*16+i,
 				              min(grane, min(old_len-i-row*16,grane))) )
 					diff |= DIFF1;
 
 				if ( min(old_len -i-row*16, grane) !=
 				     min(new_len2-i-row*16, grane) ||
-				     memcmp( (char*)old+row*16+i,
-				             (char*)new2+row*16+i,
+				     memcmp( (const char*)old+row*16+i,
+				             (const char*)new2+row*16+i,
 				              min(grane, min(old_len-i-row*16,grane))) )
 					diff |= DIFF2;
 
 				if ( diff == (DIFF1|DIFF2) &&
 				     (min(new_len1-i-row*16, grane) ==
 				      min(new_len2-i-row*16, grane) &&
-				     !memcmp( (char*)new1+row*16+i,
-				              (char*)new2+row*16+i,
+				     !memcmp( (const char*)new1+row*16+i,
+				              (const char*)new2+row*16+i,
 				               min(grane, min(new_len1-i-row*16,grane)))) )
 					diff = SAMEDIFF;
 			}
@@ -239,12 +239,12 @@ void hexdump_diff3(int fd, const void *old, ssize_t old_len,
 			d[i] = diff;
 		}
 
-		hexdump_line(fd, (char*)old+row*16, min(16, old_len-row*16),
+		hexdump_line(fd, (const char*)old+row*16, min(16, old_len-row*16),
 		             offset, ascii,
 		             description ? description[row] : NULL, dold, oldcolor);
-		hexdump_line(fd, (char*)new1+row*16, min(16, new_len1-row*16),
+		hexdump_line(fd, (const char*)new1+row*16, min(16, new_len1-row*16),
 		             offset, ascii, NULL, d, color1);
-		hexdump_line(fd, (char*)new2+row*16, min(16, new_len2-row*16),
+		hexdump_line(fd, (const char*)new2+row*16, min(16, new_len2-row*16),
 		             offset, ascii, NULL, d, color2);
 	}
 }
