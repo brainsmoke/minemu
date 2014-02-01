@@ -71,9 +71,9 @@ struct kernel_sigframe {
 struct kernel_rt_sigframe {
     char *pretcode;
     int sig;
-    struct siginfo *pinfo;
+    siginfo_t *pinfo;
     void *puc;
-    struct siginfo info;
+    siginfo_t info;
     struct kernel_ucontext uc;
     char retcode[8];
 	/* fpstate */
