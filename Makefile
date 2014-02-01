@@ -14,7 +14,7 @@ LDFLAGS=-m32
 EMU_LDFLAGS=-z noexecstack --warn-common -melf_i386
 
 #SETTINGS=-g 
-SETTINGS=-Os -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables
+SETTINGS=-Os -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables -Wfloat-equal -Waddress -Wmissing-field-initializers
 WARNINGS=-Wno-unused-parameter -Wextra -Wshadow -pedantic -std=gnu99 -fno-stack-protector #-U_FORTIFY_SOURCE
 
 CFLAGS=-MMD -MF .dep/$@.d $(WARNINGS) $(SETTINGS) -m32

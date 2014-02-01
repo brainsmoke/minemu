@@ -25,14 +25,11 @@ int main(int argc, char **argv)
 {
 	unsigned int p = personality(0xffffffff);
 	int len;
-	if (p&ADDR_COMPAT_LAYOUT)
-	{
-		len = write(1, (char *)0x4001c000, 0x1000);
-	}
-	else
+	if (! (p&ADDR_COMPAT_LAYOUT) )
 	{
 		personality(p|ADDR_COMPAT_LAYOUT);
 		execvp("/proc/self/exe", argv);
 	}
+	len = write(1, (char *)0x4001c000, 0x1000);
 	exit(len == 0x1000 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
